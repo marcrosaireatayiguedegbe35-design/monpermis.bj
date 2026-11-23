@@ -1,33 +1,34 @@
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
-import { Trash2, User } from 'lucide-react-native'
-import { useState } from 'react'
+import { ChevronDown, ChevronUp, KeyRound, LogOut, Phone, Trash2, User } from 'lucide-react-native'
+import { useState, type ReactNode } from 'react'
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native'
-import {
-  changePassword,
-  deleteAccount,
-  getAuthErrorDetails,
-  updateProfile,
-} from '../api/auth'
-import { AuthInput } from '../components/AuthInput'
-import { Bouncy } from '../components/Bouncy'
+import { changePassword, deleteAccount, getAuthErrorDetails, updateProfile } from '../api/auth'
+import { PillButton } from '../components/AuthLight'
 import { DarkHeader, DarkScreen } from '../components/DarkScreen'
+import { PillInput } from '../components/PillInput'
 import { ScreenLoader } from '../components/ScreenLoader'
 import { useAuth } from '../context/AuthContext'
 import { useRequireAuth } from '../hooks/useRequireAuth'
 import type { RootStackParamList } from '../navigation/types'
 import { dark, fonts } from '../theme'
+import { confirmAction, notify } from '../utils/notify'
 import { normalizePhone, validateName, validatePassword, validatePhone } from '../utils/validation'
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Profile'>
+type Section = 'password' | 'delete' | null
+
+function initialsOf(firstName?: string, lastName?: string) {
+  return `${(firstName || '').trim().charAt(0)}${(lastName || '').trim().charAt(0)}`.toUpperCase() || '·'
+}
 
 export function ProfileScreen() {
   const navigation = useNavigation<Nav>()
@@ -37,25 +38,19 @@ export function ProfileScreen() {
   const [firstName, setFirstName] = useState(user?.firstName ?? '')
   const [lastName, setLastName] = useState(user?.lastName ?? '')
   const [phone, setPhone] = useState(user?.phone ?? '')
-  const [profileErrors, setProfileErrors] = useState<{
-    firstName?: string
-    lastName?: string
-    phone?: string
-  }>({})
-  const [profileMsg, setProfileMsg] = useState<string | null>(null)
-  const [savingProfile, setSavingProfile] = useState(false)
+  const [errors, setErrors] = useState<{ firstName?: string; lastName?: string; phone?: string }>({})
+  const [msg, setMsg] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
+  const [open, setOpen] = useState<Section>(null)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [pwErrors, setPwErrors] = useState<{
-    currentPassword?: string
-    newPassword?: string
-    confirmPassword?: string
-  }>({})
+  const [pwErrors, setPwErrors] = useState<{ current?: string; next?: string; confirm?: string }>({})
   const [pwMsg, setPwMsg] = useState<string | null>(null)
   const [savingPw, setSavingPw] = useState(false)
   const [deletePassword, setDeletePassword] = useState('')
+  const [deleteError, setDeleteError] = useState<string | undefined>()
   const [deleting, setDeleting] = useState(false)
 
   if (authLoading || !user) {
@@ -67,19 +62,23 @@ export function ProfileScreen() {
     )
   }
 
-  const handleSaveProfile = async () => {
+  const isGoogle = user.authProvider === 'google'
+  const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim()
+  const subtitle = (user.email || user.phone || '').trim()
+
+  const saveProfile = async () => {
     const errs = {
       firstName: validateName(firstName, 'Le prénom'),
       lastName: validateName(lastName, 'Le nom'),
       phone: validatePhone(phone),
     }
     if (Object.values(errs).some(Boolean)) {
-      setProfileErrors(errs)
+      setErrors(errs)
       return
     }
-    setProfileErrors({})
-    setProfileMsg(null)
-    setSavingProfile(true)
+    setErrors({})
+    setMsg(null)
+    setSaving(true)
     try {
       const { user: updated } = await updateProfile({
         firstName: firstName.trim(),
@@ -87,53 +86,20 @@ export function ProfileScreen() {
         phone: normalizePhone(phone),
       })
       await updateUser(updated)
-      setProfileMsg('Profil mis à jour ✓')
+      setMsg('Profil mis à jour ✓')
     } catch (error) {
-      setProfileErrors({ firstName: getAuthErrorDetails(error).message })
+      setErrors({ firstName: getAuthErrorDetails(error).message })
     } finally {
-      setSavingProfile(false)
+      setSaving(false)
     }
   }
 
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      'Supprimer mon compte',
-      'Cette action est définitive. Profil, abonnements liés et notifications seront effacés.',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: () => {
-            if (!deletePassword) {
-              Alert.alert('Mot de passe requis', 'Saisis ton mot de passe pour confirmer.')
-              return
-            }
-            setDeleting(true)
-            void deleteAccount({
-              confirm: true,
-              password: deletePassword,
-            })
-              .then(async () => {
-                await signOut()
-                navigation.reset({ index: 0, routes: [{ name: 'Intro' }] })
-              })
-              .catch((error) => {
-                Alert.alert('Erreur', getAuthErrorDetails(error).message)
-              })
-              .finally(() => setDeleting(false))
-          },
-        },
-      ],
-    )
-  }
-
-  const handleChangePassword = async () => {
+  const savePassword = async () => {
     const errs: typeof pwErrors = {}
-    if (!currentPassword) errs.currentPassword = 'Code actuel requis'
-    const newPwError = validatePassword(newPassword)
-    if (newPwError) errs.newPassword = newPwError
-    if (confirmPassword !== newPassword) errs.confirmPassword = 'Les codes ne correspondent pas'
+    if (!currentPassword) errs.current = 'Mot de passe actuel requis'
+    const nextError = validatePassword(newPassword)
+    if (nextError) errs.next = nextError
+    if (confirmPassword !== newPassword) errs.confirm = 'Les mots de passe ne correspondent pas'
     if (Object.values(errs).some(Boolean)) {
       setPwErrors(errs)
       return
@@ -148,232 +114,256 @@ export function ProfileScreen() {
       setNewPassword('')
       setConfirmPassword('')
     } catch (error) {
-      setPwErrors({ currentPassword: getAuthErrorDetails(error).message })
+      setPwErrors({ current: getAuthErrorDetails(error).message })
     } finally {
       setSavingPw(false)
     }
   }
 
-  if (authLoading || !user) return <ScreenLoader />
+  const logout = async () => {
+    await signOut()
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] })
+  }
+
+  const removeAccount = async () => {
+    if (!isGoogle && !deletePassword) {
+      setDeleteError('Saisis ton mot de passe pour confirmer')
+      return
+    }
+    const ok = await confirmAction(
+      'Supprimer mon compte',
+      'Cette action est définitive. Profil, abonnements liés et notifications seront effacés.',
+      'Supprimer',
+    )
+    if (!ok) return
+    setDeleteError(undefined)
+    setDeleting(true)
+    try {
+      await deleteAccount({ confirm: true, password: isGoogle ? undefined : deletePassword })
+      await signOut()
+      navigation.reset({ index: 0, routes: [{ name: 'Intro' }] })
+    } catch (error) {
+      const message = getAuthErrorDetails(error).message
+      setDeleteError(message)
+      notify('Suppression impossible', message)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const toggle = (section: Exclude<Section, null>) => setOpen((cur) => (cur === section ? null : section))
 
   return (
-    <DarkScreen>
+    <DarkScreen hideFooter>
       <DarkHeader title="Mon profil" onBack={() => navigation.goBack()} icon={User} />
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <Text style={styles.sectionTitle}>Mes informations</Text>
-          {!String(phone || '').trim() ? (
-            <Text style={styles.phoneHint}>
-              Ajoute ton numéro pour payer en Mobile Money et recevoir les rappels.
-            </Text>
-          ) : null}
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <View style={styles.hero}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initialsOf(user.firstName, user.lastName)}</Text>
+            </View>
+            <View style={styles.heroCopy}>
+              <Text style={styles.name} numberOfLines={1}>
+                {fullName || 'Mon compte'}
+              </Text>
+              {subtitle ? (
+                <Text style={styles.sub} numberOfLines={1}>
+                  {subtitle}
+                </Text>
+              ) : null}
+              <View style={styles.chip}>
+                <Text style={styles.chipText}>{isGoogle ? 'Compte Google' : 'Compte téléphone'}</Text>
+              </View>
+            </View>
+          </View>
+
           <View style={styles.card}>
             <View style={styles.row}>
               <View style={styles.half}>
-                <AuthInput
+                <PillInput
+                  compact
                   label="Prénom"
+                  placeholder="Prénom"
                   value={firstName}
                   onChangeText={setFirstName}
                   autoCapitalize="words"
-                  error={profileErrors.firstName}
+                  error={errors.firstName}
                 />
               </View>
               <View style={styles.half}>
-                <AuthInput
+                <PillInput
+                  compact
                   label="Nom"
+                  placeholder="Nom"
                   value={lastName}
                   onChangeText={setLastName}
                   autoCapitalize="words"
-                  error={profileErrors.lastName}
+                  error={errors.lastName}
                 />
               </View>
             </View>
-            <AuthInput
+            <PillInput
+              compact
               label="Téléphone"
+              icon={Phone}
+              placeholder="Téléphone (ex. 0147880143)"
               value={phone}
               onChangeText={(v) => setPhone(normalizePhone(v))}
               keyboardType="phone-pad"
-              placeholder="0147880143"
-              error={profileErrors.phone}
+              error={errors.phone}
             />
-            {profileMsg ? <Text style={styles.successMsg}>{profileMsg}</Text> : null}
-            <Bouncy onPress={handleSaveProfile} disabled={savingProfile} scaleTo={0.97}>
-              <View style={[styles.primaryBtn, savingProfile && styles.disabled]}>
-                <Text style={styles.primaryBtnText}>
-                  {savingProfile ? 'Enregistrement…' : 'Enregistrer'}
-                </Text>
-              </View>
-            </Bouncy>
+            {!String(phone || '').trim() ? (
+              <Text style={styles.hint}>Ajoute ton numéro pour payer en Mobile Money et recevoir les rappels.</Text>
+            ) : null}
+            {msg ? <Text style={styles.success}>{msg}</Text> : null}
+            <PillButton label={saving ? 'Enregistrement…' : 'Enregistrer'} onPress={saveProfile} disabled={saving} />
           </View>
 
-          <Text style={styles.sectionTitle}>Changer de mot de passe</Text>
-          <View style={styles.card}>
-            <AuthInput
-              label="Mot de passe actuel"
-              value={currentPassword}
-              onChangeText={setCurrentPassword}
-              secureTextEntry
-              error={pwErrors.currentPassword}
-            />
-            <AuthInput
-              label="Nouveau mot de passe"
-              value={newPassword}
-              onChangeText={setNewPassword}
-              secureTextEntry
-              error={pwErrors.newPassword}
-            />
-            <AuthInput
-              label="Confirmer le mot de passe"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              error={pwErrors.confirmPassword}
-            />
-            {pwMsg ? <Text style={styles.successMsg}>{pwMsg}</Text> : null}
-            <Bouncy onPress={handleChangePassword} disabled={savingPw} scaleTo={0.97}>
-              <View style={[styles.primaryBtn, savingPw && styles.disabled]}>
-                <Text style={styles.primaryBtnText}>
-                  {savingPw ? 'Modification…' : 'Modifier le mot de passe'}
-                </Text>
-              </View>
-            </Bouncy>
+          <View style={styles.list}>
+            {!isGoogle ? (
+              <Accordion
+                icon={<KeyRound size={18} color={dark.green} />}
+                title="Changer le mot de passe"
+                open={open === 'password'}
+                onToggle={() => toggle('password')}
+              >
+                <PillInput compact label="Mot de passe actuel" placeholder="Mot de passe actuel" secureTextEntry value={currentPassword} onChangeText={setCurrentPassword} error={pwErrors.current} />
+                <PillInput compact label="Nouveau mot de passe" placeholder="Nouveau mot de passe" secureTextEntry value={newPassword} onChangeText={setNewPassword} error={pwErrors.next} />
+                <PillInput compact label="Confirmer" placeholder="Confirmer le mot de passe" secureTextEntry value={confirmPassword} onChangeText={setConfirmPassword} error={pwErrors.confirm} />
+                {pwMsg ? <Text style={styles.success}>{pwMsg}</Text> : null}
+                <PillButton label={savingPw ? 'Modification…' : 'Modifier le mot de passe'} onPress={savePassword} disabled={savingPw} />
+              </Accordion>
+            ) : null}
+
+            <Accordion
+              icon={<Trash2 size={18} color={dark.coral} />}
+              title="Supprimer mon compte"
+              danger
+              open={open === 'delete'}
+              onToggle={() => toggle('delete')}
+              last
+            >
+              <Text style={styles.dangerText}>
+                La suppression est définitive : profil, abonnements liés et notifications seront effacés.
+              </Text>
+              {!isGoogle ? (
+                <PillInput compact label="Mot de passe" placeholder="Mot de passe pour confirmer" secureTextEntry value={deletePassword} onChangeText={setDeletePassword} />
+              ) : null}
+              {deleteError ? <Text style={styles.errorText}>{deleteError}</Text> : null}
+              <Pressable onPress={removeAccount} disabled={deleting} style={[styles.dangerBtn, deleting && { opacity: 0.6 }]} accessibilityRole="button">
+                <Text style={styles.dangerBtnText}>{deleting ? 'Suppression…' : 'Supprimer définitivement'}</Text>
+              </Pressable>
+            </Accordion>
           </View>
 
-          <Text style={styles.sectionTitle}>Zone sensible</Text>
-          <View style={[styles.card, styles.dangerCard]}>
-            <Text style={styles.dangerText}>
-              La suppression du compte est définitive (profil, abonnements liés, notifications).
-            </Text>
-            <AuthInput
-              label="Mot de passe pour confirmer"
-              value={deletePassword}
-              onChangeText={setDeletePassword}
-              secureTextEntry
-            />
-            <Bouncy onPress={handleDeleteAccount} disabled={deleting} scaleTo={0.97}>
-              <View style={[styles.dangerBtn, deleting && styles.disabled]}>
-                <Trash2 size={16} color="#fff" />
-                <Text style={styles.dangerBtnText}>
-                  {deleting ? 'Suppression…' : 'Supprimer mon compte'}
-                </Text>
-              </View>
-            </Bouncy>
-          </View>
+          <Pressable onPress={logout} style={({ pressed }) => [styles.logout, pressed && { opacity: 0.8 }]} accessibilityRole="button" accessibilityLabel="Se déconnecter">
+            <LogOut size={18} color={dark.coral} />
+            <Text style={styles.logoutText}>Se déconnecter</Text>
+          </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </DarkScreen>
   )
 }
 
+function Accordion({
+  icon,
+  title,
+  open,
+  onToggle,
+  children,
+  danger,
+  last,
+}: {
+  icon: ReactNode
+  title: string
+  open: boolean
+  onToggle: () => void
+  children: ReactNode
+  danger?: boolean
+  last?: boolean
+}) {
+  return (
+    <View style={[styles.acc, !last && styles.accDivider]}>
+      <Pressable onPress={onToggle} style={styles.accHead} accessibilityRole="button" accessibilityState={{ expanded: open }}>
+        {icon}
+        <Text style={[styles.accTitle, danger && { color: dark.coral }]}>{title}</Text>
+        {open ? <ChevronUp size={18} color={dark.textMuted} /> : <ChevronDown size={18} color={dark.textMuted} />}
+      </Pressable>
+      {open ? <View style={styles.accBody}>{children}</View> : null}
+    </View>
+  )
+}
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  flexShrink: { flex: 1 },
-  scroll: {
-    paddingHorizontal: 22,
-    paddingTop: 8,
-    paddingBottom: 28,
-    gap: 8,
-  },
-  emailCard: {
-    flexDirection: 'row',
+  scroll: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 24, gap: 14 },
+  hero: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  avatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: dark.surface,
-    borderWidth: 1,
-    borderColor: dark.border,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 8,
+    justifyContent: 'center',
+    backgroundColor: dark.greenSoft,
+    borderWidth: 2,
+    borderColor: 'rgba(0,176,80,0.35)',
   },
-  emailLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 12,
-    color: dark.textMuted,
+  avatarText: { fontFamily: fonts.displayBold, fontSize: 22, color: dark.green },
+  heroCopy: { flex: 1, gap: 2 },
+  name: { fontFamily: fonts.displayBold, fontSize: 20, color: dark.textPrimary },
+  sub: { fontFamily: fonts.body, fontSize: 13, color: dark.textMuted },
+  chip: {
+    alignSelf: 'flex-start',
+    marginTop: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: dark.greenSoft,
   },
-  emailValue: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 15,
-    color: dark.textPrimary,
-    marginTop: 2,
-  },
-  sectionTitle: {
-    fontFamily: fonts.displayBold,
-    fontSize: 15,
-    color: dark.textPrimary,
-    marginTop: 12,
-    marginBottom: 4,
-    marginLeft: 2,
-  },
-  phoneHint: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: '#b45309',
-    marginBottom: 8,
-    marginLeft: 2,
-  },
+  chipText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: dark.green },
   card: {
-    backgroundColor: dark.surface,
+    gap: 10,
+    padding: 14,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: dark.border,
-    borderRadius: 20,
-    padding: 16,
-    gap: 16,
   },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
+  row: { flexDirection: 'row', gap: 10 },
   half: { flex: 1 },
-  primaryBtn: {
-    minHeight: 50,
-    borderRadius: 14,
-    backgroundColor: dark.green,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
+  hint: { fontFamily: fonts.body, fontSize: 12, lineHeight: 17, color: '#B45309', marginHorizontal: 6 },
+  success: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: dark.green, textAlign: 'center' },
+  list: {
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: dark.border,
+    overflow: 'hidden',
   },
-  primaryBtnText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 15,
-    color: '#0B0F1A',
-  },
-  disabled: { opacity: 0.6 },
-  successMsg: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-    color: dark.green,
-    textAlign: 'center',
-  },
-  dangerCard: {
-    borderColor: 'rgba(239, 68, 68, 0.35)',
-  },
-  dangerText: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    lineHeight: 19,
-    color: dark.textMuted,
-  },
+  acc: { paddingHorizontal: 16 },
+  accDivider: { borderBottomWidth: 1, borderBottomColor: dark.border },
+  accHead: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 54 },
+  accTitle: { flex: 1, fontFamily: fonts.bodySemiBold, fontSize: 15, color: dark.textPrimary },
+  accBody: { gap: 10, paddingBottom: 16 },
+  dangerText: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: dark.textMuted },
+  errorText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: dark.coral, marginLeft: 6 },
   dangerBtn: {
-    minHeight: 50,
-    borderRadius: 14,
-    backgroundColor: '#b91c1c',
+    height: 48,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
+    backgroundColor: dark.coral,
+  },
+  dangerBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: '#FFFFFF' },
+  logout: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    height: 52,
+    borderRadius: 999,
+    backgroundColor: dark.coralSoft,
   },
-  dangerBtnText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 15,
-    color: '#fff',
-  },
+  logoutText: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: dark.coral },
 })

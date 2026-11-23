@@ -14,12 +14,13 @@ import { dark, fonts } from '../theme'
 type Props = TextInputProps & {
   /** Libellé accessible (le champ n'affiche que son placeholder, comme le modèle Carentrix). */
   label: string
-  icon: LucideIcon
+  icon?: LucideIcon
+  compact?: boolean
   error?: string
 }
 
 /** Champ en pilule : icône à gauche, placeholder seul, œil pour les mots de passe, anneau vert au focus. */
-export function PillInput({ label, icon: Icon, error, secureTextEntry, style, onFocus, onBlur, ...props }: Props) {
+export function PillInput({ label, icon: Icon, compact, error, secureTextEntry, style, onFocus, onBlur, ...props }: Props) {
   const [show, setShow] = useState(false)
   const [focused, setFocused] = useState(false)
   const isPassword = Boolean(secureTextEntry)
@@ -27,8 +28,8 @@ export function PillInput({ label, icon: Icon, error, secureTextEntry, style, on
 
   return (
     <View style={styles.group}>
-      <View style={[styles.pill, focused && styles.pillFocused, error ? styles.pillError : null]}>
-        <Icon size={20} color={tint} />
+      <View style={[styles.pill, compact && styles.pillCompact, focused && styles.pillFocused, error ? styles.pillError : null]}>
+        {Icon ? <Icon size={20} color={tint} /> : null}
         <TextInput
           accessibilityLabel={label}
           style={[styles.input, style]}
@@ -82,6 +83,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
+  pillCompact: { height: 50, paddingHorizontal: 16 },
   pillFocused: {
     backgroundColor: '#FFFFFF',
     borderColor: dark.green,

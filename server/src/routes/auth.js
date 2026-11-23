@@ -505,11 +505,15 @@ router.delete('/account', requireUserAuth, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Compte introuvable' })
     }
 
-    if (!password) {
-      return res.status(400).json({ success: false, error: 'Code requis' })
-    }
-    if (!(await user.comparePassword(password))) {
-      return res.status(401).json({ success: false, error: 'Code incorrect' })
+    // Compte Google : pas de mot de passe — la confirmation explicite suffit.
+    const googleWithoutPassword = user.authProvider === 'google' && !user.password
+    if (!googleWithoutPassword) {
+      if (!password) {
+        return res.status(400).json({ success: false, error: 'Mot de passe requis' })
+      }
+      if (!(await user.comparePassword(password))) {
+        return res.status(401).json({ success: false, error: 'Mot de passe incorrect' })
+      }
     }
 
     await deleteUserAccount(user._id, { cancelledBy: 'learner' })

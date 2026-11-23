@@ -33,6 +33,7 @@ import {
   fetchAccessMe,
   fetchAccessModules,
   computeModuleAmount,
+  redeemPromoCode,
   type AccessMe,
   type AccessModule,
 } from '../api/accessRequests'
@@ -409,6 +410,12 @@ export function CodeRouteScreen() {
             modules={modules}
             defaultPhone={user.phone}
             onClose={() => setCheckoutOpen(false)}
+            onRedeemPromo={async (code) => {
+              // Code promo donné par l'administrateur : débloque l'accès sans paiement.
+              const result = await redeemPromoCode(code)
+              setAccessMe(result.access)
+              setCheckoutOpen(false)
+            }}
             onSuccess={(access) => {
               setAccessMe(access)
               setCheckoutOpen(false)

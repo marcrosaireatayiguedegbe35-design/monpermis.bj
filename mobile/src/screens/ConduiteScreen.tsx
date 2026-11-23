@@ -35,6 +35,7 @@ import {
   fetchAccessMe,
   fetchAccessModules,
   computeModuleAmount,
+  redeemPromoCode,
   claimFreeAccess,
   type AccessMe,
   type AccessModule,
@@ -338,6 +339,12 @@ export function ConduiteScreen() {
             modules={modules}
             defaultPhone={user.phone}
             onClose={() => setCheckoutOpen(false)}
+            onRedeemPromo={async (code) => {
+              // Code promo donné par l'administrateur : débloque l'accès sans paiement.
+              const result = await redeemPromoCode(code)
+              setAccessMe(result.access)
+              setCheckoutOpen(false)
+            }}
             onSuccess={(access) => {
               setAccessMe(access)
               setCheckoutOpen(false)

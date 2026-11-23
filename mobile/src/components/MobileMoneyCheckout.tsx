@@ -242,6 +242,34 @@ export function MobileMoneyCheckout({
     }
   }
 
+  const promoSection = onRedeemPromo ? (
+              <View style={styles.promoBox}>
+                <Text style={styles.kicker}>Code promo</Text>
+                <TextInput
+                  style={styles.input}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  placeholder="Entrez votre code promo"
+                  placeholderTextColor={dark.textMuted}
+                  value={promoCode}
+                  editable={!promoBusy}
+                  onChangeText={(text) => setPromoCode(text.toUpperCase())}
+                />
+                {promoError ? <Text style={styles.error}>{promoError}</Text> : null}
+                <Pressable
+                  style={[styles.payBtn, (promoBusy || !promoCode.trim()) && styles.disabled]}
+                  disabled={promoBusy || !promoCode.trim()}
+                  onPress={() => void redeemPromo()}
+                >
+                  {promoBusy ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.payText}>Utiliser le code promo</Text>
+                  )}
+                </Pressable>
+              </View>
+  ) : null
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.backdrop}>
@@ -283,6 +311,7 @@ export function MobileMoneyCheckout({
                 >
                   <Text style={styles.payText}>Passer au paiement</Text>
                 </Pressable>
+                {promoSection}
               </View>
             ) : null}
 
@@ -304,33 +333,7 @@ export function MobileMoneyCheckout({
                     <Text style={styles.choiceText}>{item.label}</Text>
                   </Pressable>
                 ))}
-                {onRedeemPromo ? (
-                  <View style={styles.promoBox}>
-                    <Text style={styles.kicker}>Code promo</Text>
-                    <TextInput
-                      style={styles.input}
-                      autoCapitalize="characters"
-                      autoCorrect={false}
-                      placeholder="Entrez votre code promo"
-                      placeholderTextColor={dark.textMuted}
-                      value={promoCode}
-                      editable={!promoBusy}
-                      onChangeText={(text) => setPromoCode(text.toUpperCase())}
-                    />
-                    {promoError ? <Text style={styles.error}>{promoError}</Text> : null}
-                    <Pressable
-                      style={[styles.payBtn, (promoBusy || !promoCode.trim()) && styles.disabled]}
-                      disabled={promoBusy || !promoCode.trim()}
-                      onPress={() => void redeemPromo()}
-                    >
-                      {promoBusy ? (
-                        <ActivityIndicator color="#fff" />
-                      ) : (
-                        <Text style={styles.payText}>Utiliser le code promo</Text>
-                      )}
-                    </Pressable>
-                  </View>
-                ) : null}
+                {promoSection}
                 <Pressable style={styles.backBtn} onPress={() => setStep('intro')}>
                   <Text style={styles.backText}>Retour</Text>
                 </Pressable>
