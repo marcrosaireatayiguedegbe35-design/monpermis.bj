@@ -59,7 +59,8 @@
     "web": "expo start --web",
     "lint": "tsc --noEmit",
     "test": "node --experimental-strip-types scripts/unit-tests.mjs",
-    "postinstall": "node scripts/fix-expo-constants.mjs"
+    "postinstall": "node scripts/fix-expo-constants.mjs",
+    "build:web": "expo export --platform web && node scripts/fix-web-assets.mjs"
   },
   "private": true
 }
