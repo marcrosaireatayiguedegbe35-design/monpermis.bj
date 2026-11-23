@@ -198,7 +198,7 @@ export function HomeScreen() {
                 onPress={() => navigation.navigate('Profile')}
               >
                 <Text style={styles.phoneStripText} numberOfLines={1}>
-                  Numéro manquant — ajoute ton téléphone
+                  Numéro manquant, ajoute ton téléphone
                 </Text>
                 <Text style={styles.phoneStripAction}>Compléter</Text>
                 <ChevronRight size={16} color={dark.textMuted} />
