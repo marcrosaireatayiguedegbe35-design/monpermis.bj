@@ -1,0 +1,4 @@
+Je peux utiliser l’avertisseur sonore pour :
+A. avertir de ma présence un usager qui ne me regarde pas
+B. signaler à un usager qu’il vient de commettre une faute
+C. passer lorsque j’ai la priorité

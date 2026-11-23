@@ -16,6 +16,9 @@ const root = join(__dirname, '../..')
 const mod = await import(
   pathToFileURL(join(root, 'server/src/data/hardcodedQuestions/index.js')).href
 )
+const { EXAM_CATEGORIES, CHAPTER_CATEGORY_RULES } = await import(
+  pathToFileURL(join(root, 'server/src/utils/examCategories.js')).href
+)
 const { isExamEligible } = await import(
   pathToFileURL(join(root, 'server/src/services/examEligibility.js')).href
 )
@@ -141,6 +144,14 @@ for (const bank of banks) {
   mapEntries.push(`  ${order}: CHAPITRE_${order},`)
 }
 
+const categoriesBlock = `
+/** Catégories de permis proposées avant un examen (même liste que le serveur). */
+export const EXAM_CATEGORIES: { id: string; label: string; hint?: string }[] = ${JSON.stringify(EXAM_CATEGORIES, null, 2)}
+
+/** Chapitres réservés à certaines catégories (un chapitre absent est commun à tous). */
+export const CHAPTER_CATEGORY_RULES: Record<number, string[]> = ${JSON.stringify(CHAPTER_CATEGORY_RULES)}
+`
+
 const footer = `
 const BANKS_BY_ORDER: Record<number, LocalQuestion[]> = {
 ${mapEntries.join('\n')}
@@ -195,7 +206,7 @@ export function checkLocalAnswers(questionId: string, answerIds: string[]) {
 }
 `
 
-const out = header + body + footer
+const out = header + body + categoriesBlock + footer
 const webPath = join(root, 'src/data/codeRoute/banks.ts')
 const mobilePath = join(root, 'mobile/src/data/codeRoute/banks.ts')
 writeFileSync(webPath, out)

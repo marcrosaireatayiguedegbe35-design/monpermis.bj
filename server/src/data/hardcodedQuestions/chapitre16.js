@@ -51,4 +51,20 @@ function question(order, letterOptions, correctLetters) {
 }
 
 /** 15 questions — énoncé audio uniquement ; réponses A/B/C/D. */
-export const CHAPITRE_16_QUESTIONS = []
+export const CHAPITRE_16_QUESTIONS = [
+  question(1, ['A', 'B', 'C', 'D'], ['A', 'C']),
+  question(2, ['A', 'B', 'C'], ['C']),
+  question(3, ['A', 'B', 'C', 'D'], ['C']),
+  question(4, ['A', 'B', 'C', 'D'], ['C']),
+  question(5, ['A', 'B', 'C'], ['A', 'B', 'C']),
+  question(6, ['A', 'B', 'C'], ['A', 'B', 'C']),
+  question(7, ['A', 'B'], ['A']),
+  question(8, ['A', 'B', 'C', 'D'], ['D']),
+  question(9, ['A', 'B', 'C'], ['C']),
+  question(10, ['A', 'B', 'C'], ['B']),
+  question(11, ['A', 'B', 'C', 'D'], ['A', 'C', 'D']),
+  question(12, ['A', 'B', 'C', 'D'], ['A', 'B', 'C']),
+  question(13, ['A', 'B', 'C', 'D'], ['C']),
+  question(14, ['A', 'B', 'C'], ['A']),
+  question(15, ['A', 'B', 'C', 'D'], ['A', 'C']),
+]

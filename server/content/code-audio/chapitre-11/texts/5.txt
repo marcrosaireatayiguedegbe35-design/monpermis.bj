@@ -1,0 +1,5 @@
+Quel est le rôle de la batterie ?
+A. la batterie génère le courant
+B. la batterie fournit du courant à l’alternateur
+C. la batterie accumule le courant
+D. la batterie fournit l’énergie nécessaire au démarrage du moteur

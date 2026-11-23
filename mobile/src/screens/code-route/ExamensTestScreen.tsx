@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native'
 import type { RouteProp } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
-import { ClipboardCheck } from 'lucide-react-native'
+import { Check, ChevronDown, ChevronUp, ClipboardCheck, Minus, X } from 'lucide-react-native'
 import {
   ActivityIndicator,
   Image,
@@ -18,12 +18,15 @@ import {
   completePracticeExam,
   ContentError,
   fetchPracticeExams,
+  fetchResultAttemptReview,
+  getStoredExamCategory,
+  setStoredExamCategory,
   startPracticeExam,
   type PracticeExamAttempt,
   type PracticeExamsOverview,
+  type ResultReviewQuestion,
 } from '../../api/revision'
 import { DarkScreen } from '../../components/DarkScreen'
-import { AnimatedCheckmark } from '../../components/AnimatedCheckmark'
 import { ConfettiBurst } from '../../components/ConfettiBurst'
 import { PageNavbar } from '../../components/PageNavbar'
 import { QuestionAudioSequence } from '../../components/QuestionAudioSequence'
@@ -54,12 +57,23 @@ export function ExamensTestScreen() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [category, setCategory] = useState<string | null>(null)
+
+  useEffect(() => {
+    void getStoredExamCategory().then(setCategory)
+  }, [])
+
+  const chooseCategory = (id: string | null) => {
+    setCategory(id)
+    void setStoredExamCategory(id)
+  }
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true)
     setError(null)
     try {
-      setData(await fetchPracticeExams())
+      // Liste construite sur l'appareil (instantanée) ; les notes du serveur la complètent ensuite.
+      setData(await fetchPracticeExams((next) => setData(next)))
     } catch (err) {
       setError(err instanceof ContentError ? err.message : 'Chargement impossible')
       if (!silent) setData(null)
@@ -154,6 +168,35 @@ export function ExamensTestScreen() {
                     </Pressable>
                   </View>
 
+                  {!category || !(data.categories || []).some((c) => c.id === category) ? (
+                    <View style={styles.categoryBox}>
+                      <Text style={styles.categoryTitle}>Quel permis préparez-vous ?</Text>
+                      <Text style={styles.empty}>
+                        Certaines questions ne concernent que certaines catégories (les deux-roues pour les
+                        permis A1, A2 et A3). Choisissez votre catégorie avant de composer un examen.
+                      </Text>
+                      {(data.categories || []).map((item) => (
+                        <Pressable
+                          key={item.id}
+                          style={styles.categoryOption}
+                          onPress={() => chooseCategory(item.id)}
+                        >
+                          <Text style={styles.categoryOptionLabel}>{item.label}</Text>
+                          {item.hint ? <Text style={styles.categoryOptionHint}>{item.hint}</Text> : null}
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : (
+                  <>
+                  <View style={styles.categoryCurrent}>
+                    <Text style={styles.categoryCurrentText}>
+                      Catégorie : {(data.categories || []).find((c) => c.id === category)?.label}
+                    </Text>
+                    <Pressable onPress={() => chooseCategory(null)}>
+                      <Text style={styles.notesLinkText}>Changer</Text>
+                    </Pressable>
+                  </View>
+
                   {data.exams.length === 0 ? (
                     <View style={styles.emptyBox}>
                       <Text style={styles.emptyTitle}>Examens en préparation</Text>
@@ -203,6 +246,8 @@ export function ExamensTestScreen() {
                       </Pressable>
                     </View>
                   ))}
+                  </>
+                  )}
                 </>
               )}
             </>
@@ -226,8 +271,9 @@ export function ExamensTestTakeScreen() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [checking, setChecking] = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  // Correction affichée sur la même page après validation : vert = bonne réponse, rouge = choix faux.
-  const [feedback, setFeedback] = useState<{ isCorrect: boolean; correctAnswerIds: string[] } | null>(null)
+  // Examen : aucune correction ni note en direct (elles n'apparaissent qu'à la fin).
+  const [review, setReview] = useState<ResultReviewQuestion[] | null>(null)
+  const [openReview, setOpenReview] = useState<number | null>(null)
   const [answeredCount, setAnsweredCount] = useState(0)
   const [finished, setFinished] = useState(false)
   const [finalScore, setFinalScore] = useState<{
@@ -327,6 +373,20 @@ export function ExamensTestTakeScreen() {
   useEffect(() => {
     if (finished) stopAllQuizAudio()
   }, [finished])
+
+  // Correction complète, uniquement une fois l'examen terminé.
+  useEffect(() => {
+    if (!finished || !attempt) return
+    let cancelled = false
+    void fetchResultAttemptReview(attempt.id)
+      .then((list) => {
+        if (!cancelled) setReview(list)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [finished, attempt])
 
   useEffect(() => {
     if (!isFocused) stopAllQuizAudio()
@@ -438,7 +498,6 @@ export function ExamensTestTakeScreen() {
     setIndex((value) => value + 1)
     setSelectedIds([])
     setSubmitted(false)
-    setFeedback(null)
     setSequenceLive(true)
   }, [examNumber])
 
@@ -515,7 +574,8 @@ export function ExamensTestTakeScreen() {
           },
         )
         setAnsweredCount(data.answeredCount)
-        setFeedback({ isCorrect: data.isCorrect, correctAnswerIds: data.correctAnswerIds || [] })
+        // Pas de correction pendant l'examen : on passe directement à la question suivante.
+        await finishOrAdvance()
       } catch (err) {
         setSubmitted(false)
         setError(err instanceof ContentError ? err.message : 'Vérification impossible')
@@ -524,7 +584,7 @@ export function ExamensTestTakeScreen() {
         setChecking(false)
       }
     },
-    [examNumber],
+    [examNumber, finishOrAdvance],
   )
 
   const handleSequenceComplete = useCallback(() => {
@@ -569,10 +629,8 @@ export function ExamensTestTakeScreen() {
 
   if (authLoading || !user) return <ScreenLoader />
 
-  const resultTone = finished && finalScore ? (finalScore.passed ? RESULT_OK : RESULT_KO) : null
-
   return (
-    <DarkScreen background={resultTone?.page}>
+    <DarkScreen>
         <ConfettiBurst active={Boolean(finished && finalScore?.passed)} />
         <PageNavbar
           title={`Examen ${examNumber}`}
@@ -597,24 +655,24 @@ export function ExamensTestTakeScreen() {
           ) : null}
 
           {finished && finalScore ? (
-            <View style={[styles.resultBox, { backgroundColor: resultTone?.solid, borderColor: resultTone?.solid }]}>
-              <AnimatedCheckmark
-                active
-                color={resultTone?.solid}
-                wellColor="#FFFFFF"
-                variant={finalScore.passed ? 'check' : 'cross'}
-              />
-              <Text style={[styles.resultTitle, { marginTop: 12, color: '#FFFFFF' }]}>
-                {finalScore.passed ? 'Examen réussi' : 'Examen non réussi'}
-              </Text>
-              <Text style={[styles.resultScore, { color: '#FFFFFF' }]}>{finalScore.scoreLabel}</Text>
-              <Pressable
-                style={[styles.startBtn, { backgroundColor: '#FFFFFF' }]}
-                onPress={() => navigation.navigate('MesNotes')}
-              >
-                <Text style={[styles.startBtnText, { color: resultTone?.solid }]}>Voir mes notes</Text>
-              </Pressable>
-            </View>
+            <ExamResult
+              examNumber={examNumber}
+              score={finalScore}
+              review={review}
+              openReview={openReview}
+              onToggle={(i) => setOpenReview((current) => (current === i ? null : i))}
+              onNotes={() => navigation.navigate('MesNotes')}
+              onList={() => navigation.navigate('ExamensTest')}
+              onRetry={() => {
+                setReview(null)
+                setOpenReview(null)
+                setFinished(false)
+                setFinalScore(null)
+                setIndex(0)
+                setAnsweredCount(0)
+                void load()
+              }}
+            />
           ) : null}
 
           {!loading && question && !finished ? (
@@ -643,7 +701,7 @@ export function ExamensTestTakeScreen() {
                       key={img.key}
                       source={{ uri: img.uri }}
                       style={styles.image}
-                      resizeMode="cover"
+                      resizeMode="contain"
                       onError={() => setResolvedImages((prev) => prev.filter((item) => item.key !== img.key))}
                     />
                   ))}
@@ -651,17 +709,10 @@ export function ExamensTestTakeScreen() {
               ) : null}
               {displayAnswers.map((answer) => {
                 const selected = selectedIds.includes(answer.id)
-                const isGood = Boolean(feedback && feedback.correctAnswerIds.includes(answer.id))
-                const isBad = Boolean(feedback && selected && !isGood)
                 return (
                   <Pressable
                     key={answer.id}
-                    style={[
-                      styles.answer,
-                      selected && !feedback && styles.answerSelected,
-                      isGood && styles.answerCorrect,
-                      isBad && styles.answerWrong,
-                    ]}
+                    style={[styles.answer, selected && styles.answerSelected]}
                     onPress={() => toggleAnswer(answer.id)}
                     disabled={submitted || checking}
                   >
@@ -680,25 +731,15 @@ export function ExamensTestTakeScreen() {
                   {checking ? (
                     <ActivityIndicator color={'#0B0F1A'} />
                   ) : (
-                    <Text style={styles.primaryBtnText}>Valider</Text>
+                    <Text style={styles.primaryBtnText}>
+                      {index + 1 >= (attempt?.questions.length ?? 0) ? 'Valider et terminer' : 'Valider'}
+                    </Text>
                   )}
                 </Pressable>
               ) : null}
-              {feedback ? (
-                <>
-                  <Text style={[styles.feedbackLine, feedback.isCorrect ? styles.feedbackOk : styles.feedbackKo]}>
-                    {feedback.isCorrect ? 'Bonne réponse' : 'Mauvaise réponse'}
-                  </Text>
-                  <Pressable style={styles.primaryBtn} onPress={() => void finishOrAdvance()}>
-                    <Text style={styles.primaryBtnText}>
-                      {index + 1 >= (attempt?.questions.length ?? 0) ? 'Terminer l’examen' : 'Question suivante'}
-                    </Text>
-                  </Pressable>
-                </>
-              ) : null}
-              {!submitted && selectedIds.length === 0 ? (
+              {!submitted ? (
                 <Text style={styles.awaitingText}>
-                  L’audio lit la question 2 fois. Vous pouvez cocher pendant la lecture ; Valider corrige sans attendre.
+                  Vous pouvez répondre dès maintenant. La correction et votre note n’apparaissent qu’à la fin de l’examen.
                 </Text>
               ) : null}
             </View>
@@ -708,11 +749,245 @@ export function ExamensTestTakeScreen() {
   )
 }
 
-/** Résultat d'examen : page verte si réussi, rouge si échec. */
-const RESULT_OK = { page: '#DCFCE7', solid: '#16A34A' }
-const RESULT_KO = { page: '#FEE2E2', solid: '#DC2626' }
+
+
+type ExamScore = { correct: number; total: number; scoreLabel: string; passed: boolean; passScore: number }
+
+/**
+ * Page de résultat final (même univers visuel que la liste des examens : bandeau doux, cartes blanches).
+ * C'est la SEULE page qui montre la note et la correction : rien n'est révélé pendant l'examen.
+ */
+function ExamResult({
+  examNumber,
+  score,
+  review,
+  openReview,
+  onToggle,
+  onNotes,
+  onList,
+  onRetry,
+}: {
+  examNumber: number
+  score: ExamScore
+  review: ResultReviewQuestion[] | null
+  openReview: number | null
+  onToggle: (index: number) => void
+  onNotes: () => void
+  onList: () => void
+  onRetry: () => void
+}) {
+  const passed = score.passed
+  const tone = passed ? dark.green : dark.coral
+  const wrong = review ? review.filter((q) => q.state === 'wrong').length : null
+  const skipped = review ? review.filter((q) => q.state === 'unanswered' || q.state === 'skipped').length : null
+  const ratio = score.total > 0 ? Math.min(1, score.correct / score.total) : 0
+
+  return (
+    <View style={{ gap: 14 }}>
+      <View style={[styles.resHero, { backgroundColor: passed ? dark.greenSoft : dark.coralSoft, borderColor: tone }]}>
+        <View style={[styles.resBadge, { backgroundColor: tone }]}>
+          {passed ? <Check size={22} color="#FFFFFF" /> : <X size={22} color="#FFFFFF" />}
+        </View>
+        <Text style={styles.resKicker}>Résultat · Examen {examNumber}</Text>
+        <Text style={[styles.resTitle, { color: tone }]}>{passed ? 'Examen réussi' : 'Examen non réussi'}</Text>
+        <Text style={styles.resScore}>
+          {score.correct}
+          <Text style={styles.resScoreTotal}>/{score.total}</Text>
+        </Text>
+        <View style={styles.resTrack}>
+          <View style={[styles.resFill, { width: `${Math.round(ratio * 100)}%`, backgroundColor: tone }]} />
+          <View style={[styles.resThreshold, { left: `${Math.round((score.passScore / score.total) * 100)}%` }]} />
+        </View>
+        <Text style={styles.resCaption}>
+          Seuil de réussite : {score.passScore}/{score.total}
+          {passed ? ' — bravo !' : ` — il manquait ${Math.max(0, score.passScore - score.correct)} point${score.passScore - score.correct > 1 ? 's' : ''}.`}
+        </Text>
+      </View>
+
+      <View style={styles.resStats}>
+        <View style={styles.resStat}>
+          <Text style={[styles.resStatValue, { color: dark.green }]}>{score.correct}</Text>
+          <Text style={styles.resStatLabel}>Bonnes réponses</Text>
+        </View>
+        <View style={styles.resStatDivider} />
+        <View style={styles.resStat}>
+          <Text style={[styles.resStatValue, { color: dark.coral }]}>{wrong ?? '–'}</Text>
+          <Text style={styles.resStatLabel}>Mauvaises</Text>
+        </View>
+        <View style={styles.resStatDivider} />
+        <View style={styles.resStat}>
+          <Text style={styles.resStatValue}>{skipped ?? '–'}</Text>
+          <Text style={styles.resStatLabel}>Sans réponse</Text>
+        </View>
+      </View>
+
+      <Pressable style={styles.primaryBtn} onPress={onNotes}>
+        <Text style={styles.primaryBtnText}>Voir mes notes</Text>
+      </Pressable>
+      <View style={styles.resActions}>
+        <Pressable style={styles.resGhostBtn} onPress={onRetry}>
+          <Text style={styles.resGhostText}>Refaire un examen</Text>
+        </Pressable>
+        <Pressable style={styles.resGhostBtn} onPress={onList}>
+          <Text style={styles.resGhostText}>Autres examens</Text>
+        </Pressable>
+      </View>
+
+      <Text style={styles.resSection}>Correction question par question</Text>
+      {!review ? <ActivityIndicator color={dark.green} /> : null}
+      {review?.map((q) => {
+        const open = openReview === q.index
+        const stateColor = q.state === 'correct' ? dark.green : q.state === 'wrong' ? dark.coral : dark.textMuted
+        return (
+          <View key={q.questionId} style={styles.resCard}>
+            <Pressable style={styles.resCardHead} onPress={() => onToggle(q.index)}>
+              <View style={[styles.resIndex, { backgroundColor: stateColor }]}>
+                {q.state === 'correct' ? (
+                  <Check size={14} color="#FFFFFF" />
+                ) : q.state === 'wrong' ? (
+                  <X size={14} color="#FFFFFF" />
+                ) : (
+                  <Minus size={14} color="#FFFFFF" />
+                )}
+              </View>
+              <Text style={styles.resCardTitle} numberOfLines={open ? undefined : 2}>
+                {q.index}. {q.prompt.text || 'Question'}
+              </Text>
+              {open ? <ChevronUp size={18} color={dark.textMuted} /> : <ChevronDown size={18} color={dark.textMuted} />}
+            </Pressable>
+            {open ? (
+              <View style={styles.resAnswers}>
+                {q.answers.map((answer) => (
+                  <View
+                    key={answer.id}
+                    style={[
+                      styles.resAnswer,
+                      answer.isCorrect && styles.resAnswerGood,
+                      answer.selected && !answer.isCorrect && styles.resAnswerBad,
+                    ]}
+                  >
+                    <Text style={styles.resAnswerLabel}>{answer.label}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.resAnswerText}>{answer.text}</Text>
+                      {answer.isCorrect || answer.selected ? (
+                        <Text style={[styles.resAnswerTag, { color: answer.isCorrect ? dark.green : dark.coral }]}>
+                          {answer.isCorrect ? 'Bonne réponse' : ''}
+                          {answer.isCorrect && answer.selected ? ' · ' : ''}
+                          {answer.selected ? 'Votre choix' : ''}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
+                ))}
+                {q.state === 'unanswered' ? <Text style={styles.resAnswerTag}>Question sans réponse.</Text> : null}
+              </View>
+            ) : null}
+          </View>
+        )
+      })}
+    </View>
+  )
+}
 
 const styles = StyleSheet.create({
+  resHero: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 20,
+    alignItems: 'center',
+    gap: 6,
+  },
+  resBadge: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  resKicker: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 0.6, color: dark.textMuted, textTransform: 'uppercase' },
+  resTitle: { fontFamily: fonts.displayBold, fontSize: 22 },
+  resScore: { fontFamily: fonts.displayBold, fontSize: 56, color: dark.textPrimary, lineHeight: 62 },
+  resScoreTotal: { fontSize: 24, color: dark.textMuted },
+  resTrack: { alignSelf: 'stretch', height: 10, borderRadius: 5, backgroundColor: 'rgba(0,16,48,0.08)', marginTop: 6, overflow: 'visible' },
+  resFill: { height: 10, borderRadius: 5 },
+  resThreshold: { position: 'absolute', top: -3, width: 2, height: 16, backgroundColor: dark.textPrimary, borderRadius: 1 },
+  resCaption: { fontFamily: fonts.body, fontSize: 13, color: dark.textMuted, textAlign: 'center', marginTop: 4 },
+  resStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: dark.border,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 14,
+  },
+  resStat: { flex: 1, alignItems: 'center', gap: 2 },
+  resStatValue: { fontFamily: fonts.displayBold, fontSize: 24, color: dark.textPrimary },
+  resStatLabel: { fontFamily: fonts.body, fontSize: 12, color: dark.textMuted },
+  resStatDivider: { width: 1, height: 32, backgroundColor: dark.border },
+  resActions: { flexDirection: 'row', gap: 10 },
+  resGhostBtn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: dark.border,
+    backgroundColor: dark.surface,
+  },
+  resGhostText: { fontFamily: fonts.bodyBold, fontSize: 13, color: dark.textPrimary },
+  resSection: { fontFamily: fonts.bodyBold, fontSize: 16, color: dark.textPrimary, marginTop: 6 },
+  resCard: { borderRadius: 14, borderWidth: 1, borderColor: dark.border, backgroundColor: '#FFFFFF', overflow: 'hidden' },
+  resCardHead: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
+  resIndex: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  resCardTitle: { flex: 1, fontFamily: fonts.body, fontSize: 14, color: dark.textPrimary },
+  resAnswers: { paddingHorizontal: 12, paddingBottom: 12, gap: 8 },
+  resAnswer: {
+    flexDirection: 'row',
+    gap: 10,
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: dark.border,
+    backgroundColor: dark.surface,
+  },
+  resAnswerGood: { borderColor: dark.green, backgroundColor: dark.greenSoft },
+  resAnswerBad: { borderColor: dark.coral, backgroundColor: dark.coralSoft },
+  resAnswerLabel: { fontFamily: fonts.bodyBold, fontSize: 14, color: dark.textPrimary, width: 18 },
+  resAnswerText: { fontFamily: fonts.body, fontSize: 13, color: dark.textPrimary },
+  resAnswerTag: { fontFamily: fonts.bodyBold, fontSize: 12, color: dark.textMuted, marginTop: 2 },
+  categoryBox: {
+    gap: 10,
+    marginTop: 8,
+  },
+  categoryTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 18,
+    color: dark.textPrimary,
+  },
+  categoryOption: {
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: dark.border,
+    backgroundColor: dark.surface,
+    gap: 2,
+  },
+  categoryOptionLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 16,
+    color: dark.textPrimary,
+  },
+  categoryOptionHint: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: dark.textMuted,
+  },
+  categoryCurrent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  categoryCurrentText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: dark.textPrimary,
+  },
   scroll: { paddingHorizontal: 22, paddingBottom: 28 },
   kicker: {
     fontFamily: fonts.bodySemiBold,
@@ -915,7 +1190,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    aspectRatio: 2 / 1,
+    height: 240,
     borderRadius: 12,
     backgroundColor: '#FFFFFF',
   },

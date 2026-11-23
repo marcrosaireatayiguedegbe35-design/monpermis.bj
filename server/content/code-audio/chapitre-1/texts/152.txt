@@ -1,0 +1,5 @@
+Un panneau triangulaire indique :
+A. un danger
+B. une obligation
+C. une interdiction
+D. une indication

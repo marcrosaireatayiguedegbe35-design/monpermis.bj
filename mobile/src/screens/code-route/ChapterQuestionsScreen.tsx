@@ -773,7 +773,7 @@ export function ChapterQuestionsScreen() {
                       key={img.key}
                       source={{ uri: img.uri }}
                       style={styles.image}
-                      resizeMode="cover"
+                      resizeMode="contain"
                       onError={() => setResolvedImages((prev) => prev.filter((item) => item.key !== img.key))}
                     />
                   ))}
@@ -1068,7 +1068,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    aspectRatio: 2 / 1,
+    height: 240,
     borderRadius: 12,
     backgroundColor: '#FFFFFF',
   },

@@ -1,0 +1,3 @@
+Lorsque la visibilité est réduite :
+A. je ralentis pour pouvoir m’arrêter le cas échéant
+B. je ne ralentis pas car cela n’améliore pas la visibilité

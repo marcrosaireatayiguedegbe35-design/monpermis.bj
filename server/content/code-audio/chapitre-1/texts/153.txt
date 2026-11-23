@@ -1,0 +1,5 @@
+Un panneau rond bleu indique :
+A. une obligation
+B. une interdiction
+C. une fin d’obligation
+D. une fin d’interdiction

@@ -1,0 +1,5 @@
+Quel doit être le comportement d’un conducteur vis-à-vis d’un véhicule prioritaire en mission ?
+A. céder le passage aux intersections
+B. céder le passage aux intersections munies de feux tricolores
+C. faciliter leurs manœuvres de croisement
+D. attendre l’ordre d’un agent réglementant la circulation

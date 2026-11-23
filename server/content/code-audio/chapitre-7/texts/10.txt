@@ -1,0 +1,4 @@
+La remorque doit avoir sa propre carte grise si le PTAC est supérieur à :
+A. 450 kg
+B. 500 kg
+C. 400 kg

@@ -61,4 +61,35 @@ function question(order, letterOptions, correctLetters) {
 /**
  * 30 questions — conduite, virages, stationnement.
  */
-export const CHAPITRE_04_QUESTIONS = []
+export const CHAPITRE_04_QUESTIONS = [
+  question(1, ['A', 'B', 'C'], ['B']),
+  question(2, ['A', 'B', 'C'], ['A', 'C']),
+  question(3, ['A', 'B', 'C'], ['C']),
+  question(4, ['A', 'B', 'C'], ['A']),
+  question(5, ['A', 'B', 'C'], ['A', 'B']),
+  question(6, ['A', 'B', 'C', 'D'], ['C', 'D']),
+  question(7, ['A', 'B', 'C', 'D'], ['B']),
+  question(8, ['A', 'B', 'C', 'D'], ['D']),
+  question(9, ['A', 'B', 'C', 'D', 'E'], ['C']),
+  question(10, ['A', 'B', 'C'], ['A', 'B']),
+  question(11, ['A', 'B', 'C', 'D'], ['A', 'C']),
+  question(12, ['A', 'B', 'C'], ['C']),
+  question(13, ['A', 'B', 'C'], ['A', 'B', 'C']),
+  question(14, ['A', 'B', 'C'], ['A']),
+  question(15, ['A', 'B', 'C'], ['C']),
+  question(16, ['A', 'B', 'C'], ['A', 'C']),
+  question(17, ['A', 'B', 'C'], ['B']),
+  question(18, ['A', 'B', 'C'], ['B']),
+  question(19, ['A', 'B', 'C'], ['A']),
+  question(20, ['A', 'B', 'C'], ['A']),
+  question(21, ['A', 'B', 'C'], ['C']),
+  question(22, ['A', 'B', 'C'], ['A']),
+  question(23, ['A', 'B', 'C'], ['A']),
+  question(24, ['A', 'B', 'C'], ['C']),
+  question(25, ['A', 'B', 'C'], ['C']),
+  question(26, ['A', 'B', 'C', 'D'], ['C']),
+  question(27, ['A', 'B', 'C'], ['B', 'C']),
+  question(28, ['A', 'B'], ['A']),
+  question(29, ['A', 'B'], ['A']),
+  question(30, ['A', 'B', 'C', 'D'], ['C']),
+]

@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { apiAuthed, ApiError } from './client'
 import { mergeWithStandardChapters, getChapterOrderById } from '../data/codeRoute/chapterIndex'
 import {
@@ -8,6 +9,20 @@ import {
 import { buildLocalSubject, buildLocalSubjectSummaries } from '../data/codeRoute/subjects'
 import { listStandardChapterShells } from '../data/codeRoute/standardChapters'
 import { cacheGetThenFetch, cacheGet, cacheSet, OFFLINE_TTL_MS } from '../utils/contentCache'
+import {
+  buildLocalResultsReport,
+  checkLocalExamAnswer,
+  completeLocalExam,
+  isLocalAttemptId,
+  localAttemptReview,
+  localPracticeExamsOverview,
+  markExamSynced,
+  mergeServerReportWithLocal,
+  pendingExamSyncs,
+  rememberServerScores,
+  startLocalExam,
+} from '../utils/localExams'
+import { getStoredUser } from './session'
 
 export interface RevisionModule {
   id: string
@@ -157,6 +172,9 @@ export async function fetchRevisionCourses(): Promise<
 export async function fetchRevisionChaptersSWR(
   onData: (chapters: RevisionChapter[], meta: { fromCache: boolean }) => void,
 ) {
+  // Les 19 chapitres sont connus dans le code : on les affiche tout de suite, le réseau enrichit ensuite.
+  const hasCache = await cacheGet<RevisionChapter[]>('revision:chapters', OFFLINE_TTL_MS).catch(() => null)
+  if (!hasCache) onData(withStandardChapters(listStandardChapterShells() as RevisionChapter[]), { fromCache: true })
   try {
     return await cacheGetThenFetch(
       'revision:chapters',
@@ -293,7 +311,34 @@ export interface PracticeExamSummary {
   } | null
 }
 
+export interface ExamCategory {
+  id: string
+  label: string
+  hint?: string
+}
+
+const EXAM_CATEGORY_KEY = 'monpermis.examCategory'
+
+/** Catégorie de permis choisie pour les examens (mémorisée sur l'appareil). */
+export async function getStoredExamCategory(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(EXAM_CATEGORY_KEY)
+  } catch {
+    return null
+  }
+}
+
+export async function setStoredExamCategory(id: string | null): Promise<void> {
+  try {
+    if (id) await AsyncStorage.setItem(EXAM_CATEGORY_KEY, id)
+    else await AsyncStorage.removeItem(EXAM_CATEGORY_KEY)
+  } catch {
+    /* stockage indisponible : le choix vaut pour cette session seulement */
+  }
+}
+
 export interface PracticeExamsOverview {
+  categories?: ExamCategory[]
   bankCount: number
   examCount: number
   requiredSize: number
@@ -431,11 +476,38 @@ export interface ResultReviewQuestion {
   elapsedMs: number | null
 }
 
+const RESULTS_CACHE_KEY = 'results:report'
+
+/** Rapport « Mes résultats » du serveur, fusionné avec les examens encore non envoyés. */
 export async function fetchLearnerResults(): Promise<LearnerResultsReport> {
-  return request<LearnerResultsReport>('/content/revision/results/report', { auth: true })
+  const server = await request<LearnerResultsReport>('/content/revision/results/report', { auth: true })
+  await cacheSet(RESULTS_CACHE_KEY, server).catch(() => undefined)
+  return mergeServerReportWithLocal(server)
+}
+
+/**
+ * « Mes résultats » en deux temps : le rapport calculé sur l'appareil s'affiche tout de suite (même hors
+ * connexion), puis le rapport serveur (cours, examens d'autres appareils) le remplace quand il arrive.
+ */
+export async function fetchLearnerResultsSWR(
+  onData: (report: LearnerResultsReport, meta: { fromServer: boolean }) => void,
+): Promise<void> {
+  const user = await getStoredUser().catch(() => null)
+  const cached = await cacheGet<LearnerResultsReport>(RESULTS_CACHE_KEY, 30 * 24 * 60 * 60 * 1000).catch(() => null)
+  if (user) {
+    const local = await buildLocalResultsReport(
+      { id: String(user.id), firstName: user.firstName ?? '', lastName: user.lastName ?? '' },
+      cached?.data,
+    )
+    onData(local, { fromServer: false })
+  }
+  await syncPendingExams()
+  const server = await fetchLearnerResults()
+  onData(server, { fromServer: true })
 }
 
 export async function fetchResultAttemptReview(attemptId: string): Promise<ResultReviewQuestion[]> {
+  if (isLocalAttemptId(attemptId)) return localAttemptReview(attemptId)
   const data = await request<{ attemptId: string; questions: ResultReviewQuestion[] }>(
     `/content/revision/results/attempts/${encodeURIComponent(attemptId)}`,
     { auth: true },
@@ -443,15 +515,75 @@ export async function fetchResultAttemptReview(attemptId: string): Promise<Resul
   return data.questions
 }
 
-export async function fetchPracticeExams(): Promise<PracticeExamsOverview> {
-  return request<PracticeExamsOverview>('/content/revision/practice-exams', { auth: true })
+/** Envoie au serveur les examens passés sur l'appareil (idempotent). Silencieux si hors connexion. */
+export async function syncPendingExams(): Promise<number> {
+  let sent = 0
+  for (const attempt of await pendingExamSyncs()) {
+    try {
+      await request('/content/revision/practice-exams/sync', {
+        method: 'POST',
+        auth: true,
+        body: JSON.stringify({
+          clientId: attempt.id,
+          examNumber: attempt.examNumber,
+          category: attempt.category,
+          questionIds: attempt.questionIds,
+          responses: attempt.responses.map((r) => ({ questionId: r.questionId, answerIds: r.answerIds })),
+          startedAt: attempt.createdAt,
+          completedAt: attempt.completedAt,
+        }),
+      })
+      await markExamSynced(attempt.id)
+      sent += 1
+    } catch {
+      break // hors connexion ou serveur indisponible : on réessaiera plus tard
+    }
+  }
+  return sent
+}
+
+/** Récupère les notes déjà présentes sur le serveur (autre appareil / examens précédents). */
+async function pullServerExamScores() {
+  try {
+    const data = await request<PracticeExamsOverview>('/content/revision/practice-exams', { auth: true })
+    const scores = (data.exams || [])
+      .filter((exam) => exam.score)
+      .map((exam) => ({
+        id: exam.id,
+        examNumber: exam.examNumber,
+        correct: exam.score!.correct,
+        total: exam.score!.total,
+        scoreLabel: exam.score!.scoreLabel,
+        passed: exam.score!.passed,
+        passScore: data.passScore,
+        completedAt: exam.score!.completedAt ?? null,
+      }))
+    await rememberServerScores(scores)
+  } catch {
+    /* hors connexion : les notes locales suffisent */
+  }
+}
+
+/**
+ * Liste des examens : construite sur l'appareil (instantanée, fonctionne hors connexion).
+ * `onRefresh` est rappelé quand le serveur apporte des notes que l'appareil ne connaissait pas.
+ */
+export async function fetchPracticeExams(
+  onRefresh?: (overview: PracticeExamsOverview) => void,
+): Promise<PracticeExamsOverview> {
+  const category = (await getStoredExamCategory()) || 'B'
+  const overview = await localPracticeExamsOverview(category)
+  void (async () => {
+    await syncPendingExams()
+    await pullServerExamScores()
+    if (onRefresh) onRefresh(await localPracticeExamsOverview(category))
+  })()
+  return overview
 }
 
 export async function startPracticeExam(examNumber: number) {
-  return request<{ attempt: PracticeExamAttempt }>(
-    `/content/revision/practice-exams/${examNumber}/start`,
-    { method: 'POST', body: JSON.stringify({}), auth: true },
-  )
+  const category = (await getStoredExamCategory()) || 'B'
+  return { attempt: await startLocalExam(examNumber, category) }
 }
 
 export async function checkPracticeExamAnswer(
@@ -459,26 +591,14 @@ export async function checkPracticeExamAnswer(
   questionId: string,
   answerIds: string[],
 ) {
-  return request<{
-    isCorrect: boolean
-    correctAnswerIds: string[]
-    answeredCount: number
-    total: number
-    liveCorrect: number
-  }>(`/content/revision/practice-exams/attempts/${attemptId}/check`, {
-    method: 'POST',
-    body: JSON.stringify({ questionId, answerIds }),
-    auth: true,
-  })
+  return checkLocalExamAnswer(attemptId, questionId, answerIds)
 }
 
 export async function completePracticeExam(attemptId: string) {
-  return request<{ attempt: PracticeExamScore }>(
-    `/content/revision/practice-exams/attempts/${attemptId}/complete`,
-    { method: 'POST', body: JSON.stringify({}), auth: true },
-  )
+  const attempt = await completeLocalExam(attemptId)
+  void syncPendingExams() // envoi au serveur en arrière-plan (sans bloquer l'écran de résultat)
+  return { attempt }
 }
-
 
 export interface RevisionAnswer {
   id: string
@@ -502,8 +622,13 @@ export interface RevisionQuestion {
 }
 
 export async function fetchChapterQuestions(chapterId: string): Promise<RevisionQuestion[]> {
-  // Source de vérité = API (toujours en ligne). Cache / banques = hors-ligne uniquement.
-  // Pas de cache « frais » longue durée : sinon l’apprenant reste sur d’anciennes questions.
+  // Les questions sont dans le code de l'application : lecture instantanée, sans réseau.
+  const order = getChapterOrderById(chapterId)
+  const localBank = order ? getLocalBankByChapterOrder(order) : null
+  if (localBank?.length) {
+    return localBank.map((q) => toPublicLocalQuestion(q, chapterId))
+  }
+  // Chapitre sans banque embarquée : on interroge le serveur (puis le cache hors connexion).
   try {
     const data = await request<{ questions: RevisionQuestion[] }>(
       `/content/revision/chapters/${encodeURIComponent(chapterId)}/questions`,
@@ -514,14 +639,7 @@ export async function fetchChapterQuestions(chapterId: string): Promise<Revision
     return questions
   } catch {
     const cached = await cacheGet<RevisionQuestion[]>(`revision:questions:${chapterId}`, OFFLINE_TTL_MS)
-    if (cached?.data?.length) return cached.data
-
-    const order = getChapterOrderById(chapterId)
-    const localBank = order ? getLocalBankByChapterOrder(order) : null
-    if (localBank) {
-      return localBank.map((q) => toPublicLocalQuestion(q, chapterId))
-    }
-    return []
+    return cached?.data ?? []
   }
 }
 
@@ -533,6 +651,10 @@ export type RevisionTestSubjectSummary = {
 }
 
 export async function fetchChapterTestSubjects(chapterId: string) {
+  const order = getChapterOrderById(chapterId)
+  if (order && getLocalBankByChapterOrder(order)?.length) {
+    return buildLocalSubjectSummaries(order, chapterId)
+  }
   try {
     return await request<{
       publishedCount: number
@@ -540,10 +662,6 @@ export async function fetchChapterTestSubjects(chapterId: string) {
       subjects: RevisionTestSubjectSummary[]
     }>(`/content/revision/chapters/${encodeURIComponent(chapterId)}/test-subjects`, { auth: true })
   } catch {
-    const order = getChapterOrderById(chapterId)
-    if (order && getLocalBankByChapterOrder(order)) {
-      return buildLocalSubjectSummaries(order, chapterId)
-    }
     throw new ContentError('Impossible de charger les sujets test')
   }
 }
@@ -552,6 +670,11 @@ export async function fetchChapterTestSubject(
   chapterId: string,
   subjectNumber = 1,
 ): Promise<{ number: number; label: string; questions: RevisionQuestion[] }> {
+  const order = getChapterOrderById(chapterId)
+  if (order && getLocalBankByChapterOrder(order)?.length) {
+    const subject = buildLocalSubject(order, chapterId, subjectNumber)
+    if (subject) return subject
+  }
   try {
     const data = await request<{
       subject: { number: number; label: string; questions: RevisionQuestion[] }
@@ -561,11 +684,6 @@ export async function fetchChapterTestSubject(
     )
     return data.subject
   } catch (err) {
-    const order = getChapterOrderById(chapterId)
-    if (order && getLocalBankByChapterOrder(order)) {
-      const subject = buildLocalSubject(order, chapterId, subjectNumber)
-      if (subject) return subject
-    }
     if (err instanceof ContentError) throw err
     throw new ContentError('Sujet test introuvable')
   }
@@ -576,6 +694,9 @@ export async function checkQuestionAnswers(
   questionId: string,
   answerIds: string[],
 ): Promise<{ isCorrect: boolean; correctAnswerIds: string[] }> {
+  // Correction instantanée : les bonnes réponses sont dans le code de l'application.
+  const local = checkLocalAnswers(questionId, answerIds)
+  if (local) return local
   try {
     return await request<{ isCorrect: boolean; correctAnswerIds: string[] }>(
       `/content/revision/chapters/${encodeURIComponent(chapterId)}/questions/check`,
@@ -586,8 +707,6 @@ export async function checkQuestionAnswers(
       },
     )
   } catch {
-    const local = checkLocalAnswers(questionId, answerIds)
-    if (local) return local
     throw new ContentError('Vérification impossible')
   }
 }

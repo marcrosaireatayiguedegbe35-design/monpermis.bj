@@ -1,0 +1,4 @@
+À cette intersection, quel est le véhicule qui passe le premier ?
+A. le rouge
+B. le jaune
+C. le bleu

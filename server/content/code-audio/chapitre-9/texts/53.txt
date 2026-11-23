@@ -1,0 +1,5 @@
+Quelle est la périodicité des visites médicales pour un conducteur de transport en commun dont l’âge est compris entre 45 ans et 55 ans ?
+A. 1 an
+B. 2 ans
+C. 3 ans
+D. 5 ans

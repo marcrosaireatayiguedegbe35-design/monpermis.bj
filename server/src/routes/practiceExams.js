@@ -15,6 +15,11 @@ import {
   loadPublishedExamQuestionBank,
   pickFreshExamQuestions,
 } from '../services/practiceExams.js'
+import {
+  EXAM_CATEGORIES,
+  filterBankForCategory,
+  normalizeExamCategory,
+} from '../utils/examCategories.js'
 import { loadQuestionsByIds } from '../services/hardcodedQuestions.js'
 import { buildLearnerReport, buildAttemptQuestions } from '../services/learnerReport.js'
 
@@ -53,6 +58,7 @@ router.get('/practice-exams', ...withCodeAccess, async (req, res) => {
           examTotal: PRACTICE_EXAM_COUNT,
           passScore: PRACTICE_EXAM_PASS_SCORE,
           unlocked,
+          categories: EXAM_CATEGORIES,
           completedCount: 0,
           passedCount: 0,
           exams: [],
@@ -106,6 +112,7 @@ router.get('/practice-exams', ...withCodeAccess, async (req, res) => {
         examTotal: PRACTICE_EXAM_COUNT,
         passScore: PRACTICE_EXAM_PASS_SCORE,
         unlocked: true,
+        categories: EXAM_CATEGORIES,
         completedCount: bestByExam.size,
         passedCount: [...bestByExam.values()].filter((a) => isPracticeExamPassed(a.correct))
           .length,
@@ -173,7 +180,9 @@ router.post('/practice-exams/:examNumber/start', ...withCodeAccess, async (req, 
       PracticeExamAttempt.find({ userId: req.user._id }).select('questionIds').lean(),
     ])
     const seenIds = previous.flatMap((item) => item.questionIds || [])
-    const picked = pickFreshExamQuestions(bank, seenIds, PRACTICE_EXAM_SIZE)
+    // Catégorie de permis choisie : les chapitres réservés (ex. deux-roues A1/A2/A3) n'apparaissent que pour elle.
+    const category = normalizeExamCategory(req.body?.category)
+    const picked = pickFreshExamQuestions(filterBankForCategory(bank, category), seenIds, PRACTICE_EXAM_SIZE)
     if (picked.length < PRACTICE_EXAM_SIZE) {
       return res.status(400).json({
         success: false,
@@ -186,6 +195,7 @@ router.post('/practice-exams/:examNumber/start', ...withCodeAccess, async (req, 
       examId: exam._id,
       examNumber,
       questionIds: picked.map((question) => String(question._id)),
+      category,
       responses: [],
       status: 'in_progress',
       total: PRACTICE_EXAM_SIZE,
@@ -221,6 +231,75 @@ router.get('/practice-exams/attempts/:attemptId', ...withCodeAccess, async (req,
   } catch (error) {
     console.error('Erreur tentative examen:', error)
     res.status(500).json({ success: false, error: 'Chargement impossible' })
+  }
+})
+
+/**
+ * Synchronise un examen passé HORS CONNEXION sur l'appareil. Le serveur ne fait pas confiance à la note
+ * envoyée : il recalcule chaque réponse à partir de sa propre banque. Idempotent grâce à `clientId`.
+ */
+router.post('/practice-exams/sync', ...withCodeAccess, async (req, res) => {
+  try {
+    const body = req.body ?? {}
+    const clientId = String(body.clientId || '').trim().slice(0, 80)
+    const examNumber = Number(body.examNumber)
+    if (!clientId) return res.status(400).json({ success: false, error: 'Identifiant requis' })
+    if (!Number.isInteger(examNumber) || examNumber < 1 || examNumber > PRACTICE_EXAM_COUNT) {
+      return res.status(400).json({ success: false, error: 'Numéro d’examen invalide' })
+    }
+    const questionIds = Array.isArray(body.questionIds)
+      ? [...new Set(body.questionIds.map(String))].slice(0, PRACTICE_EXAM_SIZE)
+      : []
+    if (questionIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'Questions requises' })
+    }
+
+    const existing = await PracticeExamAttempt.findOne({ userId: req.user._id, clientId })
+    if (existing) return res.json({ success: true, data: { attempt: existing.toScoreJSON(), duplicate: true } })
+
+    const exam = await PracticeExam.findOne({ examNumber, published: true })
+    if (!exam) return res.status(404).json({ success: false, error: 'Examen introuvable' })
+
+    const questions = await loadQuestionsByIds(questionIds)
+    const byId = new Map(questions.map((q) => [String(q.id || q._id), q]))
+    const allowed = new Set(questionIds)
+    const responses = []
+    for (const item of Array.isArray(body.responses) ? body.responses : []) {
+      const questionId = String(item?.questionId || '')
+      const question = byId.get(questionId)
+      if (!allowed.has(questionId) || !question || !Array.isArray(item?.answerIds)) continue
+      if (responses.some((r) => r.questionId === questionId)) continue
+      const answerIds = item.answerIds.map(String)
+      responses.push({ questionId, answerIds, isCorrect: evaluateAnswers(question, answerIds).isCorrect })
+    }
+
+    const correct = responses.filter((r) => r.isCorrect).length
+    const startedAt = new Date(Number.isFinite(Date.parse(body.startedAt)) ? body.startedAt : Date.now())
+    const completedAt = new Date(Number.isFinite(Date.parse(body.completedAt)) ? body.completedAt : Date.now())
+    const attempt = await PracticeExamAttempt.create({
+      userId: req.user._id,
+      examId: exam._id,
+      examNumber,
+      questionIds: questionIds.filter((id) => byId.has(id)),
+      category: normalizeExamCategory(body.category),
+      clientId,
+      responses,
+      status: 'completed',
+      correct,
+      total: PRACTICE_EXAM_SIZE,
+      passed: isPracticeExamPassed(correct),
+      completedAt,
+      createdAt: startedAt,
+      hcIdsV2: true,
+    })
+    res.status(201).json({ success: true, data: { attempt: attempt.toScoreJSON() } })
+  } catch (error) {
+    if (error?.code === 11000) {
+      const again = await PracticeExamAttempt.findOne({ userId: req.user._id, clientId: String(req.body?.clientId || '') })
+      if (again) return res.json({ success: true, data: { attempt: again.toScoreJSON(), duplicate: true } })
+    }
+    console.error('Erreur synchronisation examen:', error)
+    res.status(500).json({ success: false, error: 'Synchronisation impossible' })
   }
 })
 

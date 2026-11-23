@@ -12,6 +12,7 @@ import { parseTranscript } from '../utils/transcriptParse.js'
 import { hardcodedAsQuestionDocs } from './hardcodedQuestions.js'
 import { isExamEligible } from './examEligibility.js'
 import { hasPublishedAudio, onPublishedAudioChange } from './publishedAudio.js'
+import { codeAudioSize } from './codeMedia.js'
 import { onPublishedImageChange } from './publishedImages.js'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -20,14 +21,14 @@ import { fileURLToPath } from 'node:url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const CODE_AUDIO_ROOT = path.resolve(__dirname, '../../content/code-audio')
 
-/** True si l’audio généré (MP3 embarqué serveur) existe pour cet id hc-ch… */
+/** True si l’audio existe pour cet id hc-ch… : fichier du code (server/content) ou, à défaut, audio publié en base. */
 export function hasGeneratedExamAudio(questionId) {
   const match = String(questionId || '').match(/^hc-ch(\d+)-q(\d+)$/i)
   if (!match) return false
   const chapter = Number(match[1])
   const order = Number(match[2])
   if (!Number.isFinite(chapter) || !Number.isFinite(order)) return false
-  return hasPublishedAudio(chapter, order)
+  return codeAudioSize(chapter, order) > 0 || hasPublishedAudio(chapter, order)
 }
 
 /** Empreinte d’énoncé pour éviter les clones (ch.17/18…) dans un même sujet. */
@@ -70,6 +71,7 @@ async function buildPublishedExamQuestionBank() {
       questions.push({
         _id: doc.id,
         chapterId: chapter._id,
+        chapterOrder: chapter.order,
         contentKey: contentKeyForQuestionId(doc.id),
       })
     }

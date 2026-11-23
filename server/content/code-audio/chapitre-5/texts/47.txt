@@ -1,0 +1,4 @@
+Pour le ramassage d’un blessé :
+A. je dois remuer le blessé et le mettre debout
+B. je dois mettre le blessé au dos
+C. je dois le remuer le moins possible et respecter le bloc tête-cou-tronc

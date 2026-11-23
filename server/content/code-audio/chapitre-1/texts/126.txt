@@ -1,0 +1,6 @@
+Sur une chaussée à plusieurs voies, des flèches de sélection aussi appelées flèches directionnelles peuvent jouer les rôles suivants :
+A. m’indiquent la voie que je dois emprunter selon la direction où je veux aller. Je gagne cette voie dès la première flèche
+B. pour tourner, je me place dans la voie comportant des flèches orientées vers la direction que je veux emprunter
+C. pour aller tout droit, je me place dans la voie comportant des flèches droites
+D. les voies peuvent comporter des flèches bifides (à deux pointes), donnant le choix entre deux directions
+E. m’obligent à m’arrêter pour chercher la direction dans laquelle je dois aller

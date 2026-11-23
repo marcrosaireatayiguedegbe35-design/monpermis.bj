@@ -1,0 +1,6 @@
+Dans une station service, l’extincteur est utilisable par :
+A. le technicien préposé
+B. le pompiste
+C. le gardien
+D. n’importe quel client
+E. tout usager capable de s’en servir

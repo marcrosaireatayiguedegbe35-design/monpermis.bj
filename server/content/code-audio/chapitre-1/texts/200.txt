@@ -1,0 +1,5 @@
+Le panneau B2b :
+A. interdit de tourner à gauche à la prochaine intersection
+B. interdit de tourner à droite à la prochaine intersection
+C. oblige à tourner à droite à la prochaine intersection
+D. oblige à tourner à gauche à la prochaine intersection

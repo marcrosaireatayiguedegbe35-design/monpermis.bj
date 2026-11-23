@@ -29,6 +29,7 @@ import {
 } from '../services/hardcodedQuestions.js'
 import { STANDARD_REVISION_CHAPTER_COUNT } from '../data/standardRevisionChapters.js'
 import { ensureStandardRevisionChapters } from '../services/standardRevisionChapters.js'
+import { getOfflineManifest } from '../services/offlineManifest.js'
 
 const router = Router()
 const withCodeAccess = [requireUserAuth, requireModuleAccess('code')]
@@ -48,6 +49,19 @@ async function loadChapterQuestionBank(chapter) {
   // Banques hors fichiers : vide (plus de questions Mongo pour le code).
   return []
 }
+
+/**
+ * Liste des audios et images du Code à télécharger pour l'usage hors connexion (nombre et poids par chapitre).
+ * Calculée depuis les fichiers du code, mémorisée quelques minutes.
+ */
+router.get('/offline-manifest', ...withCodeAccess, (_req, res) => {
+  try {
+    res.json({ success: true, data: getOfflineManifest() })
+  } catch (error) {
+    console.error('Erreur manifeste hors connexion:', error)
+    res.status(500).json({ success: false, error: 'Manifeste indisponible' })
+  }
+})
 
 router.get('/chapters', ...withCodeAccess, async (_req, res) => {
   try {

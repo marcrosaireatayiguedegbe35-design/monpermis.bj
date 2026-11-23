@@ -1,0 +1,4 @@
+Lorsque les véhicules que je croise roulent en feux de croisement, je prévois que je peux rencontrer :
+A. une zone d’intempéries
+B. un contrôle de vitesse
+C. un contrôle routier

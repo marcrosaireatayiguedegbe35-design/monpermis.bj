@@ -1,0 +1,4 @@
+Quel est l’ordre de passage des véhicules à cette intersection ?
+A. rouge, jaune, bleu, blanc
+B. rouge et bleu simultanément, puis blanc et jaune sur ordre de l’agent
+C. jaune et blanc simultanément, puis bleu et rouge sur ordre de l’agent

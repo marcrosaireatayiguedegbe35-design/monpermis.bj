@@ -1,0 +1,5 @@
+Sur cette image D12 :
+A. le véhicule vert est en infraction
+B. le véhicule vert effectue une bonne manœuvre
+C. le véhicule vert n’est pas en infraction
+D. le véhicule vert effectue une mauvaise manœuvre

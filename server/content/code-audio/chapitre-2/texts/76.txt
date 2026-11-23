@@ -1,0 +1,4 @@
+À une intersection de deux routes de même nature peut-on dépasser par la gauche ?
+A. on peut effectuer rapidement le dépassement
+B. on ne peut pas effectuer le dépassement
+C. on le peut si le véhicule qui me précède signale son intention de tourner à droite

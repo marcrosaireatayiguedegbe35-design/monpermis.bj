@@ -1,0 +1,4 @@
+Le panneau triangle-flèche barrée (AB2) annonce que :
+A. les usagers venant de gauche et de droite ont la priorité de passage
+B. les usagers arrivant de gauche ou de droite perdent la priorité
+C. seuls les usagers arrivant de gauche perdent la priorité

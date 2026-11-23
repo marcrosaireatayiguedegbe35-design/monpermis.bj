@@ -1,0 +1,5 @@
+Un train double est composé :
+A. d’un tracteur et d’une remorque
+B. d’un tracteur routier et de deux semi-remorques
+C. d’un véhicule articulé et d’une semi-remorque
+D. d’un tracteur et d’une semi-remorque

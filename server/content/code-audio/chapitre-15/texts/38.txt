@@ -1,0 +1,4 @@
+Combien existe-t-il de types de véhicules prioritaires ?
+A. quatre
+B. dix
+C. deux

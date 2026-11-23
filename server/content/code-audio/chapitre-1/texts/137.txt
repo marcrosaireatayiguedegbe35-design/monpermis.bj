@@ -1,0 +1,4 @@
+À la vue du panneau AB2, j’ai la priorité :
+A. à la prochaine intersection
+B. à toutes les intersections
+C. seulement avant la prochaine intersection

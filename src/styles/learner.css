@@ -523,13 +523,15 @@
 }
 
 .learner-quiz-images img {
-  width: 100%;
+  display: block;
+  width: auto;
   max-width: 100%;
   height: auto;
-  aspect-ratio: 2 / 1;
+  max-height: 340px;
+  margin: 0 auto;
   border-radius: 12px;
-  object-fit: cover;
-  background: #eef1f5;
+  object-fit: contain;
+  background: #fff;
 }
 
 .learner-quiz-answers-title {
@@ -1828,4 +1830,48 @@
 
 .learner-quiz-prompt p {
   margin: 0 0 8px;
+}
+
+
+/* Choix de la catégorie de permis avant les examens */
+.exam-category-picker h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.15rem;
+}
+
+.exam-category-options {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+}
+
+.exam-category-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid #d9dee6;
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.exam-category-option:hover,
+.exam-category-option:focus-visible {
+  border-color: #1b9c5a;
+  outline: none;
+}
+
+.exam-category-option small {
+  color: #667085;
+}
+
+.exam-category-current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
 }

@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { CHAPTER_CATEGORY_RULES } from '../utils/examCategories.js'
 import { Chapter } from '../models/Chapter.js'
 import { Question } from '../models/Question.js'
 import { TEST_SUBJECT_SIZE, TestSubject } from '../models/TestSubject.js'
@@ -55,6 +56,7 @@ router.get('/chapters/:chapterId/questions', async (req, res) => {
           fileBased: true,
           hardcoded: true,
           awaitingFiles: false,
+          restrictedTo: CHAPTER_CATEGORY_RULES[Number(chapter.order)] || [],
           readOnly: true,
           pagination: {
             page: 1,

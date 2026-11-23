@@ -1,0 +1,5 @@
+Avec mon permis de conduire catégorie A2, je peux conduire des motocyclettes dont la cylindrée :
+A. n’excède pas 450 cm3
+B. excède 400 cm3
+C. est inférieure à 400 cm3
+D. est égale à 400 cm3

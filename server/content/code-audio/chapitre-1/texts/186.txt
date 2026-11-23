@@ -1,0 +1,5 @@
+Lorsque des panneaux accompagnent des feux, je respecte les panneaux si le feu est :
+A. rouge
+B. jaune clignotant
+C. jaune fixe
+D. éteint

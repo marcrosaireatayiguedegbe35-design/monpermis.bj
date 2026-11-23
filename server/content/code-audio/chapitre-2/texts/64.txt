@@ -1,0 +1,4 @@
+Donner l’écart latéral minimal entre deux véhicules automobiles lors d’un dépassement :
+A. 1 m environ
+B. 0,50 m environ
+C. 0,3 m environ

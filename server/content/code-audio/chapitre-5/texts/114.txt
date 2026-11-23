@@ -1,0 +1,4 @@
+L’usage de l’avertisseur sonore est interdit :
+A. la nuit, uniquement en agglomération
+B. la nuit, en agglomération et hors agglomération
+C. le jour en agglomération sauf danger immédiat

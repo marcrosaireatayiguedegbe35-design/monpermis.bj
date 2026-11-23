@@ -1,0 +1,4 @@
+Ce panneau (B1) indique que :
+A. l’accès est interdit à tous les véhicules
+B. l’accès est interdit aux véhicules à moteur seulement
+C. la rue en sens inverse est à sens unique

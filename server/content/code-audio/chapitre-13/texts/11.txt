@@ -1,0 +1,5 @@
+En marche normale, l’embrayage sert à :
+A. passer les vitesses
+B. démarrer le véhicule
+C. ralentir le véhicule
+D. exécuter une manœuvre

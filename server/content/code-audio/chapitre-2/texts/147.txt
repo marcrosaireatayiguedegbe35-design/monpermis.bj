@@ -1,0 +1,4 @@
+À cette intersection, quel sera l’ordre de passage des véhicules ?
+A. rouge, bleu, jaune, vert
+B. bleu et rouge simultanément, puis bleu et vert au feu vert
+C. bleu et vert simultanément, puis rouge et jaune sur l’ordre de l’agent

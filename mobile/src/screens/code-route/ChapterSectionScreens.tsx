@@ -110,14 +110,13 @@ export function ChapterQuestionsListScreen() {
     setError(null)
     try {
       rememberChapterOrder(chapterId, chapterOrder, chapterName)
-      const [list, progress] = await Promise.all([
-        fetchChapterQuestions(chapterId),
-        fetchLearnerProgress(chapterId).catch(() => null),
-      ])
-      setQuestions(list)
-      const entry =
-        progress?.completedTests?.find((item) => item.chapterId === chapterId) || null
-      setTestEntry(entry)
+      // Les questions sont dans le code : affichage immédiat. La progression arrive ensuite, sans bloquer.
+      setQuestions(await fetchChapterQuestions(chapterId))
+      void fetchLearnerProgress(chapterId)
+        .then((progress) => {
+          setTestEntry(progress?.completedTests?.find((item) => item.chapterId === chapterId) || null)
+        })
+        .catch(() => undefined)
     } catch (err) {
       setError(err instanceof ContentError ? err.message : 'Chargement impossible')
       setQuestions([])

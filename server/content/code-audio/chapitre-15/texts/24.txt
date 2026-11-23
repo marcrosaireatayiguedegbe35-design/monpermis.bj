@@ -1,0 +1,4 @@
+Les panneaux de danger sont des signalisations :
+A. placées après la zone dangereuse
+B. avancées, placées avant la zone dangereuse
+C. placées uniquement au sommet de côte

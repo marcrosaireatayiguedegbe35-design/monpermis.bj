@@ -1,0 +1,4 @@
+Le chargement de grande longueur peut dépasser au maximum l’extrémité arrière du véhicule de :
+A. 3 m
+B. 5 m
+C. 3,5 m

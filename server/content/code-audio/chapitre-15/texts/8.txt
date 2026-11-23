@@ -1,0 +1,3 @@
+La route pour automobile peut comporter :
+A. des intersections
+B. aucune intersection

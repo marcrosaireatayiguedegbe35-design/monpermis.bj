@@ -1,0 +1,4 @@
+Devant un panneau de danger :
+A. je peux marquer un arrêt
+B. je peux stationner
+C. je ne peux ni m’arrêter ni stationner

@@ -1,0 +1,4 @@
+Le coupe-batterie permet d’isoler :
+A. les feux de détresse
+B. les feux du véhicule
+C. l’alimentation électrique du moteur

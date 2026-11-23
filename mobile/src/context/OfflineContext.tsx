@@ -85,6 +85,8 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
     setRefreshing(true)
     try {
       await pruneStaleActions()
+      // Examens blancs passés hors connexion : envoyés au serveur dès le retour du réseau.
+      void import('../api/revision').then((m) => m.syncPendingExams()).catch(() => undefined)
       const actions = await getPendingActions()
       if (actions.length === 0) return
 

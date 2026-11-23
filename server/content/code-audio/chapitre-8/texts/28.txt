@@ -1,0 +1,5 @@
+Un véhicule articulé est composé :
+A. d’un véhicule tracteur et d’une remorque
+B. d’un véhicule tracteur et d’une semi-remorque
+C. d’un véhicule tracteur routier et d’une remorque
+D. rien de tout ce qui précède

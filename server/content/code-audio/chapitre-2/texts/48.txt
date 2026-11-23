@@ -1,0 +1,4 @@
+À cette intersection I23, quel sera l’ordre de passage ?
+A. les véhicules orange et rouge passent ; les véhicules jaune et bleu passent après
+B. les véhicules jaune et bleu s’arrêtent ; les véhicules orange et rouge passent ; le véhicule bleu tourne ; le véhicule jaune passe au feu vert
+C. le véhicule bleu tourne ; les véhicules orange et rouge passent ; le véhicule jaune passe au feu vert

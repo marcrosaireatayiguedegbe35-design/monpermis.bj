@@ -1,0 +1,4 @@
+À cette intersection I14, quel sera l’ordre de passage ?
+A. le véhicule bleu passe ; le véhicule jaune passe ensuite ; enfin le véhicule rouge passe
+B. le véhicule bleu démarre, fait un quart de tour et s’arrête ; le véhicule rouge passe ; le véhicule bleu passe ensuite ; enfin le véhicule jaune passe
+C. le véhicule bleu démarre, fait un quart de tour et s’arrête ; le véhicule jaune passe ; le véhicule rouge passe ensuite ; enfin le véhicule bleu passe

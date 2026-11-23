@@ -1,0 +1,5 @@
+Ce panneau A18 :
+A. signale une circulation alternée
+B. signale une circulation dans les deux sens
+C. prend effet à 150 mètres environ
+D. prend effet à partir du panneau

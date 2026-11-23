@@ -1,0 +1,4 @@
+La ligne continue blanche centrale :
+A. autorise le dépassement
+B. interdit le dépassement
+C. est réservée pour l’arrêt des bus

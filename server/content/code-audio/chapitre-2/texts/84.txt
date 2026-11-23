@@ -1,0 +1,5 @@
+Sur cette image D11 :
+A. le véhicule jaune effectue une bonne manœuvre
+B. le véhicule jaune n’est pas en infraction
+C. le véhicule jaune effectue une mauvaise manœuvre
+D. le véhicule jaune est en infraction

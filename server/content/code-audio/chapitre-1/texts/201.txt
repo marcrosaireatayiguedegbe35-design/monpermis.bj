@@ -1,0 +1,4 @@
+Le panneau B2a :
+A. interdit de tourner à gauche à la prochaine intersection
+B. interdit de tourner à gauche dans cette rue
+C. oblige à tourner à gauche à la prochaine intersection

@@ -1,0 +1,4 @@
+Lorsque deux véhicules de même catégorie se retrouvent sur une pente, lequel doit faire la marche arrière à cause d’un croisement difficile ?
+A. le véhicule montant
+B. le véhicule descendant
+C. le véhicule qui veut

@@ -1,0 +1,5 @@
+Au volant de mon véhicule je peux :
+A. manger
+B. boire
+C. fumer
+D. écouter la radio

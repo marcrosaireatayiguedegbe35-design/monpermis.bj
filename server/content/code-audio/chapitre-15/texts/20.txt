@@ -1,0 +1,4 @@
+Combien existe-t-il de catégories de panneaux de signalisation ?
+A. quatre
+B. six
+C. deux

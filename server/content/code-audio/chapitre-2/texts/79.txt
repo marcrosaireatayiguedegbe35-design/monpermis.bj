@@ -1,0 +1,5 @@
+Au niveau des flèches de rabattement :
+A. je suis autorisé à dépasser lorsqu’aucun usager ne vient en face
+B. je suis autorisé à dépasser lorsque je juge la largeur de la chaussée suffisante
+C. je ne suis pas autorisé à dépasser
+D. je suis autorisé si l’usager devant moi est trop lent

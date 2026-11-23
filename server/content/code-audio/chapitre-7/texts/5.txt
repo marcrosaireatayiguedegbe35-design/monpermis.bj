@@ -1,0 +1,5 @@
+Avec mon permis de conduire catégorie B :
+A. je peux conduire un véhicule dont le PTAC est inférieur ou égal à 3,5 T
+B. je peux conduire tous les véhicules
+C. je ne peux conduire que les véhicules dont le PTAC est compris entre 3,5 T et 18 T
+D. je peux conduire une camionnette dont le PTAC est égal ou inférieur à 3,5 T

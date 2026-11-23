@@ -1,0 +1,4 @@
+Donnez la position du piston à l’explosion :
+A. le piston monte
+B. le piston descend
+C. le piston est sur place

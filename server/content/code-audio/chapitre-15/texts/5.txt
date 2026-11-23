@@ -1,0 +1,4 @@
+À la traversée d’une ville, la route devient :
+A. une autoroute
+B. une rue
+C. une piste

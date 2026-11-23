@@ -1,0 +1,4 @@
+Sur mon véhicule, en roulant je peux contrôler visuellement :
+A. certains niveaux
+B. l’état des pneumatiques
+C. l’état des courroies

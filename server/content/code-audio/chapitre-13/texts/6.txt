@@ -1,0 +1,5 @@
+Je fais vérifier rapidement mon véhicule si je constate une baisse importante du niveau :
+A. de l’huile à moteur
+B. du liquide de frein
+C. du liquide de refroidissement
+D. du liquide de lave-glace

@@ -1,0 +1,5 @@
+Sur les lignes hachurées appelées zébras :
+A. je peux stationner
+B. je peux circuler
+C. je ne peux ni stationner, ni circuler, ni m’arrêter
+D. je peux m’arrêter

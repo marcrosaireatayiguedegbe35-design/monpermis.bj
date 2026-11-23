@@ -1,0 +1,5 @@
+En présence d’un panneau stop, je dois :
+A. marquer l’arrêt au niveau du panneau
+B. marquer l’arrêt au niveau de la ligne
+C. céder le passage à gauche
+D. céder le passage à droite

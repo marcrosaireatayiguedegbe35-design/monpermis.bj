@@ -1,0 +1,4 @@
+Pour baliser un lieu d’accident, j’utilise :
+A. des balises
+B. des branchages
+C. des triangles de présignalisation

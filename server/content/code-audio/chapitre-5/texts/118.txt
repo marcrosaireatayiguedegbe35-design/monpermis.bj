@@ -1,0 +1,4 @@
+Lors d’un arrêt en circulation, pour éviter de caler le moteur il faut :
+A. débrayer dès le début du freinage
+B. débrayer en fin de freinage seulement
+C. débrayer avant de freiner

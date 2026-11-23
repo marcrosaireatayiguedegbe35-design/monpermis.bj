@@ -1,0 +1,4 @@
+Dans la définition du poids à vide d’un véhicule on tient compte :
+A. du poids du véhicule, avec le réservoir rempli uniquement
+B. du poids du véhicule sans le carburant, sans bâche
+C. du poids du véhicule, les réservoirs remplis avec les équipements de bord

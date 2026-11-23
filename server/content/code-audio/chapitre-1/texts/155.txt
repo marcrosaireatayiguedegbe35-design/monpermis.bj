@@ -1,0 +1,5 @@
+Ce panneau (AK5) :
+A. est permanent
+B. est temporaire
+C. impose un ralentissement
+D. n’impose pas un ralentissement

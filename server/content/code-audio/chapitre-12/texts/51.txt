@@ -1,0 +1,4 @@
+Les véhicules prioritaires sont équipés de feux :
+A. tournant bleus
+B. clignotant bleus
+C. tournants jaunes

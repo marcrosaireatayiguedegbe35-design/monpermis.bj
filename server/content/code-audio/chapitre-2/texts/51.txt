@@ -1,0 +1,4 @@
+À cette intersection I23, quel est le véhicule qui passera le dernier ?
+A. le véhicule jaune
+B. le véhicule bleu
+C. les véhicules jaune et bleu

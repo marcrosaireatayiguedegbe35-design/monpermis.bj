@@ -1,0 +1,4 @@
+Dans quel ordre s’allument les feux tricolores :
+A. rouge-jaune-vert
+B. jaune-vert-rouge
+C. vert-jaune-rouge

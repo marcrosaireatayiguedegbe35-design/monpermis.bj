@@ -1,0 +1,4 @@
+Les panneaux de danger ont :
+A. une forme ronde, un fond bleu
+B. une forme carrée, un fond jaune
+C. une forme triangulaire, un fond blanc avec un listel rouge

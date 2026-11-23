@@ -1,0 +1,5 @@
+Par temps de brouillard, je peux allumer les feux :
+A. de croisement
+B. de route
+C. de brouillard avant
+D. de brouillard arrière

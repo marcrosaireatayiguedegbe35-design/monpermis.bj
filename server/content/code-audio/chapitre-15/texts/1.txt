@@ -1,0 +1,4 @@
+Le code de la route est :
+A. une liste d’amendes
+B. un permis de conduire
+C. l’ensemble des conventions et protocoles d’accord destinés à faciliter une circulation routière sûre et rapide

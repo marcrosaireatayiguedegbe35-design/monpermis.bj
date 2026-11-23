@@ -1,6 +1,7 @@
 import { Asset } from 'expo-asset'
 import { getCodeImageModule } from '../data/codeRoute/imageAssets'
 import { findLocalQuestionById, parseLocalQuestionId } from '../data/codeRoute/banks'
+import { cacheMediaInBackground, getCachedMediaUri } from './mediaCache'
 import { resolveMediaUrl } from './mediaUrl'
 
 const uriCache = new Map<string, string>()
@@ -44,7 +45,12 @@ export async function resolveQuestionImageUri(
       }
     }
 
-    return resolveMediaUrl(`/content/code-images/chapitre-${chapterOrder}/${imageIndex}.png`)
+    const remote = resolveMediaUrl(`/content/code-images/chapitre-${chapterOrder}/${imageIndex}.png`)
+    if (!remote) return undefined
+    const stored = await getCachedMediaUri(remote)
+    if (stored) return stored
+    cacheMediaInBackground(remote)
+    return remote
   }
 
   if (/^local:\/\//i.test(imageUrl)) return undefined

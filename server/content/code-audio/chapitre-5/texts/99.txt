@@ -1,0 +1,5 @@
+Lors de l’alerte des secours, j’indique :
+A. le lieu précis de l’accident
+B. le numéro d’immatriculation des véhicules impliqués
+C. le nombre et le type de véhicules impliqués
+D. le nombre et l’état des blessés

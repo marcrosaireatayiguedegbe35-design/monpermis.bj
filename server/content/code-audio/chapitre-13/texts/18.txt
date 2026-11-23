@@ -1,0 +1,3 @@
+Le frein moteur intervient dès qu’on :
+A. lâche l’accélérateur
+B. appuie sur la pédale de frein

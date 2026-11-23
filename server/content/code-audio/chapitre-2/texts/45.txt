@@ -1,0 +1,3 @@
+À cette intersection I1, quel sera l’ordre de passage ?
+A. le véhicule vert ; le véhicule rouge ensuite ; le véhicule orange après
+B. le véhicule rouge ; les véhicules vert et orange passent simultanément

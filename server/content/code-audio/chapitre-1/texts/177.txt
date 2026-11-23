@@ -1,0 +1,4 @@
+Un panneau de zone de stationnement placé sur le même support qu’un panneau d’entrée d’agglomération peut concerner :
+A. plusieurs rues
+B. une seule rue
+C. toutes les rues de l’agglomération

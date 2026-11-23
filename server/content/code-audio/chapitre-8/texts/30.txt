@@ -1,0 +1,5 @@
+La longueur maximale d’un train double est de :
+A. 18 m
+B. 22 m
+C. 25 m
+D. 16 m

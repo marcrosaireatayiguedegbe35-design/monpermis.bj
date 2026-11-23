@@ -1,0 +1,5 @@
+Au volant de mon véhicule je peux :
+A. recevoir un appel
+B. appeler un ami
+C. communiquer si mon portable est équipé d’un écouteur
+D. rien de tout ce qui précède

@@ -1,0 +1,4 @@
+Dans une circulation en files ininterrompues :
+A. je peux me faufiler entre les véhicules
+B. je peux me faufiler entre les véhicules si la circulation s’arrête
+C. je dois rester dans ma file sauf pour préparer un changement de direction

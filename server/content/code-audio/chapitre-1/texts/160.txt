@@ -1,0 +1,5 @@
+Ce panneau indique :
+A. que le premier virage est à 150 m
+B. plusieurs virages à 500 m
+C. plusieurs virages sur 500 m
+D. un ralentissement

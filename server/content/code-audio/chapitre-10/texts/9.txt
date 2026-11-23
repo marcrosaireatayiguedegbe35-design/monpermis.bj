@@ -1,0 +1,5 @@
+Un véhicule de tourisme possède combien de roues ?
+A. Quatre
+B. Cinq
+C. Six
+D. Sept

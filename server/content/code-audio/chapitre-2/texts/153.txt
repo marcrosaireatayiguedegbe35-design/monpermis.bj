@@ -1,0 +1,4 @@
+Sur cette image quel est l’ordre de passage des voitures :
+A. rouge et jaune simultanément, puis bleue au feu vert
+B. bleue puis rouge et jaune simultanément
+C. jaune d’abord, bleue ensuite et enfin rouge

@@ -1,0 +1,4 @@
+Le but du code de la route est :
+A. de vendre des véhicules
+B. d’indiquer ou de rappeler les diverses prescriptions aux usagers de la route
+C. de former les moniteurs

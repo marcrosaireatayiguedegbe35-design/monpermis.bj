@@ -1,0 +1,4 @@
+À cette image quel sera l’ordre de passage des véhicules ?
+A. vert et jaune, puis rouge et bleu
+B. rouge et bleu, puis le jaune et vert
+C. vert et jaune, puis rouge et bleu sur ordre de l’agent

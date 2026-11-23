@@ -1,0 +1,5 @@
+Dans une agglomération éclairée je peux circuler :
+A. sans feux
+B. en feux de position
+C. en feux de croisement
+D. en feux de route

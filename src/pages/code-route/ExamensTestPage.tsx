@@ -6,6 +6,8 @@ import {
   completePracticeExam,
   ContentError,
   fetchPracticeExams,
+  getStoredExamCategory,
+  setStoredExamCategory,
   startPracticeExam,
   type PracticeExamAttempt,
   type PracticeExamsOverview,
@@ -31,6 +33,12 @@ export function ExamensTestPage() {
   const [data, setData] = useState<PracticeExamsOverview | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [category, setCategory] = useState<string | null>(() => getStoredExamCategory())
+
+  const chooseCategory = (id: string | null) => {
+    setStoredExamCategory(id)
+    setCategory(id)
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -118,6 +126,39 @@ export function ExamensTestPage() {
 
                   {data.message ? <p className="subtitle">{data.message}</p> : null}
 
+                  {!category || !(data.categories || []).some((c) => c.id === category) ? (
+                    <div className="exam-category-picker">
+                      <h2>Quel permis préparez-vous ?</h2>
+                      <p className="subtitle">
+                        Certaines questions ne concernent que certaines catégories (par exemple les deux-roues
+                        pour les permis A1, A2 et A3). Choisissez votre catégorie avant de composer un examen.
+                      </p>
+                      <div className="exam-category-options">
+                        {(data.categories || []).map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            className="exam-category-option"
+                            onClick={() => chooseCategory(item.id)}
+                          >
+                            <strong>{item.label}</strong>
+                            {item.hint ? <small>{item.hint}</small> : null}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                  <>
+                  <div className="exam-category-current">
+                    <span>
+                      Catégorie :{' '}
+                      <strong>{(data.categories || []).find((c) => c.id === category)?.label}</strong>
+                    </span>
+                    <button type="button" className="btn-outline" onClick={() => chooseCategory(null)}>
+                      Changer
+                    </button>
+                  </div>
+
                   <div className="practice-exam-list">
                     {data.exams.map((exam) => (
                       <article key={exam.id} className={`practice-exam-card is-${exam.status}`}>
@@ -147,6 +188,8 @@ export function ExamensTestPage() {
                       </article>
                     ))}
                   </div>
+                  </>
+                  )}
                 </>
               )}
             </>

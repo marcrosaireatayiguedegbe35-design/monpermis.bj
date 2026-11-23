@@ -1,0 +1,4 @@
+Les itinéraires de délestage sont :
+A. obligatoires
+B. facultatifs
+C. rien de tout ce qui précède

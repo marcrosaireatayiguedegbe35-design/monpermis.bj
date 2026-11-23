@@ -20,7 +20,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, T
 import {
   ContentError,
   fetchLearnerJourney,
-  fetchLearnerResults,
+  fetchLearnerResultsSWR,
   type LearnerJourney,
   type LearnerResultsReport,
   type ResultExamRow,
@@ -53,19 +53,18 @@ export function MesNotesScreen() {
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true)
-    const [reportResult, journeyResult] = await Promise.allSettled([
-      fetchLearnerResults(),
-      fetchLearnerJourney(),
-    ])
-    if (reportResult.status === 'fulfilled') {
-      setReport(reportResult.value)
+    // Le rapport calculé sur l'appareil s'affiche tout de suite ; le serveur le complète ensuite.
+    const reportTask = fetchLearnerResultsSWR((next) => {
+      setReport(next)
       setError(null)
-    } else {
-      setError(
-        reportResult.reason instanceof ContentError ? reportResult.reason.message : 'Chargement impossible',
-      )
-    }
-    if (journeyResult.status === 'fulfilled') setJourney(journeyResult.value)
+      setLoading(false)
+    }).catch((err) => {
+      setError(err instanceof ContentError ? err.message : 'Chargement impossible')
+    })
+    const journeyTask = fetchLearnerJourney()
+      .then((next) => setJourney(next))
+      .catch(() => undefined)
+    await Promise.allSettled([reportTask, journeyTask])
     setLoading(false)
     setRefreshing(false)
   }, [])
@@ -128,7 +127,7 @@ export function MesNotesScreen() {
           <Text style={styles.helloSub}>Voici le suivi de vos examens et de votre cours</Text>
 
           {loading && !report ? <ActivityIndicator color={RES.navy} style={{ marginTop: 24 }} /> : null}
-          {error && !journey ? <Text style={styles.error}>Impossible de charger vos résultats. Tirez vers le bas pour réessayer.</Text> : null}
+          {error && !journey && !report ? <Text style={styles.error}>Impossible de charger vos résultats. Tirez vers le bas pour réessayer.</Text> : null}
 
           {/* Serveur pas encore à jour : on affiche les notes déjà disponibles (ancien format). */}
           {!report && !loading && journey ? (

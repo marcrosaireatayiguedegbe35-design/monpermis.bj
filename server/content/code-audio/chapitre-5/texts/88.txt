@@ -1,0 +1,4 @@
+La mesure exacte du taux d’alcoolémie est effectuée si :
+A. le dépistage est positif
+B. le conducteur refuse le dépistage
+C. le dépistage est négatif

@@ -1,0 +1,5 @@
+Les balises qui positionnent un virage sont :
+A. panneau A (voir l’image)
+B. panneau B (voir l’image)
+C. panneau C (voir l’image)
+D. panneau D (voir l’image)

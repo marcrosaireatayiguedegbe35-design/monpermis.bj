@@ -1,0 +1,4 @@
+À l’approche d’une intersection, sur une route à caractère prioritaire :
+A. je peux dépasser un véhicule
+B. je ne peux pas dépasser un véhicule
+C. je ne peux pas dépasser lorsqu’il y a un marquage au sol l’interdisant

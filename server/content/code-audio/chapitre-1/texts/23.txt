@@ -1,0 +1,4 @@
+Que m’indique le panneau A1d1 ?
+A. succession de virage dont le 1er est à droite à 5 km
+B. succession de virage sur 5 km dont le 1er est à gauche
+C. succession de virage sur 5 km dont le 1er est à droite

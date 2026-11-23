@@ -1,0 +1,4 @@
+Donnez la position des soupapes à l’explosion :
+A. les soupapes s’ouvrent
+B. les deux soupapes sont fermées
+C. les soupapes d’admission et d’échappement sont ouvertes

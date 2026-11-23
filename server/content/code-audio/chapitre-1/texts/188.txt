@@ -1,0 +1,5 @@
+Les panneaux qui ont la forme ronde peuvent être des panneaux :
+A. d’obligation
+B. d’indication
+C. d’interdiction
+D. de danger

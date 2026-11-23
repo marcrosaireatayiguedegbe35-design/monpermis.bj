@@ -1,0 +1,4 @@
+Pour vidanger le moteur d’un véhicule bien entretenu, il faut tenir compte :
+A. du kilométrage parcouru
+B. de la vitesse élevée
+C. du nombre de voyages effectués

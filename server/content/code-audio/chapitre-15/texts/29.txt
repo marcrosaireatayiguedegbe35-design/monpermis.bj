@@ -1,0 +1,4 @@
+Les panneaux d’interdictions ont :
+A. une forme carrée
+B. une forme triangulaire
+C. une forme ronde et une bordure rouge

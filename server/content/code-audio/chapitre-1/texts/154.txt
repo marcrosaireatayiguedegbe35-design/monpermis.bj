@@ -1,0 +1,5 @@
+Un panneau rond rouge est :
+A. une obligation
+B. une interdiction
+C. une fin d’interdiction
+D. une indication

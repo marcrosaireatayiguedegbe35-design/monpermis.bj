@@ -1,0 +1,5 @@
+À la vue du panneau AB6 que dois-je faire à la prochaine intersection ?
+A. je m’arrête
+B. je cède le passage à droite
+C. je passe
+D. je cède le passage à gauche

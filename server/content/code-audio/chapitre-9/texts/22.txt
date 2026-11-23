@@ -1,0 +1,4 @@
+Le chronotachygraphe permet l’enregistrement :
+A. des tours des roues avant
+B. de la vitesse du véhicule et de la distance parcourue
+C. du temps de conduite et de repos

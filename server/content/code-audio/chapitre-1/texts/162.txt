@@ -1,0 +1,4 @@
+Les panneaux indiquant les itinéraires reliant les villes importantes par la route sont de couleur :
+A. blanche
+B. verte
+C. bleue

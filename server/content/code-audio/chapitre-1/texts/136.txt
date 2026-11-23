@@ -1,0 +1,5 @@
+Le panneau B31 peut signaler la fin :
+A. d’une route à caractère prioritaire
+B. d’une limitation de vitesse
+C. d’une interdiction de stationnement
+D. d’une interdiction d’arrêter

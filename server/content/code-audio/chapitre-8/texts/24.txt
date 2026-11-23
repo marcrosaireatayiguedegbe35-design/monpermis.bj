@@ -1,0 +1,4 @@
+Sur cette image PN2 le camion doit :
+A. faire un demi-tour si sa hauteur est supérieure à 4,5 m
+B. ralentir, vérifier la gauche et la droite puis passer si sa hauteur ne dépasse pas 4,5 m
+C. passer sans danger

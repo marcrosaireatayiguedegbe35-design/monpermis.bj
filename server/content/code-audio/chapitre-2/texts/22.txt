@@ -1,0 +1,4 @@
+À cette intersection I9 :
+A. le véhicule jaune peut tourner immédiatement à droite
+B. le véhicule jaune peut tourner immédiatement à gauche
+C. le véhicule jaune peut aller immédiatement tout droit

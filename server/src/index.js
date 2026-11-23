@@ -15,10 +15,8 @@ import adminAuditLogsRoutes from './routes/adminAuditLogs.js'
 import adminActivityRoutes from './routes/adminActivity.js'
 import adminRevisionRoutes from './routes/adminRevision.js'
 import adminQuestionsRoutes from './routes/adminQuestions.js'
-import adminChapterAudioRoutes from './routes/adminChapterAudio.js'
 import { serveChapterAudio } from './services/serveChapterAudio.js'
 import { loadPublishedAudioIndex } from './services/publishedAudio.js'
-import adminChapterImageRoutes from './routes/adminChapterImages.js'
 import { serveChapterImage } from './services/serveChapterImage.js'
 import { loadPublishedImageIndex } from './services/publishedImages.js'
 import adminConduiteRoutes from './routes/adminConduite.js'
@@ -196,11 +194,25 @@ app.use('/content', (req, res, next) => {
   if (!PUBLIC_CONTENT_MEDIA.test(pathname)) return res.status(404).end()
   next()
 })
+// Audios / images des chapitres 1 à 19 : fichiers du code (server/content), servis sans passer par la base.
+// fallthrough : les autres chapitres (et tout fichier absent) continuent vers les routes base ci-dessous.
+for (const [kind, chapter] of ['code-audio', 'code-images'].flatMap((k) => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19].map((c) => [k, c]))) {
+  app.use(
+    `/content/${kind}/chapitre-${chapter}`,
+    express.static(path.join(__dirname, `../content/${kind}/chapitre-${chapter}`), {
+      index: false,
+      maxAge: '7d',
+      etag: true,
+      lastModified: true,
+      fallthrough: true,
+    }),
+  )
+}
 // Audios / images questions en dur (chapitre 17, …)
-// Audios des questions : publiés par les admins et stockés en base (voir routes/adminChapterAudio.js).
+// Audios des questions : fichiers du code (server/content), servis ci-dessus ; la base ne sert plus que de secours.
 app.get('/content/code-audio/chapitre-:chapter/:question.mp3', serveChapterAudio)
 app.head('/content/code-audio/chapitre-:chapter/:question.mp3', serveChapterAudio)
-// Images des questions : publiées par les admins et stockées en base (routes/adminChapterImages.js).
+// Images des questions : idem (fichiers du code).
 app.get('/content/code-images/chapitre-:chapter/:image.png', serveChapterImage)
 app.head('/content/code-images/chapitre-:chapter/:image.png', serveChapterImage)
 app.use(
@@ -277,8 +289,6 @@ app.use('/api/admin/activity', adminActivityRoutes)
 app.use('/api/admin/revision', adminRevisionCoursesRoutes)
 app.use('/api/admin/revision', adminRevisionRoutes)
 app.use('/api/admin/revision', adminQuestionsRoutes)
-app.use('/api/admin/revision', adminChapterAudioRoutes)
-app.use('/api/admin/revision', adminChapterImageRoutes)
 app.use('/api/admin/revision', adminPracticeExamsRoutes)
 app.use('/api/admin/conduite', adminConduiteRoutes)
 app.use('/api/admin/conduite', adminReservationsRoutes)

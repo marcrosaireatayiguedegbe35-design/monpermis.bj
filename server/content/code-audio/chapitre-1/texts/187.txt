@@ -1,0 +1,4 @@
+L’agent réglementant la circulation peut m’indiquer :
+A. de passer
+B. de m’arrêter
+C. d’accélérer

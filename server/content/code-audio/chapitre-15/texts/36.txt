@@ -1,0 +1,4 @@
+Un véhicule est dit prioritaire lorsqu’il est :
+A. en mission, faisant usage de ses avertisseurs sonores et/ou lumineux
+B. un véhicule de grande taille
+C. un véhicule de transport en commun

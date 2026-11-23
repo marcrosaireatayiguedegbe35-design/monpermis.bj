@@ -1,0 +1,4 @@
+Le véhicule est :
+A. un moyen de déplacement ou de transport terrestre, muni ou non d’un moteur
+B. uniquement un engin à moteur
+C. un moyen de transport aérien

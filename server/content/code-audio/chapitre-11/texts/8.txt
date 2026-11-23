@@ -1,0 +1,4 @@
+Quel est le rôle de la bobine ?
+A. la bobine transforme le courant primaire de la batterie en courant secondaire
+B. la bobine réduit l’intensité électrique
+C. la bobine régularise le courant

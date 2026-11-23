@@ -1,0 +1,6 @@
+Sur cette image, donnez les règles à appliquer et l’ordre de passage des véhicules :
+A. priorité à droite
+B. perte de priorité
+C. priorité de passage
+D. jaune et bleu simultanément, puis rouge
+E. rouge, jaune, bleu

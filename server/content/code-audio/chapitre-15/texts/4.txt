@@ -1,0 +1,4 @@
+La route peut être :
+A. non revêtue
+B. uniquement goudronnée
+C. revêtue

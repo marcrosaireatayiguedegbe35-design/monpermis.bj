@@ -1,0 +1,4 @@
+Combien de passagers un conducteur de motocyclette peut-il transporter ?
+A. deux
+B. un
+C. trois

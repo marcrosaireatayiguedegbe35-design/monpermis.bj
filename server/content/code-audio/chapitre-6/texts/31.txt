@@ -1,0 +1,5 @@
+Les motocyclettes sont des véhicules à deux roues :
+A. avec moteur auxiliaire
+B. pourvus d’un moteur thermique
+C. dont la cylindrée ne dépasse pas 50 cm3
+D. dont la cylindrée dépasse 50 cm3

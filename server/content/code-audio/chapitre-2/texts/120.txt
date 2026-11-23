@@ -1,0 +1,4 @@
+La force centrifuge augmente proportionnellement :
+A. avec la vitesse
+B. avec le rayon de la courbe
+C. avec la charge du véhicule

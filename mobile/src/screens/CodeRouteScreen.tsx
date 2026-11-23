@@ -43,6 +43,7 @@ import {
 } from '../api/revision'
 import { Bouncy } from '../components/Bouncy'
 import { CodeRouteBanner } from '../components/CodeRouteBanner'
+import { OfflinePackCard } from '../components/OfflinePackCard'
 import { FadeUp } from '../components/FadeUp'
 import { HomeBottomAnimation } from '../components/HomeBottomAnimation'
 import { MobileMoneyCheckout } from '../components/MobileMoneyCheckout'
@@ -107,20 +108,10 @@ export function CodeRouteScreen() {
     if (!user) return
     if (!silent) setAccessLoading(true)
     try {
-      if (isOffline) {
-        const cached = await import('../utils/contentCache').then((m) =>
-          m.cacheGet<AccessMe>(`access:me:${user.id}`, 24 * 60 * 60 * 1000),
-        )
-        if (cached) {
-          setAccessMe(cached.data)
-          setAccessLoading(false)
-          setRefreshing(false)
-          return
-        }
-      }
+      // fetchAccessMe revient au dernier abonnement connu si le réseau est coupé (valable jusqu'à sa date de fin).
       const [me, catalog, journeyData] = await Promise.all([
         fetchAccessMe(),
-        fetchAccessModules(),
+        fetchAccessModules().catch(() => [] as AccessModule[]),
         fetchLearnerJourney().catch(() => null),
       ])
       setAccessMe(me)
@@ -463,6 +454,8 @@ export function CodeRouteScreen() {
           <FadeUp delay={100}>
             <CodeRouteBanner />
           </FadeUp>
+
+          <OfflinePackCard />
 
           <View style={styles.grid}>
             {categories.map((category, index) => {

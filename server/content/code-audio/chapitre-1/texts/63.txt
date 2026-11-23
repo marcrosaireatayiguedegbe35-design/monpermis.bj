@@ -1,0 +1,5 @@
+Le panneau B14(4) concerne :
+A. les véhicules de transport en commun de personnes
+B. les véhicules de transport de marchandises
+C. tout véhicule de transport
+D. tout véhicule de tourisme

@@ -1,0 +1,5 @@
+Sur cette image D9 :
+A. le véhicule bleu est en infraction
+B. le véhicule bleu effectue une bonne manœuvre
+C. le véhicule bleu n’est pas en infraction
+D. le véhicule bleu effectue une mauvaise manœuvre

@@ -5,6 +5,7 @@ import { parseTranscript, referencesImage, transcriptProblems } from '../utils/t
 import { answerKeyProblems } from '../utils/answerKey.js'
 import { onPublishedAudioChange, publishedAudioSize } from './publishedAudio.js'
 import { hasPublishedImage, onPublishedImageChange } from './publishedImages.js'
+import { codeAudioSize, codeImageSize } from './codeMedia.js'
 import {
   CONFIRMED_ALL_CORRECT_QUESTIONS,
   UNCERTAIN_QUESTIONS,
@@ -66,8 +67,8 @@ export function checkExamEligibility(doc) {
     const chapter = Number(match[1])
     const order = Number(match[2])
 
-    // L'audio est publié par les admins et stocké en base (index mémoire, voir publishedAudio.js).
-    const audioSize = publishedAudioSize(chapter, order)
+    // L'audio vient du code (server/content) ou, à défaut, des admins en base (index mémoire, voir publishedAudio.js).
+    const audioSize = codeAudioSize(chapter, order) || publishedAudioSize(chapter, order)
     if (!audioSize) reasons.push('audio absent')
     else if (audioSize < MIN_AUDIO_BYTES) reasons.push('audio vide ou tronqué')
 
@@ -88,7 +89,7 @@ export function checkExamEligibility(doc) {
 
   for (const url of doc?.prompt?.imageUrls || []) {
     const ref = imageRef(url)
-    if (!ref || !hasPublishedImage(ref.chapter, ref.index)) {
+    if (!ref || !(codeImageSize(ref.chapter, ref.index) || hasPublishedImage(ref.chapter, ref.index))) {
       reasons.push('image manquante')
       break
     }

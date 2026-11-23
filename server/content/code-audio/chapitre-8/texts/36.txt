@@ -1,0 +1,4 @@
+Que signifie le panneau B8-1 ?
+A. voie réservée aux véhicules de transport de marchandises dont le PTAC est inférieur ou égal à 5,5 T
+B. accès interdit aux véhicules poids lourds dont le PTAC est égal à 5,5 T
+C. accès interdit aux véhicules de transport de marchandises dont le PTAC excède 5,5 T

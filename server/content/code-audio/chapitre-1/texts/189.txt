@@ -1,0 +1,4 @@
+Lorsque les panneaux de direction ont un fond jaune, il s’agit :
+A. d’indication de direction provisoire
+B. d’itinéraires prioritaires
+C. d’indication urgente

@@ -31,6 +31,10 @@ const practiceExamAttemptSchema = new mongoose.Schema(
     },
     examNumber: { type: Number, required: true },
     questionIds: [{ type: String }],
+    /** Catégorie de permis choisie au démarrage (A1, A2, A3, B…). */
+    category: { type: String, default: 'B' },
+    /** Identifiant d'un examen passé hors connexion sur l'appareil (synchronisation sans doublon). */
+    clientId: { type: String, default: undefined },
     responses: { type: [responseSchema], default: [] },
     status: {
       type: String,
@@ -50,6 +54,10 @@ const practiceExamAttemptSchema = new mongoose.Schema(
 )
 
 practiceExamAttemptSchema.index({ userId: 1, examNumber: 1, status: 1 })
+practiceExamAttemptSchema.index(
+  { userId: 1, clientId: 1 },
+  { unique: true, partialFilterExpression: { clientId: { $type: 'string' } } },
+)
 
 practiceExamAttemptSchema.methods.toPublicJSON = function toPublicJSON(questions = []) {
   const byId = new Map(questions.map((q) => [String(q.id || q._id), q]))

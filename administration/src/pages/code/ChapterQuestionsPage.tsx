@@ -13,8 +13,6 @@ import {
   VolumeX,
 } from 'lucide-react'
 import { fetchChapterQuestions } from '../../api/questions'
-import { ChapterAudioPanel } from '../../components/ChapterAudioPanel'
-import { ChapterImagePanel } from '../../components/ChapterImagePanel'
 import { CodeSection } from '../../components/model/CodeSection'
 import { getAdminToken, isAuthError } from '../../context/AdminAuthContext'
 import { EmptyState, SkeletonBlock } from '../../ui'
@@ -34,6 +32,7 @@ export function ChapterQuestionsPage() {
   const [questions, setQuestions] = useState<ChapterQuestion[]>([])
   const [hardcoded, setHardcoded] = useState(false)
   const [awaitingFiles, setAwaitingFiles] = useState(false)
+  const [restrictedTo, setRestrictedTo] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -55,6 +54,7 @@ export function ChapterQuestionsPage() {
       setQuestions(data.questions)
       setHardcoded(Boolean(data.hardcoded))
       setAwaitingFiles(Boolean(data.awaitingFiles))
+      setRestrictedTo(Array.isArray(data.restrictedTo) ? data.restrictedTo : [])
     } catch (err) {
       setError(isAuthError(err) ? err.message : 'Chargement impossible')
     } finally {
@@ -105,7 +105,7 @@ export function ChapterQuestionsPage() {
     <CodeSection
       kicker="Banque figée"
       title={chapterName ? `Questions · ${chapterName}` : 'Questions'}
-      subtitle="Les questions viennent des fichiers du chapitre ; les audios sont publiés ici par les admins et stockés en base."
+      subtitle="Questions, audios et images sont intégrés au code de l’application : rien à publier ici. Cette page sert à les consulter."
       actions={
         <>
           <Link to={`/code/revision-chapitres?chapter=${chapterId}`} className="cx-refresh">
@@ -122,8 +122,12 @@ export function ChapterQuestionsPage() {
       {error ? <p className="cx-note cx-note-err" role="alert">{error}</p> : null}
       {loading ? <SkeletonBlock rows={6} /> : null}
 
-      <ChapterAudioPanel chapterId={chapterId} />
-      <ChapterImagePanel chapterId={chapterId} />
+      {restrictedTo.length > 0 ? (
+        <p className="cx-note" role="note">
+          Chapitre réservé aux candidats des permis <strong>{restrictedTo.join(', ')}</strong> : il n’apparaît dans les
+          examens test que pour ces catégories. Les autres chapitres sont communs à tous les candidats.
+        </p>
+      ) : null}
 
       {ready ? (
         <div className="cx-kc-grid">
@@ -179,7 +183,7 @@ export function ChapterQuestionsPage() {
       {!loading && awaitingFiles ? (
         <EmptyState
           title="Fichiers non reçus"
-          description="Dès que les audios et la correction de ce chapitre seront intégrés au code, ils apparaîtront ici automatiquement."
+          description="Ce chapitre n’a pas encore de questions dans le code de l’application."
         />
       ) : null}
 

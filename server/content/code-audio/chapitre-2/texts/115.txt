@@ -1,0 +1,4 @@
+À cette intersection, le véhicule bleu passe :
+A. avant le véhicule blanc
+B. après le véhicule blanc
+C. le dernier

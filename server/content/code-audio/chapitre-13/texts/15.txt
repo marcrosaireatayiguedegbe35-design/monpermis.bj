@@ -1,0 +1,5 @@
+Un véhicule comporte obligatoirement :
+A. un indicateur de vitesse
+B. un compte-tours
+C. un compteur kilométrique
+D. une jauge de carburant

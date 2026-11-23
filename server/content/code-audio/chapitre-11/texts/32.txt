@@ -1,0 +1,5 @@
+La batterie montée sur le véhicule après une charge correcte ne démarre pas le moteur. Quelle peut être la cause ?
+A. le manque d’eau sur la batterie
+B. les cosses mal serrées sur les bornes
+C. le manque de carburant
+D. la défectuosité de l’alternateur

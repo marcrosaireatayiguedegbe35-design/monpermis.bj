@@ -377,7 +377,34 @@ export interface PracticeExamSummary {
   } | null
 }
 
+export interface ExamCategory {
+  id: string
+  label: string
+  hint?: string
+}
+
+const EXAM_CATEGORY_KEY = 'monpermis.examCategory'
+
+/** Catégorie de permis choisie pour les examens (mémorisée sur l'appareil). */
+export function getStoredExamCategory(): string | null {
+  try {
+    return localStorage.getItem(EXAM_CATEGORY_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function setStoredExamCategory(id: string | null) {
+  try {
+    if (id) localStorage.setItem(EXAM_CATEGORY_KEY, id)
+    else localStorage.removeItem(EXAM_CATEGORY_KEY)
+  } catch {
+    /* stockage indisponible : le choix vaut pour cette session seulement */
+  }
+}
+
 export interface PracticeExamsOverview {
+  categories?: ExamCategory[]
   bankCount: number
   examCount: number
   requiredSize: number
@@ -420,7 +447,11 @@ export function fetchPracticeExams() {
 export function startPracticeExam(examNumber: number) {
   return request<{ attempt: PracticeExamAttempt }>(
     `/content/revision/practice-exams/${examNumber}/start`,
-    { method: 'POST', body: JSON.stringify({}), auth: true },
+    {
+      method: 'POST',
+      body: JSON.stringify({ category: getStoredExamCategory() || undefined }),
+      auth: true,
+    },
   )
 }
 

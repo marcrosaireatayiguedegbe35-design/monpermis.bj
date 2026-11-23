@@ -1,0 +1,4 @@
+Quel est l’intervalle minimum de sécurité entre deux véhicules qui se suivent et roulants à 50 km/h :
+A. 10 m environ
+B. 15 m environ
+C. 20 m environ

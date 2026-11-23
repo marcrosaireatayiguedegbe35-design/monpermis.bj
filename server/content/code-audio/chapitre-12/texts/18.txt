@@ -1,0 +1,5 @@
+Quel est le circuit d’alimentation en carburant d’un moteur à essence ?
+A. réservoir, pompe à essence, carburateur
+B. réservoir, carburateur, pompe à essence
+C. pompe à essence, réservoir, carburateur
+D. réservoir, pompe à essence, pompe à injection, injecteurs

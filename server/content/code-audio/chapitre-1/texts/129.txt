@@ -1,0 +1,4 @@
+Les balises (J3) à anneau rouge :
+A. indiquent le régime de priorité à appliquer
+B. précisent la position d’une intersection
+C. délimitent la chaussée

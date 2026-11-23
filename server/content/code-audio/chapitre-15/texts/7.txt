@@ -1,0 +1,4 @@
+La route pour automobile est composée :
+A. d’une seule chaussée
+B. de trois chaussées sans séparation
+C. de deux chaussées séparées par des glissières de sécurité ou par un terre-plein central

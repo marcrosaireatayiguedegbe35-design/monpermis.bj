@@ -1,0 +1,5 @@
+Les panneaux de prescriptions absolues se subdivisent en :
+A. panneaux qui mettent fin aux obligations
+B. panneaux qui mettent fin aux interdictions
+C. panneaux d’obligation
+D. panneaux d’interdictions

@@ -1,6 +1,7 @@
 import { Asset } from 'expo-asset'
 import { getCodeAudioModule } from '../data/codeRoute/audioAssets'
 import { findLocalQuestionById, parseLocalQuestionId } from '../data/codeRoute/banks'
+import { cacheMediaInBackground, getCachedMediaUri } from './mediaCache'
 import { resolveMediaUrl } from './mediaUrl'
 
 const uriCache = new Map<string, string>()
@@ -70,9 +71,16 @@ export async function resolveQuestionPromptSource(
   const mod =
     chapterOrder && questionOrder ? getCodeAudioModule(chapterOrder, questionOrder) : null
 
-  if (!offlineOnly && chapterOrder && questionOrder) {
+  // Fichier téléchargé d'abord (fonctionne sans connexion) ; sinon le serveur, en le gardant pour plus tard.
+  // `offlineOnly` n'interdit plus le réseau : les audios ne sont plus embarqués dans l'application.
+  if (chapterOrder && questionOrder) {
     const uri = resolveMediaUrl(contentAudioPath(chapterOrder, questionOrder, remoteAudioUrl))
-    if (uri) return { uri, module: mod ?? undefined }
+    if (uri) {
+      const cached = await getCachedMediaUri(uri)
+      if (cached) return { uri: cached, module: mod ?? undefined }
+      cacheMediaInBackground(uri)
+      return { uri, module: mod ?? undefined }
+    }
   }
 
   if (chapterOrder && questionOrder && mod != null) {

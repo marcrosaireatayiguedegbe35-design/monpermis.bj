@@ -1,0 +1,4 @@
+À partir de ce panneau (B43), je peux rouler à :
+A. plus de 30 km/h
+B. moins de 30 km/h
+C. la vitesse voulue, en respectant la règlementation en vigueur

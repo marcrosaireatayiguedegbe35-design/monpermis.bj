@@ -1,0 +1,5 @@
+Le taux d’alcoolémie est :
+A. le degré de l’état d’ivresse
+B. la quantité de bière dans le sang
+C. la quantité d’alcool contenue dans un litre de sang
+D. la quantité de vin contenu dans le sang

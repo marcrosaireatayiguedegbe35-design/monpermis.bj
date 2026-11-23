@@ -1,0 +1,5 @@
+Ce panneau (AK5) annonce des travaux :
+A. oui
+B. non
+C. c’est un signal avancé
+D. c’est un signal de position

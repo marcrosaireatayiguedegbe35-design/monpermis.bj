@@ -1,0 +1,4 @@
+Le chargement de grande longueur peut dépasser l’extrémité avant du véhicule de :
+A. 1 m
+B. 0 m
+C. 1,5 m

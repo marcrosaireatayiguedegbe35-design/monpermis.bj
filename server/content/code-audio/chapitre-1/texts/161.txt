@@ -1,0 +1,4 @@
+Ce signal annonce :
+A. un danger particulier
+B. la pluie
+C. que je dois ralentir et passer

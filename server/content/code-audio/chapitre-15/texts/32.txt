@@ -1,0 +1,4 @@
+Les panneaux d’indication et de renseignement ont une forme :
+A. ronde
+B. triangulaire
+C. carrée ou rectangulaire

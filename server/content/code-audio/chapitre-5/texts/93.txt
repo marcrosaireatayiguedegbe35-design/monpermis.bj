@@ -1,0 +1,4 @@
+Lors d’un accident, s’il y a risque d’incendie :
+A. je débranche la batterie des véhicules
+B. je maintiens le contact des véhicules
+C. je coupe le contact des véhicules

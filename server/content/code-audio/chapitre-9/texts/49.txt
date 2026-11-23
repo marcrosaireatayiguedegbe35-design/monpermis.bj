@@ -1,0 +1,5 @@
+À l’intérieur d’un autocar, je peux transporter :
+A. des sacs de maïs
+B. des colis contenant des liquides inflammables
+C. des colis contenant des couteaux et objets pointus
+D. mon sac à main

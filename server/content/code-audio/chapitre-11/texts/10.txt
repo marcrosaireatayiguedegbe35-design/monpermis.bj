@@ -1,0 +1,4 @@
+Quel est le circuit d’allumage d’un moteur à essence ?
+A. batterie, bobine, allumeur, bougies
+B. démarreur, allumeur, batterie
+C. allumeur, bobine, vis platinée

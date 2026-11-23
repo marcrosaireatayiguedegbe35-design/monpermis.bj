@@ -1,0 +1,4 @@
+La priorité à droite consiste à :
+A. passer quand ma droite est libre
+B. passer quand ma gauche est libre
+C. serrer ma droite et tourner à droite

@@ -1,0 +1,5 @@
+Ce panneau signale :
+A. une voie de détresse
+B. une rue à sens unique
+C. une voie sans issue
+D. un parc de stationnement

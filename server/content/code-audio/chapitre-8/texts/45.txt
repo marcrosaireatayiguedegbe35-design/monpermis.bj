@@ -1,0 +1,5 @@
+Quels sont les renseignements qu’on peut retrouver sur la plaque de tare ou de surface ?
+A. le poids à vide
+B. le poids total autorisé en charge
+C. le poids total roulant autorisé
+D. la surface

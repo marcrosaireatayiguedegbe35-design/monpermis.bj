@@ -1,4 +1,7 @@
-import { apiAuthedRetry, ApiError } from './client'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { apiAuthed, apiAuthedRetry, ApiError } from './client'
+import { getStoredUser } from './session'
+import { getActiveSubscriptions } from '../utils/subscriptionSummary'
 
 export class AccessRequestError extends Error {
   code?: string
@@ -121,7 +124,61 @@ export { computeModuleAmount } from '../utils/pricing'
 export const fetchAccessModules = () =>
   request<{ modules: AccessModule[] }>('/access-requests/modules').then((data) => data.modules)
 
-export const fetchAccessMe = () => request<AccessMe>('/access-requests/me')
+const ACCESS_SNAPSHOT_KEY = '@mp/access-snapshot:v1'
+
+/**
+ * Dernier état d'abonnement connu. Hors connexion, l'accès payé reste valable jusqu'à sa date de fin
+ * (jamais au-delà) : le candidat peut donc utiliser la partie Code sans réseau pendant tout son mois.
+ */
+async function saveAccessSnapshot(me: AccessMe) {
+  try {
+    const user = await getStoredUser()
+    await AsyncStorage.setItem(
+      ACCESS_SNAPSHOT_KEY,
+      JSON.stringify({ userId: user?.id ?? null, savedAt: Date.now(), me }),
+    )
+  } catch {
+    /* ignore */
+  }
+}
+
+async function loadAccessSnapshot(): Promise<AccessMe | null> {
+  try {
+    const raw = await AsyncStorage.getItem(ACCESS_SNAPSHOT_KEY)
+    if (!raw) return null
+    const snap = JSON.parse(raw) as { userId: string | null; me: AccessMe }
+    const user = await getStoredUser()
+    if (!snap?.me || (snap.userId && user?.id && snap.userId !== user.id)) return null
+    // L'état mémorisé peut dater : on recalcule chaque module d'après les dates de fin des abonnements.
+    const live = new Set(getActiveSubscriptions(snap.me).map((item) => item.module))
+    const access = { ...snap.me.access }
+    for (const key of Object.keys(access) as AccessModuleKey[]) {
+      if (key === 'conduite_heures') continue // crédit d'heures : pas une date de fin
+      access[key] = live.has(key)
+    }
+    return { ...snap.me, access }
+  } catch {
+    return null
+  }
+}
+
+export async function fetchAccessMe(): Promise<AccessMe> {
+  try {
+    const me = await apiAuthed<AccessMe>('/access-requests/me').catch((error) => {
+      // Une courte coupure réseau : une seule nouvelle tentative avant de se rabattre sur le dernier état connu.
+      if (error instanceof ApiError && error.status === undefined) return apiAuthed<AccessMe>('/access-requests/me')
+      throw error
+    })
+    void saveAccessSnapshot(me)
+    return me
+  } catch (error) {
+    if (error instanceof ApiError && error.status === undefined) {
+      const snapshot = await loadAccessSnapshot()
+      if (snapshot) return snapshot
+    }
+    throw toAccessError(error)
+  }
+}
 
 export const redeemPromoCode = (code: string) =>
   request<{ modules: string[]; access: AccessMe }>('/promo-codes/redeem', {

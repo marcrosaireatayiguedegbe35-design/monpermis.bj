@@ -1,0 +1,4 @@
+Je dois allumer mes feux :
+A. dès que le jour tombe
+B. dès qu’il fait nuit
+C. dès qu’il commence par pleuvoir

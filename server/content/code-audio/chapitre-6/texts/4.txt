@@ -1,0 +1,4 @@
+Avec mon véhicule à deux roues, je peux traverser une voie ferrée :
+A. en passant par le portillon d’une barrière fermée avant le passage d’un train
+B. en passant les demi-barrières fermées avant le passage du train
+C. après le relèvement de la barrière
