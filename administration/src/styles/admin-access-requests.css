@@ -1,0 +1,272 @@
+/* ——— Abonnements (demandes d'accès) ——— */
+.access-requests-page {
+  gap: 14px;
+}
+
+/* ---- Ligne de statistiques ---- */
+.ar-stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.ar-alert-card {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  border-radius: var(--r-lg);
+  background: var(--error-light);
+  color: var(--error);
+  font-size: 15.5px;
+  font-weight: 700;
+}
+
+.ar-stat-card {
+  background: #fff;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--hairline);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ar-stat-card-muted {
+  background: linear-gradient(135deg, var(--green-light), #fff 65%);
+}
+
+.ar-stat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ar-stat-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-sm);
+  display: grid;
+  place-items: center;
+  background: var(--green-light);
+  color: var(--green-deep);
+  flex-shrink: 0;
+}
+.ar-stat-icon.is-gold { background: var(--gold-light); color: #8a6400; }
+.ar-stat-icon.is-navy { background: rgba(0, 16, 48, 0.08); color: var(--navy); }
+
+.ar-stat-label {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--navy-muted);
+}
+
+.ar-stat-value {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--navy);
+  letter-spacing: -0.4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ar-stat-meta {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--green-deep);
+}
+
+.ar-live-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+/* ---- Barre filtres / recherche ---- */
+.ar-filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.ar-search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.ar-search-field svg {
+  position: absolute;
+  left: 11px;
+  color: var(--navy-soft);
+  pointer-events: none;
+}
+.ar-search-field input {
+  padding-left: 34px !important;
+}
+.ar-search-field button {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  bottom: 4px;
+  width: 32px;
+  border-radius: calc(var(--r-sm) - 2px);
+}
+
+.ar-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ---- Panneau d'attribution exceptionnelle ---- */
+.ar-grant-panel {
+  border: 1px solid rgba(0, 176, 80, 0.25);
+  border-radius: var(--r-lg);
+  background: var(--green-light);
+  padding: 16px;
+}
+.ar-grant-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.ar-grant-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--navy);
+}
+.ar-grant-panel-title svg { color: var(--green-deep); }
+.ar-grant-panel-hint {
+  margin: 2px 0 14px;
+  font-size: 15.5px;
+  color: var(--navy-muted);
+  line-height: 1.5;
+}
+.ar-grant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.ar-grant-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* ---- Table : puces module + avatar apprenant ---- */
+.ar-module-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 6px;
+  border-radius: 999px;
+  background: #f1f3f5;
+  color: var(--navy);
+  font-size: 15px;
+  font-weight: 700;
+}
+.ar-module-chip svg { color: var(--green-deep); flex-shrink: 0; }
+
+.ar-learner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ar-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--green-light);
+  color: var(--green-deep);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.ar-learner-body { min-width: 0; }
+.ar-learner-name {
+  font-weight: 700;
+  color: var(--navy);
+}
+.ar-learner-meta {
+  font-size: 14.5px;
+  color: var(--navy-muted);
+}
+
+/* ---- Onglet Tarifs ---- */
+.ar-pricing-module {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ar-pricing-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-sm);
+  background: var(--gold-light);
+  color: #8a6400;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.ar-price-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ar-price-field input {
+  width: 100px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  padding: 7px 9px;
+  font: inherit;
+  font-size: 16px;
+  color: var(--navy);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.ar-price-field input:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(0, 176, 80, 0.14);
+}
+.ar-price-field span {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--navy-muted);
+}
+.ar-row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ---- Empty state ---- */
+.ar-empty-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 36px 16px;
+  color: var(--navy-muted);
+  text-align: center;
+}
+.ar-empty-row svg { color: var(--navy-soft); }

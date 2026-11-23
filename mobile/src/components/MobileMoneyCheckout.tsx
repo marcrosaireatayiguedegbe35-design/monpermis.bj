@@ -1,0 +1,502 @@
+import { useEffect, useRef, useState } from 'react'
+import {
+  ActivityIndicator,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native'
+import {
+  AccessRequestError,
+  checkoutMobileMoney,
+  computeModuleAmount,
+  syncAccessRequest,
+  type AccessMe,
+  type AccessModule,
+  type AccessModuleKey,
+  type CheckoutCartItem,
+  type MobileMoneyOperator,
+} from '../api/accessRequests'
+import { dark, fonts } from '../theme'
+import { hapticLight, hapticSuccess } from '../utils/haptics'
+import { clearPendingCheckoutCart, savePendingCheckoutCart } from '../utils/checkoutCart'
+import { guessOperator } from '../utils/guessOperator'
+import { formatPrice } from '../utils/money'
+import { friendlyPaymentError } from '../utils/fedapayErrors'
+import { PAYMENT_OPERATORS, paymentOperatorLabel } from '../utils/paymentOperators'
+
+/** Seul pays desservi : envoyé au serveur sans étape de sélection. */
+const COUNTRY = 'BJ'
+
+interface Props {
+  visible: boolean
+  items: CheckoutCartItem[]
+  modules: AccessModule[]
+  defaultPhone?: string
+  onClose: () => void
+  onSuccess: (access: AccessMe) => void
+  /** Code promo saisi en bas de la liste des moyens de paiement : débloque l'accès gratuitement. */
+  onRedeemPromo?: (code: string) => Promise<void>
+}
+
+export function MobileMoneyCheckout({
+  visible,
+  items,
+  modules,
+  defaultPhone = '',
+  onClose,
+  onSuccess,
+  onRedeemPromo,
+}: Props) {
+  const [promoCode, setPromoCode] = useState('')
+  const [promoBusy, setPromoBusy] = useState(false)
+  const [promoError, setPromoError] = useState<string | null>(null)
+  const [step, setStep] = useState<'intro' | 'operator' | 'phone' | 'waiting'>('intro')
+  const [operator, setOperator] = useState<MobileMoneyOperator | null>(null)
+  const [phone, setPhone] = useState(defaultPhone)
+  const [busy, setBusy] = useState(false)
+  const [verifying, setVerifying] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [pendingId, setPendingId] = useState<string | null>(null)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    if (!visible) return
+    setStep('intro')
+    setOperator(null)
+    setPhone(defaultPhone)
+    setError(null)
+    setSuccess(null)
+    setBusy(false)
+    setVerifying(false)
+    setPendingId(null)
+    setPromoCode('')
+    setPromoError(null)
+    if (items.length > 0) {
+      void savePendingCheckoutCart({
+        items,
+        savedAt: Date.now(),
+        source: 'abonnement',
+      })
+    }
+  }, [visible, defaultPhone, items])
+
+  useEffect(
+    () => () => {
+      if (pollRef.current) clearInterval(pollRef.current)
+    },
+    [],
+  )
+
+  const lines = items.map((item) => {
+    const module = modules.find((m) => m.key === item.module)
+    const amount = module ? computeModuleAmount(item.module, module.price, item.quantity) : 0
+    return { ...item, label: module?.label || item.module, amount }
+  })
+  const total = lines.reduce((sum, line) => sum + line.amount, 0)
+
+  const redeemPromo = async () => {
+    const code = promoCode.trim()
+    if (!code || !onRedeemPromo) return
+    setPromoBusy(true)
+    setPromoError(null)
+    try {
+      await onRedeemPromo(code)
+    } catch (err) {
+      setPromoError(err instanceof Error && err.message ? err.message : 'Code promo invalide')
+    } finally {
+      setPromoBusy(false)
+    }
+  }
+
+  const stopPoll = () => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current)
+      pollRef.current = null
+    }
+  }
+
+  const applySyncResult = (result: Awaited<ReturnType<typeof syncAccessRequest>>) => {
+    if (result.payment?.status === 'approved' || ['actif', 'valide'].includes(result.accessRequest.status)) {
+      stopPoll()
+      setSuccess('Paiement confirmé. Accès activé.')
+      setBusy(false)
+      setVerifying(false)
+      void clearPendingCheckoutCart()
+      void hapticSuccess()
+      onSuccess(result.access)
+      return true
+    }
+    if (
+      result.payment?.status === 'declined' ||
+      result.payment?.status === 'failed' ||
+      result.payment?.status === 'canceled' ||
+      result.accessRequest.status === 'rejete'
+    ) {
+      stopPoll()
+      setBusy(false)
+      setVerifying(false)
+      setSuccess(null)
+      setError(friendlyPaymentError(result.payment?.errorMessage, 'Le paiement n’a pas abouti. Réessaie.'))
+      setStep('phone')
+      return true
+    }
+    return false
+  }
+
+  const startPoll = (accessRequestId: string) => {
+    stopPoll()
+    setPendingId(accessRequestId)
+    let ticks = 0
+    const tick = async () => {
+      ticks += 1
+      try {
+        const result = await syncAccessRequest(accessRequestId)
+        if (applySyncResult(result)) return
+      } catch {
+        /* ignore */
+      }
+      if (ticks >= 60) {
+        stopPoll()
+        setBusy(false)
+        setError(
+          'Confirmation trop longue. Si tu as validé sur ton téléphone, appuie sur « J’ai payé, vérifier ».',
+        )
+      }
+    }
+    void tick()
+    pollRef.current = setInterval(() => {
+      void tick()
+    }, 2000)
+  }
+
+  const verifyPaid = async () => {
+    if (!pendingId) return
+    setVerifying(true)
+    setError(null)
+    try {
+      const result = await syncAccessRequest(pendingId)
+      if (!applySyncResult(result)) {
+        setSuccess(
+          'Paiement pas encore confirmé. Valide la notification sur ton téléphone, puis réessaie.',
+        )
+      }
+    } catch {
+      setError('Vérification temporairement indisponible. Réessaie dans un instant.')
+    } finally {
+      setVerifying(false)
+    }
+  }
+
+  const submit = async () => {
+    if (!operator) {
+      setError('Choisis un réseau Mobile Money')
+      return
+    }
+    if (!phone.trim()) {
+      setError(
+        'Indique un numéro Mobile Money valide (ex. 0147880143). Ajoute-le aussi dans ton profil.',
+      )
+      return
+    }
+    const detected = guessOperator(phone)
+    if (detected && detected !== operator) {
+      setError(
+        `Ce numéro est un numéro ${detected.toUpperCase()}. Choisis ${detected.toUpperCase()} (pas ${operator.toUpperCase()}).`,
+      )
+      setOperator(detected)
+      return
+    }
+    setBusy(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      const result = await checkoutMobileMoney({
+        items,
+        operator: detected || operator,
+        country: COUNTRY,
+        phone,
+        replace: true,
+      })
+      setOperator(result.operator || detected || operator)
+      setStep('waiting')
+      setSuccess(result.message)
+      startPoll(result.accessRequest.id)
+    } catch (err) {
+      setBusy(false)
+      setStep('phone')
+      if (err instanceof AccessRequestError) {
+        setError(friendlyPaymentError(err.message, 'Paiement impossible. Vérifie le numéro et réessaie.'))
+        if (err.code === 'OPERATOR_MISMATCH') {
+          const expected = guessOperator(phone)
+          if (expected) setOperator(expected)
+        }
+      } else {
+        setError('Paiement impossible. Vérifie le numéro et réessaie.')
+      }
+    }
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View style={styles.backdrop}>
+        <View style={styles.card}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Paiement Mobile Money</Text>
+            <Pressable onPress={onClose} disabled={busy && step === 'waiting'}>
+              <Text style={styles.close}>Fermer</Text>
+            </Pressable>
+          </View>
+
+          <ScrollView contentContainerStyle={styles.scroll}>
+            {lines.map((line) => (
+              <View key={line.module} style={styles.line}>
+                <Text style={styles.lineLabel}>
+                  {line.label}
+                  {line.module === 'conduite_heures' ? ` × ${line.quantity} h` : ''}
+                  {line.module === 'conduite_heures' && line.quantity >= 2 ? ' (−1 000)' : ''}
+                </Text>
+                <Text style={styles.lineAmount}>{formatPrice(line.amount)}</Text>
+              </View>
+            ))}
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Total</Text>
+              <Text style={styles.totalAmount}>{formatPrice(total)}</Text>
+            </View>
+
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {success ? <Text style={styles.success}>{success}</Text> : null}
+
+            {step === 'intro' ? (
+              <View style={styles.step}>
+                <Pressable
+                  style={styles.payBtn}
+                  onPress={() => {
+                    void hapticLight()
+                    setStep('operator')
+                  }}
+                >
+                  <Text style={styles.payText}>Passer au paiement</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            {step === 'operator' ? (
+              <View style={styles.step}>
+                <Text style={styles.kicker}>1. Réseau mobile</Text>
+                {PAYMENT_OPERATORS.map((item) => (
+                  <Pressable
+                    key={item.id}
+                    style={[styles.choice, operator === item.id && styles.choiceActive]}
+                    accessibilityRole="button"
+                    accessibilityLabel={item.alt}
+                    onPress={() => {
+                      setOperator(item.id)
+                      setStep('phone')
+                    }}
+                  >
+                    <Image source={item.logo} style={styles.choiceLogo} resizeMode="contain" />
+                    <Text style={styles.choiceText}>{item.label}</Text>
+                  </Pressable>
+                ))}
+                {onRedeemPromo ? (
+                  <View style={styles.promoBox}>
+                    <Text style={styles.kicker}>Code promo</Text>
+                    <TextInput
+                      style={styles.input}
+                      autoCapitalize="characters"
+                      autoCorrect={false}
+                      placeholder="Entrez votre code promo"
+                      placeholderTextColor={dark.textMuted}
+                      value={promoCode}
+                      editable={!promoBusy}
+                      onChangeText={(text) => setPromoCode(text.toUpperCase())}
+                    />
+                    {promoError ? <Text style={styles.error}>{promoError}</Text> : null}
+                    <Pressable
+                      style={[styles.payBtn, (promoBusy || !promoCode.trim()) && styles.disabled]}
+                      disabled={promoBusy || !promoCode.trim()}
+                      onPress={() => void redeemPromo()}
+                    >
+                      {promoBusy ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={styles.payText}>Utiliser le code promo</Text>
+                      )}
+                    </Pressable>
+                  </View>
+                ) : null}
+                <Pressable style={styles.backBtn} onPress={() => setStep('intro')}>
+                  <Text style={styles.backText}>Retour</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            {step === 'phone' || step === 'waiting' ? (
+              <View style={styles.step}>
+                <Text style={styles.kicker}>2. Numéro Mobile Money</Text>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="phone-pad"
+                  value={phone}
+                  editable={step !== 'waiting'}
+                  onChangeText={(value) => {
+                    setPhone(value)
+                    const detected = guessOperator(value)
+                    if (detected) setOperator(detected)
+                  }}
+                  placeholder="01 XX XX XX XX"
+                  placeholderTextColor={dark.textMuted}
+                />
+                {guessOperator(phone) ? (
+                  <Text style={styles.hint}>
+                    Réseau détecté : {paymentOperatorLabel(guessOperator(phone))} — choisis le même
+                    opérateur.
+                  </Text>
+                ) : null}
+                {step !== 'waiting' ? (
+                  <Pressable style={styles.backBtn} onPress={() => setStep('operator')}>
+                    <Text style={styles.backText}>Retour</Text>
+                  </Pressable>
+                ) : null}
+                <Pressable
+                  style={[styles.payBtn, (busy || !phone.trim()) && styles.disabled]}
+                  disabled={busy || !phone.trim()}
+                  onPress={() => void submit()}
+                >
+                  {busy ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.payText}>
+                      Payer {formatPrice(total)} ({paymentOperatorLabel(operator)})
+                    </Text>
+                  )}
+                </Pressable>
+                {step === 'waiting' ? (
+                  <Text style={styles.hint}>
+                    Une demande de retrait a été envoyée sur {phone || 'ton téléphone'} (
+                    {paymentOperatorLabel(operator)}).{'\n'}
+                    Ouvre la notification MTN/Moov/Celtiis et valide avec ton code secret.
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  )
+}
+
+export function moduleLabel(key: AccessModuleKey) {
+  const labels: Record<AccessModuleKey, string> = {
+    code: 'Code de la route',
+    conduite_heures: 'Heures de conduite',
+    conduite_videos: 'Vidéos conduite',
+    aiChat: 'Chat IA',
+  }
+  return labels[key]
+}
+
+const styles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'flex-end',
+  },
+  card: {
+    maxHeight: '92%',
+    backgroundColor: dark.surface,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    borderWidth: 1,
+    borderColor: dark.border,
+    paddingBottom: 24,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 8,
+  },
+  title: { color: dark.textPrimary, fontFamily: fonts.displayBold, fontSize: 20 },
+  close: { color: dark.textMuted, fontFamily: fonts.bodyBold, fontSize: 14 },
+  scroll: { paddingHorizontal: 18, paddingBottom: 20, gap: 10 },
+  line: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  lineLabel: { flex: 1, color: dark.textMuted, fontFamily: fonts.body, fontSize: 14 },
+  lineAmount: { color: dark.textPrimary, fontFamily: fonts.bodyBold, fontSize: 14 },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: dark.border,
+    paddingTop: 10,
+    marginTop: 4,
+  },
+  totalLabel: { color: dark.textPrimary, fontFamily: fonts.displayBold, fontSize: 16 },
+  totalAmount: { color: dark.green, fontFamily: fonts.displayExtraBold, fontSize: 18 },
+  error: { color: dark.coral, fontFamily: fonts.body, fontSize: 14 },
+  success: { color: dark.green, fontFamily: fonts.body, fontSize: 14 },
+  step: { gap: 10, marginTop: 8 },
+  kicker: {
+    color: dark.green,
+    fontFamily: fonts.displayBold,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  choice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: dark.border,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: dark.surfaceRaised,
+  },
+  choiceActive: { borderColor: dark.green },
+  choiceLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+  },
+  choiceText: { flex: 1, color: dark.textPrimary, fontFamily: fonts.bodyBold, fontSize: 15 },
+  input: {
+    borderWidth: 1,
+    borderColor: dark.border,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    color: dark.textPrimary,
+    fontFamily: fonts.body,
+    backgroundColor: dark.surfaceRaised,
+  },
+  backBtn: { alignSelf: 'flex-start', paddingVertical: 8 },
+  backText: { color: dark.textMuted, fontFamily: fonts.bodyBold },
+  payBtn: {
+    backgroundColor: dark.green,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  payText: { color: '#fff', fontFamily: fonts.displayBold, fontSize: 15 },
+  disabled: { opacity: 0.55 },
+  promoBox: {
+    marginTop: 6,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: dark.border,
+    gap: 10,
+  },
+  hint: { color: dark.textMuted, fontFamily: fonts.body, fontSize: 14, lineHeight: 20 },
+})

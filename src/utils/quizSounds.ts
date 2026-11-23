@@ -1,0 +1,211 @@
+const PAUSE_MS = 80
+
+function wait(ms: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
+}
+
+let sharedCtx: AudioContext | null = null
+
+function getCtx(): AudioContext | null {
+  if (typeof window === 'undefined') return null
+  const AC =
+    window.AudioContext ||
+    (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+  if (!AC) return null
+  if (!sharedCtx) sharedCtx = new AC()
+  if (sharedCtx.state === 'suspended') void sharedCtx.resume()
+  return sharedCtx
+}
+
+/** À appeler dans le clic « ouvrir une question » pour autoriser la lecture auto ensuite. */
+export function unlockQuizAudio() {
+  if (typeof window === 'undefined') return
+  getCtx()
+  try {
+    const silent = new Audio(
+      'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA',
+    )
+    silent.volume = 0.001
+    void silent.play().then(
+      () => {
+        silent.pause()
+      },
+      () => undefined,
+    )
+  } catch {
+    // ignore
+  }
+}
+
+async function playTone(
+  frequency: number,
+  durationMs: number,
+  options?: { type?: OscillatorType; gain?: number },
+) {
+  const ctx = getCtx()
+  if (!ctx) {
+    await wait(durationMs)
+    return
+  }
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  osc.type = options?.type ?? 'sine'
+  osc.frequency.value = frequency
+  const peak = options?.gain ?? 0.18
+  const now = ctx.currentTime
+  gain.gain.setValueAtTime(0.0001, now)
+  gain.gain.exponentialRampToValueAtTime(peak, now + 0.02)
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + durationMs / 1000)
+  osc.connect(gain)
+  gain.connect(ctx.destination)
+  osc.start(now)
+  osc.stop(now + durationMs / 1000 + 0.02)
+  await wait(durationMs + PAUSE_MS)
+}
+
+function speakFrench(text: string) {
+  return new Promise<void>((resolve) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      resolve()
+      return
+    }
+    try {
+      window.speechSynthesis.cancel()
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = 'fr-FR'
+      utterance.rate = 1
+      utterance.onend = () => resolve()
+      utterance.onerror = () => resolve()
+      window.speechSynthesis.speak(utterance)
+      window.setTimeout(resolve, 900)
+    } catch {
+      resolve()
+    }
+  })
+}
+
+export type CountdownValue = 5 | 4 | 3 | 2 | 1 | 0
+
+/**
+ * Décompte 5 → 0 en exactement 5 secondes :
+ * 5 à t=0, 4 à t=1s, …, 1 à t=4s, 0 à t=5s puis fin.
+ */
+export async function playCountdown5to0(
+  onTick?: (n: CountdownValue) => void,
+  isCancelled?: () => boolean,
+) {
+  const steps: CountdownValue[] = [5, 4, 3, 2, 1, 0]
+  const started = Date.now()
+  for (let i = 0; i < steps.length; i += 1) {
+    if (isCancelled?.()) {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+      }
+      return
+    }
+    const n = steps[i]
+    onTick?.(n)
+    if (n > 0) {
+      void speakFrench(String(n))
+      void playTone(720 + (5 - n) * 50, 80, { gain: 0.1 })
+    } else {
+      void speakFrench('zéro')
+    }
+    if (i < steps.length - 1) {
+      const target = started + (i + 1) * 1000
+      while (Date.now() < target) {
+        if (isCancelled?.()) {
+          if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+            window.speechSynthesis.cancel()
+          }
+          return
+        }
+        await wait(Math.min(100, target - Date.now()))
+      }
+    } else {
+      await wait(280)
+    }
+  }
+}
+
+/** Sonnerie de fin de temps. */
+export async function playGongSound() {
+  await playTone(392, 420, { type: 'triangle', gain: 0.22 })
+  await playTone(523, 280, { type: 'triangle', gain: 0.16 })
+}
+
+export async function playSuccessSound() {
+  await playTone(523, 120, { gain: 0.16 })
+  await playTone(659, 140, { gain: 0.18 })
+  await playTone(784, 220, { gain: 0.2 })
+}
+
+export async function playFailSound() {
+  await playTone(320, 180, { type: 'square', gain: 0.12 })
+  await playTone(220, 320, { type: 'square', gain: 0.14 })
+}
+
+let currentRemoteAudio: HTMLAudioElement | null = null
+
+export function cancelRemoteAudio() {
+  if (currentRemoteAudio) {
+    try {
+      currentRemoteAudio.pause()
+      currentRemoteAudio.currentTime = 0
+    } catch {
+      // ignore
+    }
+    // Ne pas vider `src` ici : un stop parent juste après register()
+    // rendait le <audio> muet pour toute la question.
+    currentRemoteAudio = null
+  }
+}
+
+/**
+ * Déclare l’élément <audio> actuellement actif pour que stopAllQuizAudio()
+ * puisse réellement le couper (ex. QuestionAudioSequence).
+ */
+export function registerActiveAudioElement(el: HTMLAudioElement | null) {
+  currentRemoteAudio = el
+}
+
+/** Désenregistre `el`, sans effet si un autre élément a déjà pris le relai entretemps. */
+export function unregisterActiveAudioElement(el: HTMLAudioElement | null) {
+  if (currentRemoteAudio === el) currentRemoteAudio = null
+}
+
+/** Coupe audio question, replay distant, et synthèse vocale (décompte). */
+export function stopAllQuizAudio() {
+  cancelRemoteAudio()
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    window.speechSynthesis.cancel()
+  }
+}
+
+/** Rejoue un média distant. Stoppe toute instance précédente. */
+export function playRemoteAudio(url: string): Promise<void> {
+  const src = url.trim()
+  if (!src || typeof window === 'undefined') return Promise.resolve()
+  cancelRemoteAudio()
+  return new Promise((resolve) => {
+    try {
+      const audio = new Audio(src)
+      currentRemoteAudio = audio
+      audio.preload = 'auto'
+      const finish = () => {
+        if (currentRemoteAudio === audio) currentRemoteAudio = null
+        audio.removeEventListener('ended', finish)
+        audio.removeEventListener('error', finish)
+        resolve()
+      }
+      audio.addEventListener('ended', finish, { once: true })
+      audio.addEventListener('error', finish, { once: true })
+      void audio.play().catch(() => finish())
+      window.setTimeout(finish, 120000)
+    } catch {
+      resolve()
+    }
+  })
+}

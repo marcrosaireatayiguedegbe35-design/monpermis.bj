@@ -1,0 +1,185 @@
+import { Router } from 'express'
+import { PracticeExam } from '../models/PracticeExam.js'
+import { PracticeExamAttempt } from '../models/PracticeExamAttempt.js'
+import { User } from '../models/User.js'
+import { requireAdminAuth } from '../middleware/adminAuth.js'
+import { audit } from '../middleware/audit.js'
+import {
+  PRACTICE_EXAM_COUNT,
+  PRACTICE_EXAM_PASS_SCORE,
+  PRACTICE_EXAM_SIZE,
+} from '../utils/practiceExam.js'
+import {
+  ensurePracticeExamSheets,
+  generatePracticeExamSheets,
+  getPracticeExamBankStats,
+} from '../services/practiceExams.js'
+import { loadQuestionsByIds } from '../services/hardcodedQuestions.js'
+
+const router = Router()
+router.use(requireAdminAuth)
+
+router.get('/practice-exams', async (_req, res) => {
+  try {
+    const bankStats = await getPracticeExamBankStats()
+    const exams = await PracticeExam.find().sort({ examNumber: 1 })
+    const recentAttempts = await PracticeExamAttempt.find({ status: 'completed' })
+      .sort({ completedAt: -1 })
+      .limit(40)
+
+    const userIds = [...new Set(recentAttempts.map((a) => String(a.userId)))]
+    const users = await User.find({ _id: { $in: userIds } }).select('firstName lastName email')
+    const userMap = new Map(users.map((u) => [String(u._id), u]))
+    const bankReady =
+      exams.length === PRACTICE_EXAM_COUNT &&
+      bankStats.bankCount >= PRACTICE_EXAM_SIZE &&
+      exams.every((exam) => String(exam.bankFingerprint || '') === bankStats.fingerprint)
+
+    res.json({
+      success: true,
+      data: {
+        bankCount: bankStats.bankCount,
+        chapterBank: bankStats.chapterBank,
+        chapterCount: bankStats.chapterBank.length,
+        requiredSize: PRACTICE_EXAM_SIZE,
+        examTotal: PRACTICE_EXAM_COUNT,
+        passScore: PRACTICE_EXAM_PASS_SCORE,
+        examCount: exams.length,
+        ready: bankReady,
+        stale: exams.length > 0 && !bankReady && bankStats.bankCount >= PRACTICE_EXAM_SIZE,
+        exams: exams.map((exam) => ({
+          id: exam._id,
+          examNumber: exam.examNumber,
+          questionCount: (exam.questionIds || []).length,
+          published: Boolean(exam.published),
+          author: exam.author || '',
+          sceneName: exam.sceneName || '',
+          coefficient: exam.coefficient ?? 1,
+          updatedAt: exam.updatedAt,
+        })),
+        recentResults: recentAttempts.map((attempt) => {
+          const user = userMap.get(String(attempt.userId))
+          return {
+            ...attempt.toScoreJSON(),
+            learnerName: user
+              ? `${user.firstName} ${user.lastName}`
+              : 'Apprenant',
+            learnerEmail: user?.email || '',
+          }
+        }),
+      },
+    })
+  } catch (error) {
+    console.error('Erreur admin examens test:', error)
+    res.status(500).json({ success: false, error: 'Chargement impossible' })
+  }
+})
+
+router.post('/practice-exams/generate', audit('generate', 'practice_exam'), async (_req, res) => {
+  try {
+    const result = await generatePracticeExamSheets()
+    if (result.error) {
+      return res.status(400).json({ success: false, error: result.error })
+    }
+    res.status(201).json({
+      success: true,
+      data: {
+        bankCount: result.bankCount,
+        chapterBank: result.chapterBank || [],
+        chapterCount: (result.chapterBank || []).length,
+        requiredSize: PRACTICE_EXAM_SIZE,
+        examTotal: PRACTICE_EXAM_COUNT,
+        passScore: PRACTICE_EXAM_PASS_SCORE,
+        examCount: result.examCount,
+        exams: result.exams.map((exam) => ({
+          id: exam.id,
+          examNumber: exam.examNumber,
+          questionCount: exam.questionCount,
+          published: exam.published,
+        })),
+      },
+    })
+  } catch (error) {
+    console.error('Erreur génération examens test:', error)
+    res.status(500).json({ success: false, error: 'Génération impossible' })
+  }
+})
+
+router.get('/practice-exams/:examId', async (req, res) => {
+  try {
+    const exam = await PracticeExam.findById(req.params.examId)
+    if (!exam) {
+      return res.status(404).json({ success: false, error: 'Examen introuvable' })
+    }
+    const questions = await loadQuestionsByIds(exam.questionIds)
+    res.json({
+      success: true,
+      data: { exam: exam.toAdminJSON(questions) },
+    })
+  } catch (error) {
+    console.error('Erreur détail examen test:', error)
+    res.status(500).json({ success: false, error: 'Chargement impossible' })
+  }
+})
+
+router.patch('/practice-exams/:examId', audit('update', 'practice_exam'), async (req, res) => {
+  try {
+    const exam = await PracticeExam.findById(req.params.examId)
+    if (!exam) {
+      return res.status(404).json({ success: false, error: 'Examen introuvable' })
+    }
+    if (req.body.published !== undefined) {
+      exam.published = Boolean(req.body.published)
+    }
+    for (const field of ['author', 'sceneName']) {
+      if (req.body[field] === undefined) continue
+      const value = String(req.body[field] ?? '').trim()
+      if (value.length > 120) {
+        return res.status(400).json({ success: false, error: 'Texte trop long (120 caractères max)' })
+      }
+      exam[field] = value
+    }
+    if (req.body.coefficient !== undefined) {
+      const coefficient = Number(req.body.coefficient)
+      if (!Number.isFinite(coefficient) || coefficient <= 0 || coefficient > 100) {
+        return res
+          .status(400)
+          .json({ success: false, error: 'Coefficient invalide (nombre supérieur à 0, 100 max)' })
+      }
+      exam.coefficient = coefficient
+    }
+    await exam.save()
+    const questions = await loadQuestionsByIds(exam.questionIds)
+    res.json({
+      success: true,
+      data: { exam: exam.toAdminJSON(questions) },
+    })
+  } catch (error) {
+    console.error('Erreur mise à jour examen test:', error)
+    res.status(500).json({ success: false, error: 'Mise à jour impossible' })
+  }
+})
+
+router.post('/practice-exams/ensure', audit('ensure', 'practice_exam'), async (_req, res) => {
+  try {
+    const result = await ensurePracticeExamSheets()
+    if (result.error) {
+      return res.status(400).json({ success: false, error: result.error })
+    }
+    res.json({
+      success: true,
+      data: {
+        bankCount: result.bankCount,
+        chapterBank: result.chapterBank || [],
+        examCount: result.examCount,
+        generated: Boolean(result.generated),
+        passScore: PRACTICE_EXAM_PASS_SCORE,
+      },
+    })
+  } catch (error) {
+    console.error('Erreur ensure examens test:', error)
+    res.status(500).json({ success: false, error: 'Initialisation impossible' })
+  }
+})
+
+export default router

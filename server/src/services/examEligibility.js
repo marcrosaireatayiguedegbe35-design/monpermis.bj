@@ -1,0 +1,104 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { parseTranscript, referencesImage, transcriptProblems } from '../utils/transcriptParse.js'
+import { answerKeyProblems } from '../utils/answerKey.js'
+import { onPublishedAudioChange, publishedAudioSize } from './publishedAudio.js'
+import { hasPublishedImage, onPublishedImageChange } from './publishedImages.js'
+import {
+  CONFIRMED_ALL_CORRECT_QUESTIONS,
+  UNCERTAIN_QUESTIONS,
+} from '../data/hardcodedQuestions/uncertain.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const CONTENT_ROOT = path.resolve(__dirname, '../../content')
+
+/** En dessous, un mp3 est vide ou tronqué (le plus court énoncé réel fait ~75 Ko). */
+const MIN_AUDIO_BYTES = 3000
+
+const cache = new Map()
+
+// Un audio publié/retiré change l'éligibilité des questions : on repart d'un cache vide.
+onPublishedAudioChange(() => cache.clear())
+onPublishedImageChange(() => cache.clear())
+
+function contentPath(...parts) {
+  return path.join(CONTENT_ROOT, ...parts)
+}
+
+/** /content/code-images/chapitre-2/30.png?v=… → { chapitre, index } (image publiée en base). */
+function imageRef(url) {
+  const match = /\/content\/code-images\/chapitre-(\d+)\/(\d+)\.[a-z0-9]+/i.exec(String(url || ''))
+  return match ? { chapter: Number(match[1]), index: Number(match[2]) } : null
+}
+
+/**
+ * Une question n'est proposée à l'apprenant (révision, sujets test, examens) que si elle est SÛRE :
+ *  - réponses fiables : au moins une bonne réponse, pas « toutes bonnes » non confirmées, pas signalée « à confirmer » ;
+ *  - audio présent et non vide ;
+ *  - transcription complète (énoncé + texte de chaque réponse) ;
+ *  - toutes les images qu'elle exige existent, et une image est rattachée si l'audio en parle.
+ * Résultat mis en cache : les fichiers ne changent pas pendant la vie du serveur.
+ *
+ * @param {{ id: string, prompt?: { imageUrls?: string[] }, answers?: { label: string }[] }} doc
+ * @returns {{ ok: boolean, reasons: string[] }}
+ */
+export function checkExamEligibility(doc) {
+  const id = String(doc?.id || '')
+  if (cache.has(id)) return cache.get(id)
+
+  const reasons = []
+  for (const problem of answerKeyProblems(doc?.answers)) {
+    // QCM où chaque option est juste : OK seulement si revue manuelle (liste confirmée).
+    if (
+      problem === 'toutes les réponses marquées bonnes (à confirmer)' &&
+      CONFIRMED_ALL_CORRECT_QUESTIONS[id]
+    ) {
+      continue
+    }
+    reasons.push(`réponses : ${problem}`)
+  }
+  if (UNCERTAIN_QUESTIONS[id]) reasons.push('signalée à confirmer')
+  const match = /^hc-ch(\d+)-q(\d+)$/i.exec(id)
+  if (!match) {
+    reasons.push('identifiant de question inconnu')
+  } else {
+    const chapter = Number(match[1])
+    const order = Number(match[2])
+
+    // L'audio est publié par les admins et stocké en base (index mémoire, voir publishedAudio.js).
+    const audioSize = publishedAudioSize(chapter, order)
+    if (!audioSize) reasons.push('audio absent')
+    else if (audioSize < MIN_AUDIO_BYTES) reasons.push('audio vide ou tronqué')
+
+    const textFile = contentPath('code-audio', `chapitre-${chapter}`, 'texts', `${order}.txt`)
+    if (!fs.existsSync(textFile)) {
+      reasons.push('transcription absente')
+    } else {
+      const raw = fs.readFileSync(textFile, 'utf8')
+      const labels = (doc.answers || []).map((answer) => answer.label)
+      const problems = transcriptProblems(raw, labels)
+      if (problems.length) reasons.push('transcription incomplète')
+      // L'audio renvoie à une scène (« Dans cette situation… ») mais aucune image n'est rattachée.
+      if (!(doc?.prompt?.imageUrls || []).length && referencesImage(parseTranscript(raw).stem)) {
+        reasons.push('image requise mais non rattachée')
+      }
+    }
+  }
+
+  for (const url of doc?.prompt?.imageUrls || []) {
+    const ref = imageRef(url)
+    if (!ref || !hasPublishedImage(ref.chapter, ref.index)) {
+      reasons.push('image manquante')
+      break
+    }
+  }
+
+  const result = { ok: reasons.length === 0, reasons }
+  cache.set(id, result)
+  return result
+}
+
+export function isExamEligible(doc) {
+  return checkExamEligibility(doc).ok
+}

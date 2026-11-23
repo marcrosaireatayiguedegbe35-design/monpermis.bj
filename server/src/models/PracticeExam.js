@@ -1,0 +1,68 @@
+import mongoose from 'mongoose'
+import {
+  PRACTICE_EXAM_COUNT,
+  PRACTICE_EXAM_SIZE,
+} from '../utils/practiceExam.js'
+
+const practiceExamSchema = new mongoose.Schema(
+  {
+    examNumber: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: PRACTICE_EXAM_COUNT,
+      unique: true,
+    },
+    // String : ObjectId Mongo ou id hardcodé (ex. hc-ch20-q01).
+    questionIds: {
+      type: [{ type: String }],
+      default: [],
+      validate: {
+        validator(value) {
+          return Array.isArray(value) && value.length === PRACTICE_EXAM_SIZE
+        },
+        message: `Un examen blanc doit contenir exactement ${PRACTICE_EXAM_SIZE} questions`,
+      },
+    },
+    published: { type: Boolean, default: true },
+    /** Auteur du sujet — saisi par l'admin, jamais déduit. */
+    author: { type: String, default: '', trim: true, maxlength: 120 },
+    /** Nom de la scène / session / épreuve — saisi par l'admin, jamais déduit. */
+    sceneName: { type: String, default: '', trim: true, maxlength: 120 },
+    /** Coefficient pour la moyenne générale (1 = poids égal). */
+    coefficient: { type: Number, default: 1, min: 0.01, max: 100 },
+    /** Empreinte de la banque au moment de la génération (régénération auto si obsolète). */
+    bankFingerprint: { type: String, default: '' },
+  },
+  { timestamps: true },
+)
+
+practiceExamSchema.methods.toPublicJSON = function toPublicJSON(questions = []) {
+  const byId = new Map(questions.map((q) => [String(q.id || q._id), q]))
+  const ordered = (this.questionIds || [])
+    .map((id) => byId.get(String(id)))
+    .filter(Boolean)
+    .map((q) => (typeof q.toPublicJSON === 'function' ? q.toPublicJSON() : q))
+
+  return {
+    id: this._id,
+    examNumber: this.examNumber,
+    questionCount: ordered.length,
+    questions: ordered,
+  }
+}
+
+practiceExamSchema.methods.toAdminJSON = function toAdminJSON(questions = []) {
+  const data = this.toPublicJSON(questions)
+  return {
+    ...data,
+    published: Boolean(this.published),
+    author: this.author || '',
+    sceneName: this.sceneName || '',
+    coefficient: this.coefficient ?? 1,
+    createdAt: this.createdAt,
+    updatedAt: this.updatedAt,
+  }
+}
+
+export const PracticeExam = mongoose.model('PracticeExam', practiceExamSchema)

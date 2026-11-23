@@ -1,0 +1,576 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ClipboardList, HelpCircle } from 'lucide-react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import {
+  checkRevisionQuestionAnswers,
+  ContentError,
+  fetchRevisionChapterQuestions,
+  fetchRevisionChapterTestSubject,
+  fetchRevisionChapters,
+  markRevisionTestCompleted,
+  type LearnerQuestion,
+} from '../../api/content'
+import { QuestionAudioSequence } from '../../components/QuestionAudioSequence'
+import { ProgressiveSubtitles } from '../../components/ProgressiveSubtitles'
+import { QuestionPromptHtml } from '../../components/QuestionPromptHtml'
+import { PageLoader } from '../../components/PageLoader'
+import { PageNavbar } from '../../components/PageNavbar'
+import { QuizProgressRing } from '../../components/QuizProgressRing'
+import { SuccessCelebration } from '../../components/SuccessCelebration'
+import { useAuth } from '../../hooks/useAuth'
+import { useLeaveGuard } from '../../hooks/useLeaveGuard'
+import { getChapterOrderById } from '../../data/codeRoute/chapterIndex'
+import { getRevisionPracticePromptTranscript, enrichAnswersFromTranscript, resolveQuestionTranscript } from '../../data/codeRoute/questionTranscripts'
+import { playFailSound, playSuccessSound, stopAllQuizAudio, unlockQuizAudio } from '../../utils/quizSounds'
+import { resolveMediaUrl } from '../../utils/mediaUrl'
+import { resolveCodeImageUrl } from '../../utils/codeImageUrl'
+import '../../styles/auth.css'
+import '../../styles/learner.css'
+
+type Mode = 'practice' | 'test'
+
+export function LearnerChapterQuizPage({
+  mode,
+  backTo,
+}: {
+  mode: Mode
+  backTo: (chapterId: string) => string
+}) {
+  const navigate = useNavigate()
+  const {
+    chapterId = '',
+    subjectNumber: subjectNumberParam,
+    questionIndex: questionIndexParam,
+  } = useParams()
+  const subjectNumber = Math.max(1, parseInt(String(subjectNumberParam || '1'), 10) || 1)
+  const parsedQuestionIndex = parseInt(String(questionIndexParam ?? ''), 10)
+  const questionIndex =
+    Number.isFinite(parsedQuestionIndex) && parsedQuestionIndex >= 0 ? parsedQuestionIndex : null
+  const isSingleQuestion = mode === 'practice' && questionIndex != null
+  const location = useLocation()
+  const { user, loading: authLoading } = useAuth()
+  const stateChapterName =
+    (location.state as { chapterName?: string } | null)?.chapterName || ''
+  const [chapterName, setChapterName] = useState(stateChapterName || 'Chapitre')
+  const [subjectLabel, setSubjectLabel] = useState(
+    mode === 'test' ? `Sujet ${subjectNumber}` : '',
+  )
+
+  const [questions, setQuestions] = useState<LearnerQuestion[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [index, setIndex] = useState(0)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [checking, setChecking] = useState(false)
+  const [result, setResult] = useState<{
+    isCorrect: boolean
+    correctAnswerIds: string[]
+  } | null>(null)
+  const [score, setScore] = useState({ correct: 0, total: 0 })
+  const [finished, setFinished] = useState(false)
+  const [savingTest, setSavingTest] = useState(false)
+  const [testSaved, setTestSaved] = useState(false)
+  const [sequenceLive, setSequenceLive] = useState(true)
+  const [subtitlePass, setSubtitlePass] = useState(1)
+  const [reviewHistory, setReviewHistory] = useState<
+    {
+      question: LearnerQuestion
+      selectedIds: string[]
+      correctAnswerIds: string[]
+      isCorrect: boolean
+    }[]
+  >([])
+  const [reviewing, setReviewing] = useState(false)
+  const [pulseAnswerId, setPulseAnswerId] = useState<string | null>(null)
+
+  const selectedIdsRef = useRef(selectedIds)
+  selectedIdsRef.current = selectedIds
+  const resultRef = useRef(result)
+  resultRef.current = result
+  const checkingRef = useRef(checking)
+  checkingRef.current = checking
+  const indexRef = useRef(index)
+  indexRef.current = index
+  const questionsRef = useRef(questions)
+  questionsRef.current = questions
+  const scoreRef = useRef(score)
+  scoreRef.current = score
+  const testSavedRef = useRef(testSaved)
+  testSavedRef.current = testSaved
+  const sequenceLiveRef = useRef(sequenceLive)
+  sequenceLiveRef.current = sequenceLive
+
+  const load = useCallback(async () => {
+    stopAllQuizAudio()
+    setLoading(true)
+    setError(null)
+    try {
+      if (!stateChapterName) {
+        const chapters = await fetchRevisionChapters()
+        const chapterIndex = chapters.findIndex((item) => item.id === chapterId)
+        if (chapterIndex >= 0) {
+          setChapterName(`${chapterIndex + 1}. ${chapters[chapterIndex].name}`)
+        }
+      } else {
+        setChapterName(stateChapterName)
+      }
+      if (mode === 'test') {
+        const subject = await fetchRevisionChapterTestSubject(chapterId, subjectNumber)
+        setSubjectLabel(subject.label || `Sujet ${subjectNumber}`)
+        setQuestions(subject.questions || [])
+      } else {
+        setSubjectLabel('')
+        const all = await fetchRevisionChapterQuestions(chapterId)
+        setQuestions(
+          questionIndex != null && questionIndex >= 0 && questionIndex < all.length
+            ? [all[questionIndex]]
+            : all,
+        )
+      }
+      setIndex(0)
+      setSelectedIds([])
+      setResult(null)
+      setScore({ correct: 0, total: 0 })
+      setFinished(false)
+      setTestSaved(false)
+      setSequenceLive(true)
+      setReviewHistory([])
+      setReviewing(false)
+    } catch (err) {
+      setError(err instanceof ContentError ? err.message : 'Chargement impossible')
+      setQuestions([])
+    } finally {
+      setLoading(false)
+    }
+  }, [chapterId, mode, stateChapterName, subjectNumber, questionIndex])
+
+  useEffect(() => {
+    if (user) void load()
+  }, [user, load])
+
+  useEffect(() => {
+    setSequenceLive(true)
+    setSelectedIds([])
+    setResult(null)
+    setSubtitlePass(1)
+    // Ne pas appeler stopAllQuizAudio ici : l’effet parent tourne APRÈS
+    // le montage de QuestionAudioSequence et vidait le <audio> (silence).
+  }, [index])
+
+  useEffect(() => {
+    if (finished) stopAllQuizAudio()
+  }, [finished])
+
+  // Sélection d’une réponse : ne coupe PAS l’audio (2 lectures complètes jusqu’à Continuer / fin de séquence).
+
+  const question = questions[index]
+  const chapterOrder = getChapterOrderById(chapterId) || undefined
+  const practiceTranscript =
+    mode === 'practice' && question
+      ? getRevisionPracticePromptTranscript(question.prompt, {
+          id: question.id,
+          order: question.order,
+          chapterOrder,
+        })
+      : ''
+  const displayAnswers = useMemo(() => {
+    if (!question) return []
+    const transcript = resolveQuestionTranscript(
+      { id: question.id, order: question.order, prompt: question.prompt },
+      chapterOrder,
+    )
+    return enrichAnswersFromTranscript(question.answers, transcript)
+  }, [question, chapterOrder])
+
+  const progressLabel = useMemo(() => {
+    if (!questions.length) return ''
+    if (isSingleQuestion && questionIndex != null) {
+      return `Question ${questionIndex + 1}`
+    }
+    return `Question ${Math.min(index + 1, questions.length)} / ${questions.length}`
+  }, [index, questions.length, isSingleQuestion, questionIndex])
+
+  const toggleAnswer = (answerId: string) => {
+    if (result || checking) return
+    setPulseAnswerId(answerId)
+    window.setTimeout(() => setPulseAnswerId(null), 420)
+    setSelectedIds((current) =>
+      current.includes(answerId)
+        ? current.filter((id) => id !== answerId)
+        : [...current, answerId],
+    )
+  }
+
+  const finishOrAdvance = useCallback(
+    async (nextScore: { correct: number; total: number }) => {
+      const currentIndex = indexRef.current
+      const list = questionsRef.current
+      if (currentIndex + 1 >= list.length) {
+        stopAllQuizAudio()
+        setSequenceLive(false)
+        setFinished(true)
+        if (mode === 'test' && !testSavedRef.current) {
+          setSavingTest(true)
+          try {
+            await markRevisionTestCompleted(chapterId, nextScore.correct, nextScore.total)
+            setTestSaved(true)
+          } catch (err) {
+            setError(err instanceof ContentError ? err.message : 'Validation du test impossible')
+          } finally {
+            setSavingTest(false)
+          }
+        }
+        return
+      }
+      stopAllQuizAudio()
+      setIndex((value) => value + 1)
+      setSelectedIds([])
+      setResult(null)
+      setSequenceLive(true)
+    },
+    [chapterId, mode],
+  )
+
+  const skipMissed = useCallback(async () => {
+    if (checkingRef.current || resultRef.current) return
+    setChecking(true)
+    setSequenceLive(false)
+    stopAllQuizAudio()
+    try {
+      setResult({ isCorrect: false, correctAnswerIds: [] })
+      const nextScore = {
+        correct: scoreRef.current.correct,
+        total: scoreRef.current.total + 1,
+      }
+      setScore(nextScore)
+      void playFailSound()
+    } finally {
+      setChecking(false)
+    }
+  }, [])
+
+  const resolveSelection = useCallback(
+    async (ids: string[]) => {
+      const currentQuestion = questionsRef.current[indexRef.current]
+      if (!currentQuestion || ids.length === 0 || checkingRef.current || resultRef.current) return
+
+      setChecking(true)
+      setSequenceLive(false)
+      stopAllQuizAudio()
+      try {
+        const data = await checkRevisionQuestionAnswers(chapterId, currentQuestion.id, ids)
+        setResult(data)
+        setReviewHistory((current) => [
+          ...current,
+          {
+            question: currentQuestion,
+            selectedIds: ids,
+            correctAnswerIds: data.correctAnswerIds,
+            isCorrect: data.isCorrect,
+          },
+        ])
+        const nextScore = {
+          correct: scoreRef.current.correct + (data.isCorrect ? 1 : 0),
+          total: scoreRef.current.total + 1,
+        }
+        setScore(nextScore)
+        if (data.isCorrect) await playSuccessSound()
+        else await playFailSound()
+      } catch (err) {
+        setError(err instanceof ContentError ? err.message : 'Vérification impossible')
+        setSequenceLive(selectedIdsRef.current.length === 0)
+      } finally {
+        setChecking(false)
+      }
+    },
+    [chapterId],
+  )
+
+  const handleSequenceComplete = useCallback(() => {
+    if (!sequenceLiveRef.current) return
+    const ids = selectedIdsRef.current
+    if (ids.length > 0) {
+      void resolveSelection(ids)
+      return
+    }
+    void skipMissed()
+  }, [resolveSelection, skipMissed])
+
+  const handleContinue = () => {
+    const ids = selectedIdsRef.current
+    if (ids.length === 0 || checking || result) return
+    unlockQuizAudio()
+    setSequenceLive(false)
+    stopAllQuizAudio()
+    void resolveSelection(ids)
+  }
+  const { confirmLeave } = useLeaveGuard(!finished && !loading && questions.length > 0)
+
+  if (authLoading || !user) return <PageLoader />
+
+  return (
+    <div className="auth-page">
+      <div className="auth-container learner-container">
+        <PageNavbar
+          title={mode === 'test' ? subjectLabel || 'Sujet test' : 'Questions'}
+          icon={mode === 'test' ? <ClipboardList size={22} /> : <HelpCircle size={22} />}
+          onBack={() => {
+            if (!confirmLeave()) return
+            navigate(backTo(chapterId))
+          }}
+        />
+
+        <header className={`auth-header learner-header${question && !finished ? ' is-quiz-compact' : ''}`}>
+          <p className="learner-kicker">{mode === 'test' ? 'Sujet test' : 'Entraînement'}</p>
+          <h1>{mode === 'test' ? subjectLabel || 'Évaluation' : 'Questions'}</h1>
+          <p>
+            {mode === 'test'
+              ? `${chapterName} — répondez à chaque question à votre rythme.`
+              : `${chapterName} — cochez la ou les bonnes réponses, puis validez.`}
+          </p>
+        </header>
+
+        <div className="auth-card learner-card">
+          {loading ? <p className="subtitle">Chargement…</p> : null}
+          {error ? <p className="form-error">{error}</p> : null}
+
+          {!loading && !error && questions.length === 0 ? (
+            <div className="learner-empty">
+              <h2>{mode === 'test' ? 'Aucun sujet test' : 'Aucune question'}</h2>
+              <p className="subtitle">
+                {mode === 'test'
+                  ? 'Aucune question publiée pour ce chapitre. Publiez des questions dans l’admin pour activer le sujet test automatique.'
+                  : 'Aucune question publiée pour ce chapitre.'}
+              </p>
+            </div>
+          ) : null}
+
+          {!loading && !error && finished && reviewing ? (
+            <div className="learner-quiz">
+              <h2>Mode correction</h2>
+              {reviewHistory.map((entry, i) => (
+                <div key={`${entry.question.id}-${i}`} className="learner-quiz-review">
+                  <p className="learner-quiz-progress">
+                    Question {i + 1} — {entry.isCorrect ? 'Bonne réponse' : 'À revoir'}
+                  </p>
+                  {(() => {
+                    const entryTranscript = getRevisionPracticePromptTranscript(entry.question.prompt, {
+                      id: entry.question.id,
+                      order: entry.question.order,
+                      chapterOrder: getChapterOrderById(chapterId) || undefined,
+                    })
+                    if (entryTranscript) {
+                      return (
+                        <ProgressiveSubtitles
+                          text={entryTranscript}
+                          resetKey={`${entry.question.id}-review`}
+                          progressive={false}
+                        />
+                      )
+                    }
+                    if (entry.question.prompt?.text) {
+                      return (
+                        <QuestionPromptHtml
+                          className="learner-quiz-prompt"
+                          text={entry.question.prompt?.text}
+                        />
+                      )
+                    }
+                    return null
+                  })()}
+                  <div className="learner-quiz-answers">
+                    {enrichAnswersFromTranscript(
+                      entry.question.answers,
+                      resolveQuestionTranscript(
+                        {
+                          id: entry.question.id,
+                          order: entry.question.order,
+                          prompt: entry.question.prompt,
+                        },
+                        getChapterOrderById(chapterId) || undefined,
+                      ),
+                    ).map((answer) => {
+                      const selected = entry.selectedIds.includes(answer.id)
+                      const isCorrect = entry.correctAnswerIds.includes(answer.id)
+                      let className = 'learner-quiz-answer'
+                      if (isCorrect) className += ' is-correct'
+                      if (selected && !isCorrect) className += ' is-wrong'
+                      return (
+                        <div key={answer.id} className={className}>
+                          <strong>{answer.label.toUpperCase()}</strong>
+                          {answer.text ? <span>{answer.text}</span> : null}
+                          <small>
+                            {isCorrect ? 'Bonne réponse' : selected ? 'Ta réponse' : ''}
+                          </small>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+              <button type="button" className="btn-primary" onClick={() => setReviewing(false)}>
+                Retour au score
+              </button>
+            </div>
+          ) : null}
+
+          {!loading && !error && finished && !reviewing ? (
+            <SuccessCelebration
+              title={
+                score.total > 0 && score.correct / score.total >= 0.7
+                  ? 'Bravo !'
+                  : score.total > 0 && score.correct / score.total >= 0.5
+                    ? 'Bien joué'
+                    : 'Terminé'
+              }
+              subtitle={
+                <>
+                  <div className="learner-quiz-recap">
+                    <div>
+                      <span>Bonnes réponses</span>
+                      <strong>
+                        {score.correct} / {score.total}
+                      </strong>
+                    </div>
+                  </div>
+                  {mode === 'test' ? (
+                    <p className="subtitle">
+                      {savingTest
+                        ? 'Enregistrement du sujet test…'
+                        : testSaved
+                          ? 'Sujet test enregistré. Vous pouvez recommencer ou passer à un autre chapitre.'
+                          : 'Sujet test terminé.'}
+                    </p>
+                  ) : null}
+                </>
+              }
+              passed={score.total > 0 && score.correct / score.total >= 0.5}
+            >
+              {reviewHistory.length > 0 ? (
+                <button type="button" className="btn-primary" onClick={() => setReviewing(true)}>
+                  Mode correction
+                </button>
+              ) : null}
+              {isSingleQuestion ? (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => navigate(backTo(chapterId), { state: { chapterName } })}
+                >
+                  Retour à la liste
+                </button>
+              ) : (
+                <button type="button" className="btn-primary" onClick={() => void load()}>
+                  Recommencer
+                </button>
+              )}
+            </SuccessCelebration>
+          ) : null}
+
+          {!loading && !error && question && !finished ? (
+            <div className="learner-quiz">
+              <div key={index} className="mp-quiz-enter">
+              <div className="learner-quiz-progress-row">
+                <QuizProgressRing
+                  current={Math.min(index + 1, questions.length)}
+                  total={questions.length}
+                />
+                <p className="learner-quiz-progress">{progressLabel}</p>
+              </div>
+              {(question.correctCount ?? 1) > 1 ? (
+                <span className="learner-multi-badge">
+                  {question.correctCount} bonnes réponses à cocher
+                </span>
+              ) : null}
+              {question.prompt?.imageUrls?.length ? (
+                <div className="learner-quiz-images">
+                  {question.prompt.imageUrls.map((url) => (
+                    <img key={url} src={resolveCodeImageUrl(url)} alt="" />
+                  ))}
+                </div>
+              ) : null}
+              {sequenceLive && !result ? (
+                <QuestionAudioSequence
+                  key={question.id}
+                  questionKey={question.id}
+                  promptAudioUrl={question.prompt?.audioUrl}
+                  onSequenceComplete={handleSequenceComplete}
+                  onListenPass={(pass) => setSubtitlePass(pass)}
+                />
+              ) : null}
+              {practiceTranscript ? (
+                <ProgressiveSubtitles
+                  text={practiceTranscript}
+                  resetKey={`${question.id}-${subtitlePass}-${sequenceLive && !result ? 'live' : 'done'}`}
+                  progressive={sequenceLive && !result}
+                />
+              ) : question.prompt?.text ? (
+                <QuestionPromptHtml className="learner-quiz-prompt" text={question.prompt?.text} />
+              ) : null}
+              <p className="learner-quiz-answers-title">Choisissez la ou les bonnes réponses</p>
+              {!result ? (
+                <p className="learner-quiz-audio-status">
+                  Audio et sous-titres démarrent à l’ouverture. Vous pouvez cocher pendant la lecture.
+                </p>
+              ) : null}
+
+              <div className="learner-quiz-answers">
+                {displayAnswers.map((answer) => {
+                  const selected = selectedIds.includes(answer.id)
+                  const isCorrect = result?.correctAnswerIds.includes(answer.id)
+                  let className = 'learner-quiz-answer'
+                  if (selected) className += ' is-selected'
+                  if (result && isCorrect) className += ' is-correct'
+                  if (result && selected && !isCorrect) className += ' is-wrong'
+                  if (pulseAnswerId === answer.id) className += ' is-pulse'
+                  return (
+                    <button
+                      key={answer.id}
+                      type="button"
+                      className={className}
+                      onClick={() => toggleAnswer(answer.id)}
+                      disabled={Boolean(result) || checking}
+                    >
+                      <span className={`learner-quiz-check ${selected ? 'is-on' : ''}`} aria-hidden />
+                      <strong>{answer.label.toUpperCase()}</strong>
+                      {answer.text ? <span>{answer.text}</span> : null}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {result ? (
+                <p className={result.isCorrect ? 'form-success' : 'form-error'}>
+                  {result.isCorrect ? 'Bonne réponse' : 'Mauvaise réponse'}
+                </p>
+              ) : null}
+
+              <div className="learner-quiz-actions">
+                {!result && selectedIds.length > 0 ? (
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    disabled={checking}
+                    onClick={handleContinue}
+                  >
+                    {checking ? 'Vérification…' : 'Valider'}
+                  </button>
+                ) : null}
+                {result ? (
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => void finishOrAdvance(score)}
+                  >
+                    {index + 1 >= questions.length ? 'Voir le score' : 'Question suivante'}
+                  </button>
+                ) : null}
+              </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )
+}

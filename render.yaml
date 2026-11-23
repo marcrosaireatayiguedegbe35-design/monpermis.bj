@@ -1,0 +1,182 @@
+# Blueprint Render — Monpermis.bj
+# Dashboard : New → Blueprint → repo depannageepress03-cmd/Monpermis
+# Les secrets (Mongo, JWT, SMTP, FedaPay, Cloudinary, Google) se saisissent une fois ;
+# les URLs publiques sont figées ici pour éviter un front pointant vers localhost.
+
+services:
+  - type: web
+    name: monpermis-api
+    runtime: node
+    rootDir: server
+    plan: free
+    branch: main
+    autoDeployTrigger: commit
+    # API seule : le portail moniteur est un site statique séparé (monpermis-moniteur, plus bas).
+    # Les anciens liens du portail (/connexion, /profil…) redirigent vers MONITEUR_CLIENT_URL.
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    buildFilter:
+      paths:
+        - server/**
+        - render.yaml
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_URL
+        value: https://monpermis-api.onrender.com
+      - key: ADMIN_CLIENT_URL
+        value: https://monpermis-admin.onrender.com
+      - key: MONITEUR_CLIENT_URL
+        value: https://monpermis-moniteur.onrender.com
+      - key: ALLOWED_ORIGINS
+        value: https://monpermis-api.onrender.com,https://monpermis-admin.onrender.com,https://monpermis-moniteur.onrender.com
+      - key: API_PUBLIC_URL
+        value: https://monpermis-api.onrender.com
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_ANDROID_CLIENT_ID
+        sync: false
+      - key: GOOGLE_IOS_CLIENT_ID
+        sync: false
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "false"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: FEDAPAY_PUBLIC_KEY
+        sync: false
+      - key: FEDAPAY_SECRET_KEY
+        sync: false
+      - key: FEDAPAY_ENVIRONMENT
+        value: live
+      - key: FEDAPAY_WEBHOOK_SECRET
+        sync: false
+      - key: FEDAPAY_CALLBACK_URL
+        value: https://monpermis-api.onrender.com/abonnement
+      - key: ALLOW_ADMIN_REGISTRATION
+        value: "false"
+      - key: MOBILE_SCHEME
+        value: monpermis
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_MODEL
+        sync: false
+      - key: WHATSAPP_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: CLOUDINARY_FOLDER
+        sync: false
+
+  - type: web
+    name: monpermis-admin
+    runtime: static
+    rootDir: administration
+    branch: main
+    autoDeployTrigger: commit
+    buildCommand: npm install --include=dev && npm run build
+    staticPublishPath: dist
+    buildFilter:
+      paths:
+        - administration/**
+        - render.yaml
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: VITE_API_URL
+        value: https://monpermis-api.onrender.com
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=31536000; includeSubDomains
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+      - path: /*
+        name: Cross-Origin-Opener-Policy
+        value: same-origin
+      - path: /*
+        name: Content-Security-Policy
+        value: "frame-ancestors 'none'"
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+  # Portail moniteur — site statique indépendant de l'API (appelle l'API en CORS).
+  - type: web
+    name: monpermis-moniteur
+    runtime: static
+    rootDir: moniteur
+    branch: main
+    autoDeployTrigger: commit
+    buildCommand: npm install --include=dev && npm run build
+    staticPublishPath: dist
+    buildFilter:
+      paths:
+        - moniteur/**
+        - render.yaml
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: VITE_API_URL
+        value: https://monpermis-api.onrender.com
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=31536000; includeSubDomains
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+      - path: /*
+        name: Cross-Origin-Opener-Policy
+        value: same-origin
+      - path: /*
+        name: Content-Security-Policy
+        value: "frame-ancestors 'none'"
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

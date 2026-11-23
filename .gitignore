@@ -1,0 +1,62 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+*.local.txt
+.env
+server/.env
+mobile/.env
+administration/.env
+
+# Android signing (never commit)
+*.keystore
+!mobile/android/app/debug.keystore
+mobile/credentials/*.local.txt
+
+
+# Python / outils locaux
+.venv-img/
+.venv-tts/
+.venv/
+__pycache__/
+
+# Uploads générés (garder le dossier via .gitkeep)
+server/uploads/audio/
+server/uploads/images/
+server/uploads/vehicles/
+
+# Build info
+*.tsbuildinfo
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# APK locaux (ne pas committer)
+*.apk
+!mobile/android/**/*.apk
+
+# Artefacts locaux générés
+build-output/
+
+# Config locale d'outils (Claude Code, etc.)
+.claude/
+
+# Outils locaux
+.anchor/

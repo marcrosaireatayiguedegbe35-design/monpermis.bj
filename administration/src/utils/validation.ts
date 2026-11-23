@@ -1,0 +1,42 @@
+export const PHONE_PLACEHOLDER = '0147880143'
+const PHONE_PATTERN = /^\d{10}$/
+
+export function normalizePhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  let local = digits
+  if (digits.startsWith('229') && digits.length >= 13) {
+    local = digits.slice(3)
+  }
+  return local.slice(0, 10)
+}
+
+export function validatePhone(phone: string): string | undefined {
+  if (!phone.trim()) return 'Le téléphone est requis'
+  const normalized = normalizePhone(phone)
+  if (!PHONE_PATTERN.test(normalized)) {
+    return `Format invalide. Exemple : ${PHONE_PLACEHOLDER}`
+  }
+  return undefined
+}
+
+export function validateName(name: string): string | undefined {
+  if (!name.trim()) return 'Le nom est requis'
+  if (name.trim().length < 2) return 'Nom trop court'
+  return undefined
+}
+
+export function validatePassword(password: string): string | undefined {
+  if (!password) return 'Le mot de passe est requis'
+  if (password.length < 8) return 'Minimum 8 caractères'
+  if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password)) {
+    return 'Doit contenir majuscule, minuscule et chiffre'
+  }
+  return undefined
+}
+
+/** Permissive email: local@domain with a dot in the domain (+, _, digits, long TLDs OK). */
+export function isValidEmailFormat(email: string): boolean {
+  const value = email.trim()
+  if (!value || value.length > 254) return false
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
