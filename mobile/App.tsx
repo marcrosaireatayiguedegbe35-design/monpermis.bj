@@ -15,6 +15,18 @@ export default function App() {
     void ensureAudioSession()
   }, [])
 
+  // Web : retire le contour rectangulaire de focus du navigateur autour des champs de saisie
+  // (le champ arrondi garde sa propre forme, comme dans l'application mobile).
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return
+    const style = document.createElement('style')
+    style.id = 'monpermis-web-inputs'
+    style.textContent =
+      'input, textarea, select { outline: none !important; box-shadow: none !important; -webkit-tap-highlight-color: transparent; }'
+    document.head.appendChild(style)
+    return () => style.remove()
+  }, [])
+
   if (!fontsLoaded) {
     return (
       <View style={styles.loading}>
