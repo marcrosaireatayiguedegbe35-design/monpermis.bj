@@ -21,7 +21,6 @@ import {
   validatePassword,
 } from '../utils/validation'
 import { showAuthError } from '../utils/showAuthError'
-import { notify } from '../utils/notify'
 
 import { AuthLight, PillButton } from '../components/AuthLight'
 import { PillInput } from '../components/PillInput'
@@ -69,11 +68,7 @@ export function LoginScreen() {
     async (token: string, user: Awaited<ReturnType<typeof loginUser>>['user']) => {
       await signIn(token, user)
       if (!String(user.phone || '').trim()) {
-        navigation.reset({ index: 0, routes: [{ name: 'Profile' }] })
-        notify(
-          'Téléphone requis',
-          'Ajoute ton numéro pour payer en Mobile Money et recevoir les rappels.',
-        )
+        navigation.reset({ index: 0, routes: [{ name: 'CompletePhone' }] })
         return
       }
       navigation.reset({ index: 0, routes: [{ name: 'Home' }] })

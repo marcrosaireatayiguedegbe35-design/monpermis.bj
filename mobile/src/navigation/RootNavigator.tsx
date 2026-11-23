@@ -4,6 +4,7 @@ import {
   createNavigationContainerRef,
   type LinkingOptions,
 } from '@react-navigation/native'
+import { CompletePhoneScreen } from '../screens/CompletePhoneScreen'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import * as Linking from 'expo-linking'
 import { StatusBar } from 'expo-status-bar'
@@ -86,6 +87,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       MentionsLegales: 'mentions-legales',
       Home: 'accueil',
       Profile: 'profil',
+      CompletePhone: 'telephone',
       Notifications: 'notifications',
       Actualites: 'actualites',
       ActualiteDetail: 'actualites/:id',
@@ -176,6 +178,10 @@ function AppNavigator() {
       <Stack.Screen
         name="Profile"
         component={withRequireAuth(ProfileScreen)}
+      />
+      <Stack.Screen
+        name="CompletePhone"
+        component={withRequireAuth(CompletePhoneScreen)}
       />
       <Stack.Screen
         name="Notifications"
