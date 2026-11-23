@@ -32,6 +32,7 @@ import {
   validateName,
   validatePhone,
 } from '../utils/validation'
+import { notify } from '../utils/notify'
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Register'>
 
@@ -95,10 +96,10 @@ export function RegisterScreen() {
     await signIn(token, user)
     if (!String(user.phone || '').trim()) {
       navigation.reset({ index: 0, routes: [{ name: 'Profile' }] })
-      Alert.alert(
-        'Téléphone requis',
-        'Ajoute ton numéro pour payer en Mobile Money et recevoir les rappels.',
-      )
+      notify(
+          'Téléphone requis',
+          'Ajoute ton numéro pour payer en Mobile Money et recevoir les rappels.',
+        )
       return
     }
     navigation.reset({ index: 0, routes: [{ name: 'Home' }] })

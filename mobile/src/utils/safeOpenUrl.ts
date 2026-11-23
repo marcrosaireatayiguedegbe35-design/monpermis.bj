@@ -13,7 +13,7 @@ function isAllowedHost(hostname: string, scheme: string): boolean {
   if (host === 'calendar.google.com' || host === 'www.google.com') return true
   // Product / media
   if (host === 'monpermis.bj' || host.endsWith('.monpermis.bj')) return true
-  if (host === 'monpermis-api.onrender.com') return true
+  if (host === 'monpermis-api.onrender.com' || host === 'monpermis-api-hwyh.onrender.com') return true
   if (host === 'youtube.com' || host === 'www.youtube.com' || host === 'youtu.be') return true
   if (host === 'vimeo.com' || host === 'www.vimeo.com' || host === 'player.vimeo.com') return true
   // Generic https only for absolute CTAs from CMS (no custom schemes)

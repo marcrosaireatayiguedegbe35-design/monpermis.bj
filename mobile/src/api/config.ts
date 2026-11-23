@@ -24,7 +24,7 @@ export function getApiBase(): string {
 
   // Filet de sécurité : jamais localhost dans un binaire release.
   if (typeof __DEV__ !== 'undefined' && !__DEV__) {
-    return 'https://monpermis-api.onrender.com/api'
+    return 'https://monpermis-api-hwyh.onrender.com/api'
   }
 
   const expoDevApi = getExpoDevApiBase()

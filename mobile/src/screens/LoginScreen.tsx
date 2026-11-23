@@ -32,6 +32,7 @@ import {
   validatePassword,
 } from '../utils/validation'
 import { showAuthError } from '../utils/showAuthError'
+import { notify } from '../utils/notify'
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Login'>
 type Route = RouteProp<RootStackParamList, 'Login'>
@@ -77,7 +78,7 @@ export function LoginScreen() {
       await signIn(token, user)
       if (!String(user.phone || '').trim()) {
         navigation.reset({ index: 0, routes: [{ name: 'Profile' }] })
-        Alert.alert(
+        notify(
           'Téléphone requis',
           'Ajoute ton numéro pour payer en Mobile Money et recevoir les rappels.',
         )

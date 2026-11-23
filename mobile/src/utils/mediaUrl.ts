@@ -5,6 +5,7 @@ function isAllowedAbsoluteMediaUrl(url: URL): boolean {
   const host = url.hostname.toLowerCase()
   return (
     host === 'monpermis-api.onrender.com' ||
+    host === 'monpermis-api-hwyh.onrender.com' ||
     host === 'monpermis.bj' ||
     host.endsWith('.monpermis.bj') ||
     host.endsWith('.cloudinary.com') ||
