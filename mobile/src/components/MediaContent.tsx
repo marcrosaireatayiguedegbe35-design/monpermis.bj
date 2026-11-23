@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native'
 import RenderHTML from 'react-native-render-html'
-import { WebView } from 'react-native-webview'
+import { WebView } from './WebViewCompat'
 import { dark, fonts } from '../theme'
 import { buildEmbedHtml, resolveVideoEmbed } from '../utils/mediaEmbed'
 import { resolveMediaUrl } from '../utils/mediaUrl'

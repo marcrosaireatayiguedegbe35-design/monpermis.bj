@@ -3,7 +3,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { setStatusBarStyle } from 'expo-status-bar'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Image, Platform, StyleSheet, View } from 'react-native'
-import { WebView, type WebViewMessageEvent } from 'react-native-webview'
+import { WebView, type WebViewMessageEvent } from '../components/WebViewCompat'
 import { IntroLogoMark } from '../components/IntroLogoMark'
 import { MONPERMIS_INTRO_HTML } from '../assets/monpermisIntroHtml'
 import { getStoredUser } from '../api/auth'
@@ -22,7 +22,7 @@ export function IntroScreen() {
   const navigatedRef = useRef(false)
   const revealDoneRef = useRef(false)
   const userRef = useRef(user)
-  const [useNativeFallback, setUseNativeFallback] = useState(false)
+  const [useNativeFallback, setUseNativeFallback] = useState(Platform.OS === 'web')
   const [webReady, setWebReady] = useState(false)
 
   userRef.current = user
