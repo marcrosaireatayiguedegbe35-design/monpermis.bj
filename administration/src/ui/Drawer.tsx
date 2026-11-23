@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { Button } from './Button'
 
@@ -34,7 +35,8 @@ export function Drawer({ open, title, subtitle, onClose, children, footer, wide 
 
   if (!open) return null
 
-  return (
+  // Rendu dans <body> : un ancêtre animé (transform) ferait sinon « couper » le panneau à l'intérieur de la page.
+  return createPortal(
     <div className="ui-drawer-root" role="presentation">
       <button type="button" className="ui-drawer-backdrop" aria-label="Fermer" onClick={onClose} />
       <div
@@ -58,6 +60,7 @@ export function Drawer({ open, title, subtitle, onClose, children, footer, wide 
         <div className="ui-drawer-body">{children}</div>
         {footer ? <footer className="ui-drawer-footer">{footer}</footer> : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

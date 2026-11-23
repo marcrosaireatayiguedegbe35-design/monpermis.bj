@@ -1,0 +1,61 @@
+/* ==========================================================================
+   Habillage sobre du CONTENU de l'administration : fond blanc, sans bannière illustrée ni
+   dégradés décoratifs. La page de connexion et le menu latéral ne sont volontairement PAS modifiés.
+   ========================================================================== */
+
+/* ---------- Contenu : fond blanc, bandeau d'accueil sans image ---------- */
+.cx-main,
+.cx-shell2 .cx-main {
+  background: #ffffff !important;
+}
+.cx-welcome::before {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+}
+.cx-page-header.cx-welcome {
+  background: transparent !important;
+  padding-left: 0;
+  padding-right: 0;
+}
+.cx-topbar2,
+.cx-topbar {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e6ebf1;
+  box-shadow: none !important;
+}
+
+/* ---------- Cartes : bordure fine, pas d'ombre lourde ni de dégradé ---------- */
+.cx-panel,
+.cx-card,
+.cx-kpi,
+.cx-kc {
+  background: #ffffff !important;
+  border: 1px solid #e6ebf1 !important;
+  box-shadow: none !important;
+}
+:where(.cx-panel, .cx-more) th {
+  background: #f6f8fa;
+  color: #4a5b6d;
+}
+
+/* ---------- Boutons de période : vert uni ---------- */
+.cx-seg button.cx-on,
+.cx-dash-chart .cx-seg button.cx-on {
+  background: #00a047;
+}
+
+/* ---------- Panneaux latéraux (Drawer) : superposition plein écran ---------- */
+.ui-drawer-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+.ui-drawer-backdrop {
+  background: rgb(15 28 46 / 0.38) !important;
+  backdrop-filter: none;
+}
+.ui-drawer-panel {
+  background: #ffffff;
+  box-shadow: -12px 0 32px rgb(15 28 46 / 0.12);
+}
