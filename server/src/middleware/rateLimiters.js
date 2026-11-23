@@ -34,7 +34,9 @@ export const adminLoginLimiter = rateLimit({
 /** Trafic authentifié des portails : assez large pour l'usage normal, assez bas pour un script. */
 export const adminApiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: limitMax(800, 'ADMIN_API_RATE_LIMIT_MAX'),
+  max: limitMax(3000, 'ADMIN_API_RATE_LIMIT_MAX'),
+  // Les flux temps réel (SSE) se reconnectent seuls : ils ne doivent pas épuiser le quota des pages.
+  skip: (req) => /\/stream\/?$/.test(req.path),
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Trop de requêtes. Réessayez dans 15 minutes.' },

@@ -102,6 +102,7 @@ export function subscribeToActivityEvents(
   const controller = new AbortController()
 
   void (async () => {
+    let retryMs = 3000
     while (!controller.signal.aborted) {
       try {
         const response = await fetch(`${getApiOrigin()}/api/admin/activity/stream`, {
@@ -111,6 +112,7 @@ export function subscribeToActivityEvents(
         if (!response.ok || !response.body) throw new Error('Flux indisponible')
 
         onStatusChange?.(true)
+        retryMs = 3000
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
         let buffer = ''
@@ -143,7 +145,8 @@ export function subscribeToActivityEvents(
       }
       onStatusChange?.(false)
       if (controller.signal.aborted) return
-      await new Promise((resolve) => setTimeout(resolve, 3000))
+      await new Promise((resolve) => setTimeout(resolve, retryMs))
+      retryMs = Math.min(retryMs * 2, 60000)
     }
   })()
 

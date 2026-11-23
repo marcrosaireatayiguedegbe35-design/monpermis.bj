@@ -89,6 +89,7 @@ export function subscribeToDashboardPaymentEvents(
   const controller = new AbortController()
 
   void (async () => {
+    let retryMs = 3000
     while (!controller.signal.aborted) {
       try {
         const response = await fetch(`${getApiOrigin()}/api/admin/access-requests/payments/stream`, {
@@ -98,6 +99,7 @@ export function subscribeToDashboardPaymentEvents(
         if (!response.ok || !response.body) throw new Error('Flux indisponible')
 
         onStatusChange?.(true)
+        retryMs = 3000
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
         let buffer = ''
@@ -130,7 +132,9 @@ export function subscribeToDashboardPaymentEvents(
       }
       onStatusChange?.(false)
       if (controller.signal.aborted) return
-      await new Promise((resolve) => setTimeout(resolve, 3000))
+      // Temporisation croissante (3 s → 60 s) : pas de rafale de requêtes si le serveur est indisponible ou limite le trafic.
+      await new Promise((resolve) => setTimeout(resolve, retryMs))
+      retryMs = Math.min(retryMs * 2, 60000)
     }
   })()
 
