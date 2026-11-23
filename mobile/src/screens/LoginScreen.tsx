@@ -1,30 +1,19 @@
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { LinearGradient } from 'expo-linear-gradient'
 import { setStatusBarStyle } from 'expo-status-bar'
 import {
   Animated,
-  ImageBackground,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
   StyleSheet,
   Text,
   View,
   Alert,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { loginUser, type AuthUser } from '../api/auth'
-import { AuthInput } from '../components/AuthInput'
-import { Bouncy } from '../components/Bouncy'
 import { GoogleAuthButton } from '../components/GoogleAuthButton'
-import { LegalFooter } from '../components/LegalFooter'
-import { AuthLogoBadge } from '../components/AuthLogoBadge'
-import { BrandName } from '../components/BrandName'
 import { useAuth } from '../context/AuthContext'
 import type { RootStackParamList } from '../navigation/types'
-import { brand, dark, fonts, gradients } from '../theme'
+import { dark, fonts } from '../theme'
 import {
   normalizePhone,
   PHONE_PLACEHOLDER,
@@ -34,6 +23,9 @@ import {
 import { showAuthError } from '../utils/showAuthError'
 import { notify } from '../utils/notify'
 
+import { AuthLight, PillButton } from '../components/AuthLight'
+import { PillInput } from '../components/PillInput'
+import { Lock, Phone } from 'lucide-react-native'
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Login'>
 type Route = RouteProp<RootStackParamList, 'Login'>
 
@@ -49,7 +41,7 @@ export function LoginScreen() {
   const contentTranslate = useRef(new Animated.Value(16)).current
 
   useEffect(() => {
-    setStatusBarStyle('light')
+    setStatusBarStyle('dark')
     Animated.parallel([
       Animated.timing(contentOpacity, {
         toValue: 1,
@@ -119,288 +111,92 @@ export function LoginScreen() {
   }
 
   return (
-    <View style={styles.root}>
-      <ImageBackground
-        source={require('../../assets/home/i2.jpg')}
-        style={styles.hero}
-        imageStyle={styles.heroImage}
-      >
-        <LinearGradient
-          colors={['rgba(0,16,48,0.55)', 'rgba(0,16,48,0.82)', brand.navy]}
-          locations={[0, 0.55, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-        <SafeAreaView edges={['top']} style={styles.heroSafe}>
-          <Animated.View
-            style={[
-              styles.heroCopy,
-              {
-                opacity: contentOpacity,
-                transform: [{ translateY: contentTranslate }],
-              },
-            ]}
-          >
-            <AuthLogoBadge size={72} style={styles.logoBadge} />
-            <BrandName size={34} mainColor="#ffffff" style={styles.brand} />
-            <Text style={styles.tagline}>Code, conduite, confiance, avance à ton rythme.</Text>
-          </Animated.View>
-        </SafeAreaView>
-      </ImageBackground>
+    <AuthLight
+      title="Content de te revoir"
+      subtitle="Connecte-toi pour reprendre ta préparation au permis."
+      onClose={() => (navigation.canGoBack() ? navigation.goBack() : navigation.replace('Onboarding'))}
+      footer={
+        <>
+          Pas encore de compte ?{' '}
+          <Text style={styles.link} onPress={() => navigation.navigate('Register')}>
+            S'inscrire
+          </Text>
+        </>
+      }
+    >
+      {errors.info ? <Text style={styles.info}>{errors.info}</Text> : null}
+      {errors.form ? <Text style={styles.formError}>{errors.form}</Text> : null}
 
-      <View style={styles.panel}>
-        <SafeAreaView style={styles.panelSafe} edges={['bottom']}>
-          <KeyboardAvoidingView
-            style={styles.flex}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          >
-            <ScrollView
-              contentContainerStyle={styles.scroll}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              <Text style={styles.kicker}>Connexion</Text>
-              <Text style={styles.title}>Content de te revoir</Text>
-              <Text style={styles.subtitle}>
-                Connecte-toi pour reprendre ta préparation au permis.
-              </Text>
+      <GoogleAuthButton
+        label="Continuer avec Google"
+        onSuccess={handleGoogleSuccess}
+        onError={(message) => setErrors({ form: message })}
+      />
 
-              {errors.info ? <Text style={styles.info}>{errors.info}</Text> : null}
-              {errors.form ? <Text style={styles.formError}>{errors.form}</Text> : null}
-
-              <GoogleAuthButton
-                label="Continuer avec Google"
-                onSuccess={handleGoogleSuccess}
-                onError={(message) => setErrors({ form: message })}
-              />
-
-              <View style={styles.dividerRow}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>ou avec ton téléphone</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              <View style={styles.fields}>
-                <AuthInput
-                  label="Téléphone"
-                  placeholder={PHONE_PLACEHOLDER}
-                  keyboardType="phone-pad"
-                  autoComplete="tel"
-                  value={phone}
-                  onChangeText={(value) => setPhone(normalizePhone(value))}
-                  error={errors.phone}
-                />
-                <AuthInput
-                  label="Mot de passe"
-                  placeholder="Ton mot de passe"
-                  secureTextEntry
-                  autoComplete="password"
-                  value={password}
-                  onChangeText={setPassword}
-                  error={errors.password}
-                />
-                <Text style={styles.forgotWrap}>
-                  <Text
-                    style={styles.link}
-                    onPress={() => navigation.navigate('ForgotPassword')}
-                  >
-                    Mot de passe oublié ?
-                  </Text>
-                </Text>
-              </View>
-
-              <Bouncy
-                onPress={handleSubmit}
-                disabled={loading}
-                scaleTo={0.97}
-                style={loading ? styles.disabled : undefined}
-              >
-                <LinearGradient
-                  colors={gradients.green}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.submitBtn}
-                >
-                  <Text style={styles.submitText}>
-                    {loading ? 'Connexion en cours…' : 'Se connecter'}
-                  </Text>
-                </LinearGradient>
-              </Bouncy>
-
-              <Text style={styles.footer}>
-                Pas encore de compte ?{' '}
-                <Text style={styles.link} onPress={() => navigation.navigate('Register')}>
-                  Créer un compte
-                </Text>
-              </Text>
-              <LegalFooter />
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
+      <View style={styles.dividerRow}>
+        <View style={styles.dividerLine} />
+        <Text style={styles.dividerText}>ou</Text>
+        <View style={styles.dividerLine} />
       </View>
-    </View>
+
+      <PillInput
+        label="Téléphone"
+        icon={Phone}
+        placeholder={PHONE_PLACEHOLDER}
+        keyboardType="phone-pad"
+        autoComplete="tel"
+        value={phone}
+        onChangeText={(value) => setPhone(normalizePhone(value))}
+        error={errors.phone}
+      />
+      <PillInput
+        label="Mot de passe"
+        icon={Lock}
+        placeholder="Mot de passe"
+        secureTextEntry
+        autoComplete="password"
+        value={password}
+        onChangeText={setPassword}
+        error={errors.password}
+      />
+      <Text style={styles.forgotWrap}>
+        <Text style={styles.link} onPress={() => navigation.navigate('ForgotPassword')}>
+          Mot de passe oublié ?
+        </Text>
+      </Text>
+
+      <PillButton
+        label={loading ? 'Connexion en cours…' : 'Se connecter'}
+        onPress={handleSubmit}
+        disabled={loading}
+      />
+    </AuthLight>
   )
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: brand.navy,
-  },
-  hero: {
-    minHeight: 240,
-    justifyContent: 'flex-end',
-  },
-  heroImage: {
-    resizeMode: 'cover',
-  },
-  heroSafe: {
-    paddingHorizontal: 24,
-    paddingBottom: 28,
-  },
-  heroCopy: {
-    alignItems: 'center',
-  },
-  logoBadge: {
-    marginBottom: 14,
-  },
-  brand: {
-    marginBottom: 10,
-  },
-  tagline: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 15,
-    lineHeight: 22,
-    color: 'rgba(255,255,255,0.88)',
-    textAlign: 'center',
-    maxWidth: 300,
-  },
-  panel: {
-    flex: 1,
-    marginTop: -18,
-    backgroundColor: '#F4F7FB',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    overflow: 'hidden',
-    shadowColor: brand.navy,
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  panelSafe: {
-    flex: 1,
-  },
-  flex: {
-    flex: 1,
-  },
-  scroll: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 28,
-  },
-  kicker: {
-    fontFamily: fonts.displayBold,
-    fontSize: 12,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    color: dark.green,
-    marginBottom: 6,
-  },
-  title: {
-    fontFamily: fonts.displayExtraBold,
-    fontSize: 26,
-    color: dark.textPrimary,
-    marginBottom: 6,
-    letterSpacing: -0.4,
-  },
-  subtitle: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    lineHeight: 20,
-    color: dark.textMuted,
-    marginBottom: 20,
-    maxWidth: 320,
-  },
   info: {
-    color: dark.green,
     fontFamily: fonts.bodyMedium,
-    fontSize: 13,
+    fontSize: 14,
+    color: dark.green,
     textAlign: 'center',
-    marginBottom: 12,
-    backgroundColor: dark.greenSoft,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    overflow: 'hidden',
   },
   formError: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
     color: dark.coral,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-    textAlign: 'center',
-    marginBottom: 12,
     backgroundColor: dark.coralSoft,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    overflow: 'hidden',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginVertical: 16,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: dark.border,
-  },
-  dividerText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-    color: dark.textMuted,
-  },
-  fields: {
-    gap: 18,
-    marginBottom: 12,
-  },
-  forgotWrap: {
-    marginTop: -8,
-    textAlign: 'right',
-  },
-  submitBtn: {
-    width: '100%',
-    minHeight: 54,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    shadowColor: dark.green,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    elevation: 5,
-  },
-  submitText: {
-    fontFamily: fonts.displayBold,
-    fontSize: 16,
-    color: '#FFFFFF',
-  },
-  footer: {
-    marginTop: 28,
-    textAlign: 'center',
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: dark.textMuted,
-  },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: dark.border },
+  dividerText: { fontFamily: fonts.body, fontSize: 13, color: dark.textMuted },
+  forgotWrap: { textAlign: 'right', marginRight: 6, marginTop: -4 },
   link: {
-    color: dark.green,
-    fontFamily: fonts.bodyBold,
-    fontSize: 14,
-  },
-  disabled: {
-    opacity: 0.6,
+    fontFamily: fonts.bodySemiBold,
+    color: dark.textPrimary,
+    textDecorationLine: 'underline',
   },
 })
