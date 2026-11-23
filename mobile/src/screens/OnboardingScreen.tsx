@@ -19,11 +19,9 @@ import type { RootStackParamList } from '../navigation/types'
 import { dark, fonts } from '../theme'
 import { hapticSelect } from '../utils/haptics'
 import { markOnboardingDone } from '../utils/onboarding'
-import { getViewport } from '../utils/viewport'
+import { useViewport } from '../utils/viewport'
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Onboarding'>
-
-const { width, height } = getViewport()
 
 const SLIDES = [
   {
@@ -50,6 +48,8 @@ export function OnboardingScreen() {
   const navigation = useNavigation<Nav>()
   const listRef = useRef<FlatList<(typeof SLIDES)[number]>>(null)
   const [index, setIndex] = useState(0)
+  // Taille réelle de l'écran (colonne mobile sur le web) — recalculée à chaque rendu.
+  const { width, height } = useViewport()
 
   const finish = async () => {
     await markOnboardingDone()
@@ -62,7 +62,8 @@ export function OnboardingScreen() {
       void finish()
       return
     }
-    listRef.current?.scrollToIndex({ index: index + 1, animated: true })
+    // scrollToOffset (et non scrollToIndex) : fiable sur le web où les éléments ne sont pas mesurés.
+    listRef.current?.scrollToOffset({ offset: width * (index + 1), animated: true })
     setIndex((value) => value + 1)
   }
 
@@ -80,6 +81,7 @@ export function OnboardingScreen() {
         keyExtractor={(item) => item.key}
         horizontal
         pagingEnabled
+        getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
         showsHorizontalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={{ viewAreaCoveragePercentThreshold: 60 }}
