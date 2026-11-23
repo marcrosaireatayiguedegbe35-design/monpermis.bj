@@ -18,7 +18,6 @@ export type RootStackParamList = {
   MentionsLegales: undefined
   Home: undefined
   Profile: undefined
-  CompletePhone: undefined
   Notifications: undefined
   Actualites: undefined
   ActualiteDetail: { id: string }

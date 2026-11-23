@@ -4,7 +4,6 @@ import {
   createNavigationContainerRef,
   type LinkingOptions,
 } from '@react-navigation/native'
-import { CompletePhoneScreen } from '../screens/CompletePhoneScreen'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import * as Linking from 'expo-linking'
 import { StatusBar } from 'expo-status-bar'
@@ -24,6 +23,7 @@ import { AppErrorBoundary } from '../components/AppErrorBoundary'
 import { AppToastHost } from '../components/AppToast'
 import { OfflineBanner } from '../components/OfflineBanner'
 import { AuthProvider } from '../context/AuthContext'
+import { PhoneReminderModal } from '../components/PhoneReminderModal'
 import { OfflineProvider } from '../context/OfflineContext'
 import type { RootStackParamList } from './types'
 import { IntroScreen } from '../screens/IntroScreen'
@@ -87,7 +87,6 @@ const linking: LinkingOptions<RootStackParamList> = {
       MentionsLegales: 'mentions-legales',
       Home: 'accueil',
       Profile: 'profil',
-      CompletePhone: 'telephone',
       Notifications: 'notifications',
       Actualites: 'actualites',
       ActualiteDetail: 'actualites/:id',
@@ -178,10 +177,6 @@ function AppNavigator() {
       <Stack.Screen
         name="Profile"
         component={withRequireAuth(ProfileScreen)}
-      />
-      <Stack.Screen
-        name="CompletePhone"
-        component={withRequireAuth(CompletePhoneScreen)}
       />
       <Stack.Screen
         name="Notifications"
@@ -324,6 +319,7 @@ export function RootNavigator() {
               <OfflineBanner />
               <AppNavigator />
               <AppToastHost />
+              <PhoneReminderModal />
             </NavigationContainer>
           </AuthProvider>
         </OfflineProvider>

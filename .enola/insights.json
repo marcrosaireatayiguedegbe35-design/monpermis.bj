@@ -822,7 +822,7 @@
     "title": "High fan-in symbol: administration/src/components/model.nf (11 dependents)",
     "source": "god-class",
     "description": "\"administration/src/components/model.nf\" is depended upon by 11 other symbols — well above the repo average. High fan-in concentrates change risk: edits here ripple across many call sites, and it often indicates a missing or overly broad abstraction.",
-    "confidence": 0.8788517286074284,
+    "confidence": 0.8782813019243126,
     "evidence": [
       {
         "file": "administration/src/components/model/ModelCharts.tsx",
@@ -882,7 +882,7 @@
     "title": "High fan-in symbol: mobile/src/utils.resolveMediaUrl (10 dependents)",
     "source": "god-class",
     "description": "\"mobile/src/utils.resolveMediaUrl\" is depended upon by 10 other symbols — well above the repo average. High fan-in concentrates change risk: edits here ripple across many call sites, and it often indicates a missing or overly broad abstraction.",
-    "confidence": 0.798956116915844,
+    "confidence": 0.7984375472039206,
     "evidence": [
       {
         "file": "mobile/src/utils/mediaUrl.ts",
@@ -942,7 +942,7 @@
     "title": "High fan-in symbol: administration/src/api.apiUpload (9 dependents)",
     "source": "god-class",
     "description": "\"administration/src/api.apiUpload\" is depended upon by 9 other symbols — well above the repo average. High fan-in concentrates change risk: edits here ripple across many call sites, and it often indicates a missing or overly broad abstraction.",
-    "confidence": 0.7190605052242596,
+    "confidence": 0.7185937924835285,
     "evidence": [
       {
         "file": "administration/src/api/client.ts",
@@ -1002,7 +1002,7 @@
     "title": "High fan-in symbol: mobile/src/api.fetchAccessMe (8 dependents)",
     "source": "god-class",
     "description": "\"mobile/src/api.fetchAccessMe\" is depended upon by 8 other symbols — well above the repo average. High fan-in concentrates change risk: edits here ripple across many call sites, and it often indicates a missing or overly broad abstraction.",
-    "confidence": 0.6391648935326752,
+    "confidence": 0.6387500377631364,
     "evidence": [
       {
         "file": "mobile/src/api/accessRequests.ts",
@@ -1062,7 +1062,7 @@
     "title": "High fan-in symbol: mobile/src/api.publicAuth (8 dependents)",
     "source": "god-class",
     "description": "\"mobile/src/api.publicAuth\" is depended upon by 8 other symbols — well above the repo average. High fan-in concentrates change risk: edits here ripple across many call sites, and it often indicates a missing or overly broad abstraction.",
-    "confidence": 0.6391648935326752,
+    "confidence": 0.6387500377631364,
     "evidence": [
       {
         "file": "mobile/src/api/auth.ts",
@@ -1119,10 +1119,70 @@
     ]
   },
   {
+    "title": "High fan-in symbol: mobile/src/context.useAuth (8 dependents)",
+    "source": "god-class",
+    "description": "\"mobile/src/context.useAuth\" is depended upon by 8 other symbols — well above the repo average. High fan-in concentrates change risk: edits here ripple across many call sites, and it often indicates a missing or overly broad abstraction.",
+    "confidence": 0.6387500377631364,
+    "evidence": [
+      {
+        "file": "mobile/src/context/AuthContext.tsx",
+        "symbol": "mobile/src/context.useAuth",
+        "detail": "8 symbols depend on this",
+        "line": 92,
+        "fact_id": "e22194ebc3c97fa27330f07f547da96d"
+      },
+      {
+        "symbol": "mobile/src/hooks.useAccessMe",
+        "detail": "depends on mobile/src/context.useAuth",
+        "fact_id": "d1bcfee0307eefb64dd72fad8899951c"
+      },
+      {
+        "symbol": "mobile/src/hooks.useRequireAuth",
+        "detail": "depends on mobile/src/context.useAuth",
+        "fact_id": "44aa82cb8b593f95ce4771eccb71c162"
+      },
+      {
+        "symbol": "mobile/src/screens.CompletePhoneScreen",
+        "detail": "depends on mobile/src/context.useAuth",
+        "fact_id": "1791540dd0c71e8382f7d70835be6b56"
+      },
+      {
+        "symbol": "mobile/src/screens.HomeScreen",
+        "detail": "depends on mobile/src/context.useAuth",
+        "fact_id": "ea9758baf0cd66e8dd84dcd861b5a98c"
+      },
+      {
+        "symbol": "mobile/src/screens.IntroScreen",
+        "detail": "depends on mobile/src/context.useAuth",
+        "fact_id": "89b540c03e0c8b692824193a9d081319"
+      },
+      {
+        "symbol": "mobile/src/screens.LoginScreen",
+        "detail": "depends on mobile/src/context.useAuth",
+        "fact_id": "c59285df9b01e7a26b1951f7418008fe"
+      },
+      {
+        "symbol": "mobile/src/screens.ProfileScreen",
+        "detail": "depends on mobile/src/context.useAuth",
+        "fact_id": "525d0fc6d092a088c292789b5cd2f9df"
+      },
+      {
+        "symbol": "mobile/src/screens.RegisterScreen",
+        "detail": "depends on mobile/src/context.useAuth",
+        "fact_id": "85b51bd88ebeb3e7a9c53fd9b52a5168"
+      }
+    ],
+    "suggested_actions": [
+      "Split the symbol along distinct responsibilities its callers use",
+      "Introduce narrower interfaces so callers depend only on what they need",
+      "Stabilize its public contract to limit churn for dependents"
+    ]
+  },
+  {
     "title": "High fan-in symbol: mobile/src/context.useOffline (8 dependents)",
     "source": "god-class",
     "description": "\"mobile/src/context.useOffline\" is depended upon by 8 other symbols — well above the repo average. High fan-in concentrates change risk: edits here ripple across many call sites, and it often indicates a missing or overly broad abstraction.",
-    "confidence": 0.6391648935326752,
+    "confidence": 0.6387500377631364,
     "evidence": [
       {
         "file": "mobile/src/context/OfflineContext.tsx",
@@ -1182,7 +1242,7 @@
     "title": "High fan-in symbol: src/api.getToken (8 dependents)",
     "source": "god-class",
     "description": "\"src/api.getToken\" is depended upon by 8 other symbols — well above the repo average. High fan-in concentrates change risk: edits here ripple across many call sites, and it often indicates a missing or overly broad abstraction.",
-    "confidence": 0.6391648935326752,
+    "confidence": 0.6387500377631364,
     "evidence": [
       {
         "file": "src/api/accessRequests.ts",
@@ -1241,7 +1301,7 @@
     "title": "High fan-in symbol: src/utils.resolveMediaUrl (8 dependents)",
     "source": "god-class",
     "description": "\"src/utils.resolveMediaUrl\" is depended upon by 8 other symbols — well above the repo average. High fan-in concentrates change risk: edits here ripple across many call sites, and it often indicates a missing or overly broad abstraction.",
-    "confidence": 0.6391648935326752,
+    "confidence": 0.6387500377631364,
     "evidence": [
       {
         "file": "src/utils/mediaUrl.ts",

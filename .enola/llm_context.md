@@ -2,12 +2,12 @@
 
 ## Repository Map
 
-65 modules, 3160 symbols, grouped by area. Every module is in `facts.jsonl`, or query_facts(kind="module").
+65 modules, 3163 symbols, grouped by area. Every module is in `facts.jsonl`, or query_facts(kind="module").
 
 | Area | Modules | Symbols | Languages |
 |------|---------|---------|-----------|
 | `server` | 9 | 1118 | python, typescript |
-| `mobile` | 17 | 905 | kotlin, typescript |
+| `mobile` | 17 | 908 | kotlin, typescript |
 | `administration` | 16 | 554 | typescript |
 | `src` | 12 | 479 | typescript |
 | `moniteur` | 10 | 103 | typescript |
@@ -24,7 +24,7 @@ Largest modules:
 - `src/api` — 163 symbols (typescript)
 - `mobile/src/utils` — 152 symbols (typescript)
 - `server/src/routes` — 138 symbols (typescript)
-- `mobile/src/screens` — 101 symbols (typescript)
+- `mobile/src/screens` — 104 symbols (typescript)
 - `server/src/models` — 91 symbols (typescript)
 - `src/components` — 79 symbols (typescript)
 - `server/src/middleware` — 78 symbols (typescript)
@@ -37,7 +37,7 @@ Largest modules:
 
 ## Extraction Quality
 
-- Files parsed: **577** / 1957 seen (0 file(s) + 6 directory tree(s) skipped by ignore globs)
+- Files parsed: **578** / 1958 seen (0 file(s) + 6 directory tree(s) skipped by ignore globs)
 - Parse errors: 0
 
 ## Architecture Pattern
@@ -78,7 +78,7 @@ _No specific architecture pattern detected._
 - **main**: `server/scripts/build-panneaux-catalog.main` (server/scripts/build-panneaux-catalog.py)
 - **main**: `server/scripts/transcribe-missing-audios.main` (server/scripts/transcribe-missing-audios.py)
 - **main**: `server/scripts/tts-panneaux.main` (server/scripts/tts-panneaux.py)
-250 routes, 15 shown:
+251 routes, 15 shown:
 - **route** DELETE `/api/admin/announcements/:id` (server/src/routes/adminAnnouncements.js)
 - **route** DELETE `/api/admin/conduite/creneaux/:id` (server/src/routes/adminReservations.js)
 - **route** DELETE `/api/admin/conduite/moniteurs/:id` (server/src/routes/adminReservations.js)
@@ -94,11 +94,11 @@ _No specific architecture pattern detected._
 - **route** DELETE `/api/auth/account` (server/src/routes/auth.js)
 - **route** DELETE `/api/moniteur/creneaux/:id` (server/src/routes/moniteurPortal.js)
 - **route** DELETE `/auth/account` (src/api/auth-password.ts)
-- … and 235 more (query_facts(kind="route") for all)
+- … and 236 more (query_facts(kind="route") for all)
 
 ## Routes
 
-250 routes, grouped by path prefix. query_facts(kind="route") for all of them.
+251 routes, grouped by path prefix. query_facts(kind="route") for all of them.
 
 | Prefix | Routes | Methods | Example |
 |--------|--------|---------|----------|
@@ -114,6 +114,7 @@ _No specific architecture pattern detected._
 | `/ChapterTestSubject` | 1 | GET | `ChapterTestSubject` |
 | `/CodeCours` | 1 | GET | `CodeCours` |
 | `/CodeRoute` | 1 | GET | `CodeRoute` |
+| `/CompletePhone` | 1 | GET | `CompletePhone` |
 | `/Conduite` | 1 | GET | `Conduite` |
 | `/CourseDetail` | 1 | GET | `CourseDetail` |
 | `/ExamensTest` | 1 | GET | `ExamensTest` |
@@ -209,9 +210,9 @@ _No specific architecture pattern detected._
 
 | Module | Fan-In | Fan-Out | Criticality |
 |--------|--------|---------|-------------|
-| `mobile/src/theme` | 71 | 0 | high |
+| `mobile/src/theme` | 72 | 0 | high |
 | `mobile/src/components` | 2 | 34 | high |
-| `mobile/src/screens` | 0 | 27 | high |
+| `mobile/src/screens` | 0 | 28 | high |
 | `administration/src/ui` | 22 | 0 | high |
 | `administration/src/pages` | 0 | 21 | high |
 | `administration/src` | 0 | 11 | high |
@@ -229,4 +230,4 @@ _No specific architecture pattern detected._
 
 ---
 
-*Generated at 2026-11-23T16:31:38Z in 1.617669615s. 6994 facts, 170 insights.*
+*Generated at 2026-11-23T16:34:55Z in 1.514579256s. 7010 facts, 171 insights.*

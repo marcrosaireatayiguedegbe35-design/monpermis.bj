@@ -67,10 +67,6 @@ export function LoginScreen() {
   const finishAuth = useCallback(
     async (token: string, user: Awaited<ReturnType<typeof loginUser>>['user']) => {
       await signIn(token, user)
-      if (!String(user.phone || '').trim()) {
-        navigation.reset({ index: 0, routes: [{ name: 'CompletePhone' }] })
-        return
-      }
       navigation.reset({ index: 0, routes: [{ name: 'Home' }] })
     },
     [navigation, signIn],
