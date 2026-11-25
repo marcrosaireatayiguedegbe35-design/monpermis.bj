@@ -99,6 +99,28 @@ async function webHas(key: string): Promise<boolean> {
   return count > 0
 }
 
+/** Clés de tous les médias présents sur l'appareil, en UNE seule lecture (rapide, même avec 1 300 fichiers). */
+export async function listStoredMediaKeys(): Promise<Set<string>> {
+  try {
+    if (isWeb) {
+      if (typeof indexedDB === 'undefined') return new Set()
+      const db = await openWebDb()
+      const keys = await new Promise<string[]>((resolve, reject) => {
+        const request = db.transaction(WEB_STORE, 'readonly').objectStore(WEB_STORE).getAllKeys()
+        request.onsuccess = () => resolve(request.result as string[])
+        request.onerror = () => reject(request.error)
+      })
+      db.close()
+      return new Set(keys.map(String))
+    }
+    const FS = await fileSystem()
+    const names = await FS.readDirectoryAsync(`${FS.documentDirectory ?? ''}${DIR_NAME}`).catch(() => [] as string[])
+    return new Set(names.map((name) => name.replace(/__/g, '/')))
+  } catch {
+    return new Set()
+  }
+}
+
 /** Le fichier est-il réellement sur l'appareil ? (indépendant de l'index, qui peut être en retard). */
 async function existsOnDevice(key: string): Promise<boolean> {
   try {

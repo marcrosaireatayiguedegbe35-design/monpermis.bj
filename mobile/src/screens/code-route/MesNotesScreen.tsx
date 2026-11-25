@@ -26,7 +26,7 @@ import {
   type ResultExamRow,
 } from '../../api/revision'
 import { DarkScreen } from '../../components/DarkScreen'
-import { PageNavbar } from '../../components/PageNavbar'
+import { ResultsHeader } from './ResultsHeader'
 import { ScreenLoader } from '../../components/ScreenLoader'
 import { useFocusRefresh } from '../../hooks/useFocusRefresh'
 import { useRequireAuth } from '../../hooks/useRequireAuth'
@@ -108,7 +108,7 @@ export function MesNotesScreen() {
   return (
     <DarkScreen>
       <View style={styles.page}>
-        <PageNavbar title="Mes résultats" icon={FileText} onBack={() => navigation.navigate('CodeRoute')} />
+        <ResultsHeader title="Mes résultats" subtitle="Notes • Moyenne • Progression" onBack={() => navigation.navigate('CodeRoute')} />
 
         <ScrollView
           contentContainerStyle={styles.scroll}
@@ -396,7 +396,7 @@ function ExamCard({
       </View>
 
       <Text style={[styles.examLabel, { color: sub }]}>Questions traitées</Text>
-      <View style={[styles.barTrack, { backgroundColor: featured ? 'rgba(255,255,255,0.25)' : '#C9D8F3' }]}>
+      <View style={[styles.barTrack, { backgroundColor: featured ? 'rgba(255,255,255,0.25)' : '#CDEBD8' }]}>
         <View style={[styles.barFill, { width: `${answered}%`, backgroundColor: featured ? '#fff' : RES.navy }]} />
       </View>
       <View style={styles.examFoot}>
@@ -478,13 +478,13 @@ function Row({
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: RES.bg },
-  scroll: { paddingHorizontal: 20, paddingBottom: 32 },
+  scroll: { paddingHorizontal: 16, paddingBottom: 32 },
   hello: { fontFamily: fonts.displayBold, fontSize: 24, color: RES.ink },
   helloSub: { fontFamily: fonts.body, fontSize: 13, color: RES.muted, marginTop: 2, marginBottom: 16 },
   error: { fontFamily: fonts.body, color: RES.ko, marginVertical: 12 },
   note: { fontFamily: fonts.body, fontSize: 12.5, lineHeight: 18, color: RES.muted, marginTop: 10 },
 
-  hero: { borderRadius: 26, paddingVertical: 22, paddingHorizontal: 16, alignItems: 'center' },
+  hero: { borderRadius: 28, paddingVertical: 22, paddingHorizontal: 16, alignItems: 'center' },
   avatar: {
     width: 68,
     height: 68,
@@ -507,11 +507,11 @@ const styles = StyleSheet.create({
   sectionTitle: { fontFamily: fonts.displayBold, fontSize: 16, color: RES.ink },
   sectionAction: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: RES.muted },
 
-  emptyBox: { backgroundColor: RES.tint, borderRadius: 18, padding: 16 },
+  emptyBox: { backgroundColor: '#fff', borderRadius: 24, padding: 16, borderWidth: 1, borderColor: RES.line },
   emptyText: { fontFamily: fonts.body, fontSize: 13.5, color: RES.muted },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 },
-  examCard: { width: '48.5%', borderRadius: 20, padding: 14 },
+  examCard: { width: '48.5%', borderRadius: 26, padding: 14 },
   examCardFeatured: { backgroundColor: RES.navy },
   examCardTint: { backgroundColor: RES.tint },
   examDate: { fontFamily: fonts.bodyMedium, fontSize: 10.5 },
@@ -530,8 +530,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: RES.tint,
-    borderRadius: 18,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: RES.line,
+    borderRadius: 24,
     paddingVertical: 14,
     paddingHorizontal: 14,
     minWidth: 150,
@@ -546,7 +548,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     backgroundColor: '#fff',
-    borderRadius: 18,
+    borderRadius: 24,
     padding: 12,
     borderWidth: 1,
     borderColor: RES.line,
@@ -563,9 +565,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 12,
-    backgroundColor: RES.tint,
-    borderRadius: 16,
-    paddingHorizontal: 14,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: RES.line,
+    borderRadius: 999,
+    paddingHorizontal: 18,
     paddingVertical: 12,
   },
   remainingToggleText: { fontFamily: fonts.bodySemiBold, fontSize: 13.5, color: RES.navy },

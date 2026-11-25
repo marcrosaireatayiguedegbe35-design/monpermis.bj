@@ -1,6 +1,6 @@
 import { getLocalBankByChapterOrder } from '../data/codeRoute/banks'
 import { apiAuthed } from '../api/client'
-import { clearMediaCache, downloadMedia, hasMedia, mediaCacheStats } from './mediaCache'
+import { clearMediaCache, downloadMedia, listStoredMediaKeys, mediaCacheStats, mediaKeyFromUrl } from './mediaCache'
 import { resolveMediaUrl } from './mediaUrl'
 
 /**
@@ -64,8 +64,12 @@ export function listPackMediaUrls(): string[] {
 /** Combien de médias sont déjà sur l'appareil (vérification réelle des fichiers, sans réseau). */
 export async function offlinePackStatus(): Promise<OfflinePackProgress> {
   const urls = listPackMediaUrls()
+  const stored = await listStoredMediaKeys()
   let done = 0
-  for (const url of urls) if (await hasMedia(url)) done += 1
+  for (const url of urls) {
+    const key = mediaKeyFromUrl(url)
+    if (key && stored.has(key)) done += 1
+  }
   const stats = await mediaCacheStats()
   const total = urls.length
   return { running: false, done, total, bytes: stats.bytes, failed: 0, complete: total > 0 && done >= total }
@@ -95,10 +99,11 @@ export async function startOfflinePackDownload(): Promise<OfflinePackProgress> {
   if (state.running) return state
   cancelRequested = false
   const urls = listPackMediaUrls()
-  const pending: string[] = []
-  for (const url of urls) {
-    if (!(await hasMedia(url))) pending.push(url)
-  }
+  const stored = await listStoredMediaKeys()
+  const pending = urls.filter((url) => {
+    const key = mediaKeyFromUrl(url)
+    return !(key && stored.has(key))
+  })
   let done = urls.length - pending.length
   let failed = 0
   publish({ running: true, total: urls.length, done, failed: 0, complete: false })

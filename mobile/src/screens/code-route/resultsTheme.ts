@@ -1,12 +1,12 @@
-/** Palette et helpers de la page « Mes résultats » (maquette bleu marine). */
+/** Palette et helpers de la page « Mes résultats » (vert de la marque). */
 export const RES = {
-  bg: '#F4F7FC',
-  navy: '#0B3A8C',
-  navyDeep: '#072A6C',
-  ink: '#0B2A5B',
-  tint: '#E8F0FC',
-  line: 'rgba(11,58,140,0.10)',
-  muted: '#7083A6',
+  bg: '#F4F7FB',
+  navy: '#00A344',
+  navyDeep: '#007A33',
+  ink: '#10261B',
+  tint: '#E6F7EC',
+  line: 'rgba(0,100,50,0.10)',
+  muted: '#6B7F74',
   ok: '#16A34A',
   okSoft: 'rgba(22,163,74,0.12)',
   ko: '#DC2626',

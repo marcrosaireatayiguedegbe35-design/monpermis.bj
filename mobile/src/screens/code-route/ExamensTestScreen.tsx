@@ -29,6 +29,7 @@ import {
 import { DarkScreen } from '../../components/DarkScreen'
 import { ConfettiBurst } from '../../components/ConfettiBurst'
 import { PageNavbar } from '../../components/PageNavbar'
+import { ResultsHeader } from './ResultsHeader'
 import { QuestionAudioSequence } from '../../components/QuestionAudioSequence'
 import { QuestionPromptHtml } from '../../components/QuestionPromptHtml'
 import { ScreenLoader } from '../../components/ScreenLoader'
@@ -632,9 +633,9 @@ export function ExamensTestTakeScreen() {
   return (
     <DarkScreen>
         <ConfettiBurst active={Boolean(finished && finalScore?.passed)} />
-        <PageNavbar
+        <ResultsHeader
           title={`Examen ${examNumber}`}
-          icon={ClipboardCheck}
+          subtitle={finished ? 'Résultat • Correction' : 'Examen blanc'}
           onBack={() => navigation.navigate('ExamensTest')}
         />
 
@@ -891,16 +892,16 @@ function ExamResult({
 
 const styles = StyleSheet.create({
   resHero: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 20,
+    borderRadius: 30,
+    borderWidth: 1.5,
+    padding: 24,
     alignItems: 'center',
     gap: 6,
   },
   resBadge: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   resKicker: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 0.6, color: dark.textMuted, textTransform: 'uppercase' },
   resTitle: { fontFamily: fonts.displayBold, fontSize: 22 },
-  resScore: { fontFamily: fonts.displayBold, fontSize: 56, color: dark.textPrimary, lineHeight: 62 },
+  resScore: { fontFamily: fonts.displayBold, fontSize: 64, color: dark.textPrimary, lineHeight: 62 },
   resScoreTotal: { fontSize: 24, color: dark.textMuted },
   resTrack: { alignSelf: 'stretch', height: 10, borderRadius: 5, backgroundColor: 'rgba(0,16,48,0.08)', marginTop: 6, overflow: 'visible' },
   resFill: { height: 10, borderRadius: 5 },
@@ -909,11 +910,11 @@ const styles = StyleSheet.create({
   resStats: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 14,
+    borderRadius: 26,
     borderWidth: 1,
-    borderColor: dark.border,
+    borderColor: 'rgba(0,16,48,0.05)',
     backgroundColor: '#FFFFFF',
-    paddingVertical: 14,
+    paddingVertical: 16,
   },
   resStat: { flex: 1, alignItems: 'center', gap: 2 },
   resStatValue: { fontFamily: fonts.displayBold, fontSize: 24, color: dark.textPrimary },
@@ -923,15 +924,15 @@ const styles = StyleSheet.create({
   resGhostBtn: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingVertical: 13,
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: dark.border,
-    backgroundColor: dark.surface,
+    borderColor: 'rgba(0,16,48,0.12)',
+    backgroundColor: '#FFFFFF',
   },
   resGhostText: { fontFamily: fonts.bodyBold, fontSize: 13, color: dark.textPrimary },
   resSection: { fontFamily: fonts.bodyBold, fontSize: 16, color: dark.textPrimary, marginTop: 6 },
-  resCard: { borderRadius: 14, borderWidth: 1, borderColor: dark.border, backgroundColor: '#FFFFFF', overflow: 'hidden' },
+  resCard: { borderRadius: 24, borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', backgroundColor: '#FFFFFF', overflow: 'hidden' },
   resCardHead: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
   resIndex: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   resCardTitle: { flex: 1, fontFamily: fonts.body, fontSize: 14, color: dark.textPrimary },
@@ -940,7 +941,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     padding: 10,
-    borderRadius: 10,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: dark.border,
     backgroundColor: dark.surface,
