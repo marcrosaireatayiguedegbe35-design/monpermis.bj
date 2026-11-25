@@ -32,3 +32,14 @@ export function resolveMediaUrl(path?: string | null): string | undefined {
   const apiBase = getApiBase().replace(/\/api\/?$/, '')
   return `${apiBase}${value.startsWith('/') ? value : `/${value}`}`
 }
+
+/**
+ * Version allégée d'une image Cloudinary (largeur limitée, qualité et format automatiques) :
+ * une photo de 1,2 Mo devient quelques dizaines de Ko. Les autres URLs sont renvoyées telles quelles.
+ */
+export function optimizedImageUrl(url: string | undefined, width = 900): string | undefined {
+  if (!url) return url
+  if (!/^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//.test(url)) return url
+  if (/\/image\/upload\/[^/]*(w_|q_|f_)/.test(url)) return url
+  return url.replace('/image/upload/', `/image/upload/c_limit,w_${width},q_auto,f_auto/`)
+}

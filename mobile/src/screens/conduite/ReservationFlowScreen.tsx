@@ -33,6 +33,7 @@ import {
   Text,
   View,
 } from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import {
   computeDrivingAmount,
@@ -67,7 +68,7 @@ import { useRequireAuth } from '../../hooks/useRequireAuth'
 import { useUnreadNotifications } from '../../hooks/useUnreadNotifications'
 import type { RootStackParamList } from '../../navigation/types'
 import { brand, dark, fonts, shadows } from '../../theme'
-import { resolveMediaUrl } from '../../utils/mediaUrl'
+import { optimizedImageUrl, resolveMediaUrl } from '../../utils/mediaUrl'
 import { resolveMoniteurVideoEmbed } from '../../utils/mediaEmbed'
 import { safeOpenUrl } from '../../utils/safeOpenUrl'
 import { useViewport } from '../../utils/viewport'
@@ -582,37 +583,46 @@ export function ReservationFlowScreen() {
                       const photo = moniteur.photoUrl || moniteur.vehiclePhotoUrl
                       return (
                         <View key={moniteur.id} style={[styles.pickCard, { width: pagerWidth || 300 }]}>
-                          <View style={styles.pickAvatarWrap}>
-                            {photo ? (
-                              <Image source={{ uri: resolveMediaUrl(photo) }} style={styles.pickAvatar} />
-                            ) : (
-                              <View style={[styles.pickAvatar, styles.carPlaceholder]}>
-                                <Text style={styles.pickInitial}>
-                                  {moniteur.fullName.slice(0, 1).toUpperCase()}
-                                </Text>
-                              </View>
-                            )}
-                            <View style={styles.avatarBadge}>
-                              <Check size={11} color="#FFFFFF" strokeWidth={3} />
+                          {photo ? (
+                            <Image
+                              source={{ uri: optimizedImageUrl(resolveMediaUrl(photo)) }}
+                              style={[styles.pickPhoto, { width: pagerWidth || 300, height: 430 }]}
+                              resizeMode="cover"
+                            />
+                          ) : (
+                            <View style={styles.pickNoPhoto}>
+                              <Text style={styles.pickInitial}>
+                                {moniteur.fullName.slice(0, 1).toUpperCase()}
+                              </Text>
                             </View>
+                          )}
+                          <LinearGradient
+                            colors={['rgba(5,15,40,0)', 'rgba(5,15,40,0.35)', 'rgba(5,15,40,0.88)']}
+                            locations={[0.25, 0.6, 1]}
+                            style={StyleSheet.absoluteFillObject}
+                            pointerEvents="none"
+                          />
+                          <View style={styles.pickVerified}>
+                            <Check size={12} color="#FFFFFF" strokeWidth={3} />
+                            <Text style={styles.pickVerifiedText}>Vérifié</Text>
                           </View>
-                          <Text style={styles.pickName} numberOfLines={1}>{moniteur.fullName}</Text>
-                          <Text style={styles.pickMeta} numberOfLines={1}>
-                            {[moniteur.vehicleBrand, moniteur.city].filter(Boolean).join(' · ') || 'Moniteur certifié'}
-                          </Text>
-                          {moniteur.defaultPriceFcfa ? (
-                            <Text style={styles.pickPrice}>
-                              {moniteur.defaultPriceFcfa.toLocaleString('fr-FR')} F / h
+                          <View style={styles.pickInfo}>
+                            <Text style={styles.pickName} numberOfLines={1}>{moniteur.fullName}</Text>
+                            <Text style={styles.pickMeta} numberOfLines={1}>
+                              {[moniteur.vehicleBrand, moniteur.city].filter(Boolean).join(' · ') || 'Moniteur certifié'}
                             </Text>
-                          ) : null}
-                          <View style={styles.pickPills}>
-                            <View style={styles.typePill}>
-                              <Car size={12} color={dark.green} />
-                              <Text style={styles.typePillText}>{typeLabel}</Text>
-                            </View>
-                            <View style={styles.typePill}>
-                              <ShieldCheck size={12} color={dark.green} />
-                              <Text style={styles.typePillText}>Vérifié</Text>
+                            <View style={styles.pickPills}>
+                              {moniteur.defaultPriceFcfa ? (
+                                <View style={styles.pickPricePill}>
+                                  <Text style={styles.pickPrice}>
+                                    {moniteur.defaultPriceFcfa.toLocaleString('fr-FR')} F / h
+                                  </Text>
+                                </View>
+                              ) : null}
+                              <View style={styles.pickTypePill}>
+                                <Car size={12} color="#FFFFFF" />
+                                <Text style={styles.pickTypeText}>{typeLabel}</Text>
+                              </View>
                             </View>
                           </View>
                         </View>
@@ -1370,22 +1380,44 @@ const styles = StyleSheet.create({
   pickTitle: { fontFamily: fonts.displayBold, fontSize: 24, color: dark.textPrimary, letterSpacing: -0.4 },
   pickSub: { marginTop: 2, marginBottom: 14, fontFamily: fonts.body, fontSize: 13.5, color: dark.textMuted },
   pickCard: {
-    alignItems: 'center',
-    paddingVertical: 26,
-    paddingHorizontal: 20,
-    gap: 6,
+    height: 430,
+    justifyContent: 'flex-end',
     borderRadius: 30,
-    backgroundColor: '#FFF3E2',
-    borderWidth: 1,
-    borderColor: 'rgba(234,88,12,0.12)',
+    overflow: 'hidden',
+    backgroundColor: '#0A1E55',
   },
-  pickAvatarWrap: { marginBottom: 6 },
-  pickAvatar: { width: 112, height: 112, borderRadius: 56 },
-  pickInitial: { fontFamily: fonts.displayBold, fontSize: 40, color: '#7A3E00' },
-  pickName: { fontFamily: fonts.displayBold, fontSize: 22, color: dark.textPrimary },
-  pickMeta: { fontFamily: fonts.bodyMedium, fontSize: 14, color: dark.textMuted },
-  pickPrice: { marginTop: 4, fontFamily: fonts.displayExtraBold, fontSize: 24, color: '#EA580C' },
-  pickPills: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  pickPhoto: { position: 'absolute', top: 0, left: 0 },
+  pickNoPhoto: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B3A9E' },
+  pickInitial: { fontFamily: fonts.displayBold, fontSize: 120, color: 'rgba(255,255,255,0.25)', marginBottom: 90 },
+  pickVerified: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: dark.green,
+  },
+  pickVerifiedText: { fontFamily: fonts.bodyBold, fontSize: 12, color: '#FFFFFF' },
+  pickInfo: { padding: 22, gap: 4 },
+  pickName: { fontFamily: fonts.displayBold, fontSize: 26, color: '#FFFFFF', letterSpacing: -0.4 },
+  pickMeta: { fontFamily: fonts.bodyMedium, fontSize: 14.5, color: 'rgba(255,255,255,0.88)' },
+  pickPills: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
+  pickPricePill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, backgroundColor: '#FFFFFF' },
+  pickPrice: { fontFamily: fonts.displayBold, fontSize: 16, color: '#EA580C' },
+  pickTypePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+  },
+  pickTypeText: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: '#FFFFFF', textTransform: 'capitalize' },
   pickNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14, marginVertical: 14 },
   pickDots: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   pickDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#CBD5E1' },
