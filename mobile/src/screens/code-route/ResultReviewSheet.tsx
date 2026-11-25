@@ -19,7 +19,7 @@ import {
 } from '../../api/revision'
 import { fonts } from '../../theme'
 import { resolveMediaUrl } from '../../utils/mediaUrl'
-import { RES, formatDateFr, formatNote } from './resultsTheme'
+import { RES, formatDateFr, formatNote, gradeTone } from './resultsTheme'
 
 type Filter = 'all' | ResultReviewQuestion['state']
 
@@ -33,7 +33,7 @@ const STATE_LABEL: Record<ResultReviewQuestion['state'], string> = {
 const STATE_COLOR: Record<ResultReviewQuestion['state'], { fg: string; bg: string }> = {
   correct: { fg: RES.ok, bg: RES.okSoft },
   wrong: { fg: RES.ko, bg: RES.koSoft },
-  skipped: { fg: RES.warn, bg: RES.warnSoft },
+  skipped: { fg: '#64748B', bg: 'rgba(100,116,139,0.12)' },
   unanswered: { fg: RES.muted, bg: RES.tint },
 }
 
@@ -84,13 +84,8 @@ export function ResultReviewSheet({
     [questions, filter],
   )
 
-  const verdictColor = !row
-    ? RES.navy
-    : row.completed
-      ? row.passed
-        ? RES.ok
-        : RES.ko
-      : RES.warn
+  const tone = gradeTone(row ? row.note : null)
+  const ratio = row && row.total > 0 ? Math.min(1, row.correct / row.total) : 0
 
   return (
     <Modal visible={Boolean(row)} animationType="slide" onRequestClose={onClose}>
@@ -103,19 +98,30 @@ export function ResultReviewSheet({
                 <Text style={styles.headSub}>Composé le {formatDateFr(row.composedAt)}</Text>
               </View>
               <Pressable style={styles.closeBtn} onPress={onClose} accessibilityLabel="Fermer" hitSlop={10}>
-                <X size={20} color={RES.navy} />
+                <X size={22} color={RES.ink} />
               </Pressable>
             </View>
 
             <ScrollView contentContainerStyle={styles.scroll}>
-              <View style={[styles.verdict, { backgroundColor: verdictColor }]}>
-                <Text style={styles.verdictLabel}>
-                  {row.completed ? 'Examen terminé — note finale' : 'Examen non terminé — note actuelle'}
+              <View style={[styles.verdict, { backgroundColor: tone.fg }]}>
+                <View style={styles.verdictTop}>
+                  <Text style={styles.verdictLabel}>
+                    {row.completed ? 'Note finale' : 'Note actuelle'}
+                  </Text>
+                  <View style={styles.verdictBadge}>
+                    <Text style={[styles.verdictBadgeText, { color: tone.deep }]}>{tone.label}</Text>
+                  </View>
+                </View>
+                <Text style={styles.verdictNote}>
+                  {formatNote(row.note)}
+                  <Text style={styles.verdictOver}>/20</Text>
                 </Text>
-                <Text style={styles.verdictNote}>{formatNote(row.note)}/20</Text>
+                <View style={styles.verdictTrack}>
+                  <View style={[styles.verdictFill, { width: `${Math.round(ratio * 100)}%` }]} />
+                </View>
                 <Text style={styles.verdictMeta}>
-                  {row.correct} correcte{row.correct > 1 ? 's' : ''} sur {row.total} questions
-                  {row.completed ? (row.passed ? ' · Réussi' : ' · Raté') : ''} · seuil {passScore}/20
+                  {row.correct} bonne{row.correct > 1 ? 's' : ''} réponse{row.correct > 1 ? 's' : ''} sur {row.total}
+                  {' · '}seuil {passScore}/20
                 </Text>
               </View>
 
@@ -132,7 +138,7 @@ export function ResultReviewSheet({
               <Text style={styles.sectionTitle}>Questions et réponses</Text>
 
               {error ? <Text style={styles.error}>{error}</Text> : null}
-              {!questions && !error ? <ActivityIndicator color={RES.navy} style={{ marginTop: 18 }} /> : null}
+              {!questions && !error ? <ActivityIndicator color={tone.fg} style={{ marginTop: 18 }} /> : null}
 
               {questions ? (
                 <>
@@ -153,7 +159,7 @@ export function ResultReviewSheet({
                           key={key}
                           disabled={disabled}
                           onPress={() => setFilter(key)}
-                          style={[styles.filterChip, active && styles.filterChipActive, disabled && { opacity: 0.4 }]}
+                          style={[styles.filterChip, active && { backgroundColor: RES.ink, borderColor: RES.ink }, disabled && { opacity: 0.4 }]}
                         >
                           <Text style={[styles.filterText, active && styles.filterTextActive]}>
                             {label} ({counts[key]})
@@ -246,7 +252,7 @@ function QuestionCard({ question: q }: { question: ResultReviewQuestion }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: RES.bg },
   head: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 14 },
-  headTitle: { fontFamily: fonts.displayBold, fontSize: 18, color: RES.navy },
+  headTitle: { fontFamily: fonts.displayBold, fontSize: 20, color: RES.ink, letterSpacing: -0.3 },
   headSub: { fontFamily: fonts.body, fontSize: 12, color: RES.muted, marginTop: 2 },
   closeBtn: {
     width: 44,
@@ -257,21 +263,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
   },
   scroll: { paddingHorizontal: 16, paddingBottom: 32 },
-  verdict: { borderRadius: 28, padding: 20, gap: 4 },
+  verdict: { borderRadius: 30, padding: 22, gap: 8 },
+  verdictTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  verdictBadge: { backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999 },
+  verdictBadgeText: { fontFamily: fonts.bodyBold, fontSize: 12 },
+  verdictOver: { fontFamily: fonts.displayBold, fontSize: 24, color: 'rgba(255,255,255,0.8)' },
+  verdictTrack: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.28)', overflow: 'hidden', marginTop: 2 },
+  verdictFill: { height: 8, borderRadius: 4, backgroundColor: '#fff' },
   verdictLabel: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: 'rgba(255,255,255,0.85)' },
-  verdictNote: { fontFamily: fonts.displayExtraBold, fontSize: 38, color: '#fff' },
+  verdictNote: { fontFamily: fonts.displayExtraBold, fontSize: 56, lineHeight: 62, color: '#fff' },
   verdictMeta: { fontFamily: fonts.body, fontSize: 13, color: 'rgba(255,255,255,0.9)' },
-  statRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  stat: { flex: 1, backgroundColor: '#fff', borderWidth: 1, borderColor: RES.line, borderRadius: 22, paddingVertical: 12, alignItems: 'center' },
-  statValue: { fontFamily: fonts.displayBold, fontSize: 20, color: RES.navy },
-  statLabel: { fontFamily: fonts.bodyMedium, fontSize: 10.5, color: RES.muted, marginTop: 2, textAlign: 'center' },
+  statRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
+  stat: { width: '48%', flexGrow: 1, backgroundColor: '#fff', borderWidth: 1, borderColor: RES.line, borderRadius: 22, paddingVertical: 14, alignItems: 'center' },
+  statValue: { fontFamily: fonts.displayBold, fontSize: 26, color: RES.ink },
+  statLabel: { fontFamily: fonts.bodyMedium, fontSize: 12, color: RES.muted, marginTop: 2, textAlign: 'center' },
   rule: { fontFamily: fonts.body, fontSize: 12, color: RES.muted, marginTop: 10, lineHeight: 17 },
-  sectionTitle: { fontFamily: fonts.displayBold, fontSize: 16, color: RES.navy, marginTop: 20, marginBottom: 10 },
+  sectionTitle: { fontFamily: fonts.displayBold, fontSize: 18, color: RES.ink, marginTop: 22, marginBottom: 12 },
   error: { fontFamily: fonts.body, color: RES.ko, marginTop: 8 },
   filters: { gap: 8, paddingBottom: 12 },
-  filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: RES.tint },
+  filterChip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, backgroundColor: '#fff', borderWidth: 1, borderColor: RES.line },
   filterChipActive: { backgroundColor: RES.navy },
-  filterText: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: RES.navy },
+  filterText: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: RES.ink },
   filterTextActive: { color: '#fff' },
   qCard: {
     backgroundColor: '#fff',
@@ -284,11 +296,11 @@ const styles = StyleSheet.create({
     borderColor: RES.line,
   },
   qHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  qTitle: { fontFamily: fonts.bodyBold, fontSize: 14, color: RES.navy, flexShrink: 1 },
+  qTitle: { fontFamily: fonts.bodyBold, fontSize: 14, color: RES.ink, flexShrink: 1 },
   qChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
   qChipText: { fontFamily: fonts.bodySemiBold, fontSize: 11.5 },
   qImage: { width: '100%', height: 130, borderRadius: 12, backgroundColor: RES.tint },
-  qText: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: RES.navy },
+  qText: { fontFamily: fonts.bodyMedium, fontSize: 15, lineHeight: 21, color: RES.ink },
   qNote: { fontFamily: fonts.body, fontSize: 12.5, color: RES.muted, lineHeight: 18 },
   ans: {
     flexDirection: 'row',
@@ -307,10 +319,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: RES.tint,
+    backgroundColor: '#EEF2F6',
   },
-  letterText: { fontFamily: fonts.bodyBold, fontSize: 13, color: RES.navy },
-  ansText: { flex: 1, fontFamily: fonts.body, fontSize: 13, color: RES.navy },
+  letterText: { fontFamily: fonts.bodyBold, fontSize: 13, color: RES.ink },
+  ansText: { flex: 1, fontFamily: fonts.body, fontSize: 13.5, color: RES.ink },
   tag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   tagText: { fontFamily: fonts.bodySemiBold, fontSize: 10.5 },
 })

@@ -33,7 +33,7 @@ import { useRequireAuth } from '../../hooks/useRequireAuth'
 import type { RootStackParamList } from '../../navigation/types'
 import { fonts } from '../../theme'
 import { ResultReviewSheet } from './ResultReviewSheet'
-import { RES, formatDateFr, formatNote, percent } from './resultsTheme'
+import { RES, formatDateFr, formatNote, gradeTone, percent } from './resultsTheme'
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'MesNotes'>
 
@@ -187,7 +187,7 @@ export function MesNotesScreen() {
             <>
               {/* Carte héros : identité + 3 chiffres clés */}
               <LinearGradient
-                colors={[RES.navy, RES.navyDeep]}
+                colors={[gradeTone(summary.average).fg, gradeTone(summary.average).deep]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.hero}
@@ -369,6 +369,7 @@ function ExamCard({
   onPress: () => void
 }) {
   const answered = percent(row.treated, row.total)
+  const gt = gradeTone(row.note)
   const fg = featured ? '#fff' : RES.ink
   const sub = featured ? 'rgba(255,255,255,0.75)' : RES.muted
   const status = row.completed ? (row.passed ? 'Terminé · Réussi' : 'Terminé · Raté') : 'Non terminé'
@@ -378,11 +379,11 @@ function ExamCard({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${row.subject}, note ${formatNote(row.note)} sur 20`}
-      style={({ pressed }) => [styles.examCard, featured ? styles.examCardFeatured : styles.examCardTint, pressed && { opacity: 0.9 }]}
+      style={({ pressed }) => [styles.examCard, featured ? { backgroundColor: gt.fg } : { backgroundColor: gt.soft }, pressed && { opacity: 0.9 }]}
     >
       <Text style={[styles.examDate, { color: sub }]}>{formatDateFr(row.lastAt)}</Text>
       <View style={styles.examTitleRow}>
-        <View style={[styles.examIcon, { borderColor: featured ? 'rgba(255,255,255,0.6)' : RES.navy }]}>
+        <View style={[styles.examIcon, { borderColor: featured ? 'rgba(255,255,255,0.6)' : gt.fg }]}>
           <ClipboardCheck size={16} color={fg} />
         </View>
         <View style={{ flex: 1 }}>
@@ -396,8 +397,8 @@ function ExamCard({
       </View>
 
       <Text style={[styles.examLabel, { color: sub }]}>Questions traitées</Text>
-      <View style={[styles.barTrack, { backgroundColor: featured ? 'rgba(255,255,255,0.25)' : '#CDEBD8' }]}>
-        <View style={[styles.barFill, { width: `${answered}%`, backgroundColor: featured ? '#fff' : RES.navy }]} />
+      <View style={[styles.barTrack, { backgroundColor: featured ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.7)' }]}>
+        <View style={[styles.barFill, { width: `${answered}%`, backgroundColor: featured ? '#fff' : gt.fg }]} />
       </View>
       <View style={styles.examFoot}>
         <Text style={[styles.examLabel, { color: sub, marginTop: 0 }]}>

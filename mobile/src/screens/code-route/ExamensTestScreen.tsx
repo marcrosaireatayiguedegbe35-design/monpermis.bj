@@ -30,6 +30,7 @@ import { DarkScreen } from '../../components/DarkScreen'
 import { ConfettiBurst } from '../../components/ConfettiBurst'
 import { PageNavbar } from '../../components/PageNavbar'
 import { ResultsHeader } from './ResultsHeader'
+import { gradeTone } from './resultsTheme'
 import { QuestionAudioSequence } from '../../components/QuestionAudioSequence'
 import { QuestionPromptHtml } from '../../components/QuestionPromptHtml'
 import { ScreenLoader } from '../../components/ScreenLoader'
@@ -778,14 +779,15 @@ function ExamResult({
   onRetry: () => void
 }) {
   const passed = score.passed
-  const tone = passed ? dark.green : dark.coral
+  const gt = gradeTone(score.total > 0 ? (score.correct / score.total) * 20 : 0)
+  const tone = gt.fg
   const wrong = review ? review.filter((q) => q.state === 'wrong').length : null
   const skipped = review ? review.filter((q) => q.state === 'unanswered' || q.state === 'skipped').length : null
   const ratio = score.total > 0 ? Math.min(1, score.correct / score.total) : 0
 
   return (
     <View style={{ gap: 14 }}>
-      <View style={[styles.resHero, { backgroundColor: passed ? dark.greenSoft : dark.coralSoft, borderColor: tone }]}>
+      <View style={[styles.resHero, { backgroundColor: gt.soft, borderColor: tone }]}>
         <View style={[styles.resBadge, { backgroundColor: tone }]}>
           {passed ? <Check size={22} color="#FFFFFF" /> : <X size={22} color="#FFFFFF" />}
         </View>

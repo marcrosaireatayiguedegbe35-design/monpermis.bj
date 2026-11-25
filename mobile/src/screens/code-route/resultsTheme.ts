@@ -33,3 +33,15 @@ export function formatDateFr(value?: string | null): string {
 export function percent(done: number, total: number): number {
   return total > 0 ? Math.max(0, Math.min(100, Math.round((done / total) * 100))) : 0
 }
+
+export type GradeTone = { fg: string; deep: string; soft: string; label: string }
+
+/** Trois couleurs seulement : rouge sous 14, orange de 14 à 17, vert à partir de 18. */
+export function gradeTone(note: number | null | undefined): GradeTone {
+  if (note === null || note === undefined || Number.isNaN(note)) {
+    return { fg: '#64748B', deep: '#475569', soft: 'rgba(100,116,139,0.12)', label: 'Non noté' }
+  }
+  if (note < 14) return { fg: '#DC2626', deep: '#B91C1C', soft: 'rgba(220,38,38,0.12)', label: 'Insuffisant' }
+  if (note < 18) return { fg: '#EA580C', deep: '#C2410C', soft: 'rgba(234,88,12,0.14)', label: 'Réussi' }
+  return { fg: '#16A34A', deep: '#15803D', soft: 'rgba(22,163,74,0.12)', label: 'Excellent' }
+}
