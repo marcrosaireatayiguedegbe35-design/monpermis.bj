@@ -8,21 +8,26 @@ import {
   CalendarPlus,
   ChevronLeft,
   ChevronRight,
+  Bell,
+  GraduationCap,
   Info,
   Lock,
   User,
 } from 'lucide-react-native'
 import {
   ActivityIndicator,
+  Image,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { LinearGradient } from 'expo-linear-gradient'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Circle } from 'react-native-svg'
 import {
   cancelReservation,
@@ -42,6 +47,8 @@ import {
   type CheckoutCartItem,
 } from '../api/accessRequests'
 import { Bouncy } from '../components/Bouncy'
+import { CodeRouteBanner } from '../components/CodeRouteBanner'
+import { useUnreadNotifications } from '../hooks/useUnreadNotifications'
 import { FadeUp } from '../components/FadeUp'
 import { LegalFooter } from '../components/LegalFooter'
 import { DriveModuleIcon } from '../components/ModuleIcons'
@@ -104,62 +111,68 @@ function HoursRing({ percent }: { percent: number }) {
   )
 }
 
-function ConduiteHeader({
-  onBack,
-  onProfile,
-}: {
-  onBack: () => void
-  onProfile: () => void
-}) {
+function ConduiteHeader({ onBack }: { onBack: () => void; onProfile?: () => void }) {
+  const navigation = useNavigation<Nav>()
+  const unread = useUnreadNotifications(true)
   return (
     <View style={styles.topBar}>
       <Pressable
         style={({ pressed }) => [styles.roundBtn, pressed && styles.pressed]}
         onPress={onBack}
-        accessibilityLabel="Retour"
-        hitSlop={8}
+        accessibilityLabel="Revenir à l'accueil"
+        hitSlop={10}
       >
-        <ChevronLeft size={22} color={dark.textPrimary} />
+        <ChevronLeft size={26} color={dark.textPrimary} />
       </Pressable>
       <View style={styles.topBarCenter}>
-        <DriveModuleIcon size={22} />
-        <Text style={styles.topBarTitle}>Conduite</Text>
+        <DriveModuleIcon size={42} />
+        <View>
+          <Text style={styles.topBarTitle}>Conduite</Text>
+          <Text style={styles.topBarSub}>Apprendre • Réserver • Réussir</Text>
+        </View>
       </View>
       <Pressable
         style={({ pressed }) => [styles.roundBtn, pressed && styles.pressed]}
-        onPress={onProfile}
-        accessibilityLabel="Profil"
-        hitSlop={8}
+        onPress={() => navigation.navigate('Notifications')}
+        accessibilityLabel="Notifications"
+        hitSlop={10}
       >
-        <User size={19} color={dark.textMuted} />
+        <Bell size={24} color={dark.textPrimary} />
+        {unread > 0 ? <View style={styles.bellDot} /> : null}
       </Pressable>
     </View>
   )
 }
 
+let dashboardCache: { progress: DrivingProgress | null; upcoming: ReservationItem[] } | null = null
+let accessCache: { me: AccessMe | null; modules: AccessModule[] } | null = null
+
 export function ConduiteScreen() {
   const navigation = useNavigation<Nav>()
   const { user, loading } = useRequireAuth(navigation)
-  const [progress, setProgress] = useState<DrivingProgress | null>(null)
-  const [upcoming, setUpcoming] = useState<ReservationItem[]>([])
-  const [loadingDash, setLoadingDash] = useState(true)
+  const [progress, setProgress] = useState<DrivingProgress | null>(dashboardCache?.progress ?? null)
+  const [upcoming, setUpcoming] = useState<ReservationItem[]>(dashboardCache?.upcoming ?? [])
+  const [loadingDash, setLoadingDash] = useState(!dashboardCache)
   const [error, setError] = useState<string | null>(null)
   const [cancelTarget, setCancelTarget] = useState<ReservationItem | null>(null)
   const [cancelReason, setCancelReason] = useState('')
   const [cancelling, setCancelling] = useState(false)
-  const [accessMe, setAccessMe] = useState<AccessMe | null>(null)
-  const [modules, setModules] = useState<AccessModule[]>([])
-  const [accessLoading, setAccessLoading] = useState(true)
+  const [accessMe, setAccessMe] = useState<AccessMe | null>(accessCache?.me ?? null)
+  const [modules, setModules] = useState<AccessModule[]>(accessCache?.modules ?? [])
+  const [accessLoading, setAccessLoading] = useState(!accessCache)
   const [pickHours, setPickHours] = useState(false)
   const [hoursQty, setHoursQty] = useState('1')
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [claimingFree, setClaimingFree] = useState(false)
+  const { height: windowHeight } = useWindowDimensions()
+  const insets = useSafeAreaInsets()
 
   const load = useCallback(async () => {
-    setLoadingDash(true)
+    if (!dashboardCache) setLoadingDash(true)
     setError(null)
     try {
       const data = await fetchDrivingDashboard()
+      dashboardCache = { progress: data.progress, upcoming: data.upcoming || [] }
       setProgress(data.progress)
       setUpcoming(data.upcoming || [])
     } catch (err) {
@@ -192,14 +205,15 @@ export function ConduiteScreen() {
 
   useEffect(() => {
     if (!user) return
-    void Promise.all([fetchAccessMe(), fetchAccessModules()])
+    // Le catalogue ne doit jamais faire perdre l'accès : chaque appel échoue séparément.
+    void Promise.all([
+      fetchAccessMe().catch(() => accessCache?.me ?? null),
+      fetchAccessModules().catch(() => accessCache?.modules ?? ([] as AccessModule[])),
+    ])
       .then(([me, catalog]) => {
+        if (me) accessCache = { me, modules: catalog }
         setAccessMe(me)
         setModules(catalog)
-      })
-      .catch(() => {
-        setAccessMe(null)
-        setModules([])
       })
       .finally(() => setAccessLoading(false))
   }, [user])
@@ -355,166 +369,146 @@ export function ConduiteScreen() {
     )
   }
 
+  // Tout tient sur un seul écran : la hauteur disponible est répartie entre les blocs.
+  const GAP = 12
+  const bodyHeight = Math.max(380, Math.round(windowHeight - insets.top - insets.bottom - 68 - 24))
+  const usable = Math.max(0, bodyHeight - GAP * 3)
+  const scale = Math.max(0.68, Math.min(1.15, bodyHeight / 560))
+  const bannerH = Math.round(usable * 0.32)
+  const progressH = Math.round(usable * 0.16)
+  const wideH = Math.round(usable * 0.16)
+  const cardsH = usable - bannerH - progressH - wideH
+
   return (
     <View style={styles.root}>
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <ConduiteHeader onBack={goHome} onProfile={goProfile} />
 
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <FadeUp delay={60} style={styles.hero}>
-            <Text style={styles.heroEyebrow}>Ton parcours</Text>
-            <Text style={styles.heroTitle}>Prends la route</Text>
-            <Text style={styles.heroSubtitle}>
-              Suis tes heures, réserve tes séances avec un moniteur et progresse jusqu’à l’examen.
-            </Text>
-          </FadeUp>
+        <View style={styles.body}>
+          <View style={{ height: bannerH }}>
+            <CodeRouteBanner
+              height={bannerH}
+              scale={scale}
+              title="Prends la route"
+              text="Suis tes heures, réserve tes séances avec un moniteur."
+            />
+          </View>
 
-          {loadingDash ? <ActivityIndicator color={dark.green} style={{ marginBottom: 16 }} /> : null}
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          {progress ? (
-            <FadeUp delay={120}>
-              <View style={styles.progressCard}>
+          <View style={[styles.progressRow, { height: progressH }]}>
+            {progress ? (
+              <>
                 <HoursRing percent={progress.percent} />
                 <View style={styles.progressCopy}>
-                  <Text style={styles.progressLabel}>
+                  <Text style={styles.progressLabel} numberOfLines={1}>
                     {progress.heuresEffectuees} / {progress.heuresObjectif} h de conduite
                   </Text>
                   <ProgressBar
                     progress={progress.percent / 100}
                     color={dark.green}
                     trackColor="rgba(0,16,48,0.08)"
-                    height={8}
+                    height={7}
                   />
-                  <Text style={styles.progressMeta}>
-                    Solde heures moniteur : {progress.soldeHeures} h{' '}
-                    <Text style={styles.progressMetaHint}>(≠ abonnement Code)</Text>
+                  <Text style={styles.progressMeta} numberOfLines={1}>
+                    Solde heures moniteur : {progress.soldeHeures} h
                   </Text>
                 </View>
-              </View>
-            </FadeUp>
-          ) : null}
-
-          <FadeUp delay={180}>
-            <Bouncy scaleTo={0.97} onPress={() => navigation.navigate('LeconsChapitres')}>
-              <View style={[styles.actionCard, styles.actionLessons]}>
-                <View style={[styles.actionIcon, styles.actionIconLessons]}>
-                  <BookOpen size={22} color={ORANGE} />
-                </View>
-                <View style={styles.actionCopy}>
-                  <Text style={styles.actionTitle}>Leçons</Text>
-                  <Text style={styles.actionHint}>Manœuvres, circulation et examen</Text>
-                </View>
-                <ChevronRight size={20} color={ORANGE} />
-              </View>
-            </Bouncy>
-
-            <Bouncy
-              scaleTo={0.97}
-              style={styles.secondAction}
-              onPress={() => navigation.navigate('ReservationFlow')}
-            >
-              <View style={[styles.actionCard, styles.actionReserve]}>
-                <View style={[styles.actionIcon, styles.actionIconReserve]}>
-                  <CalendarPlus size={22} color={dark.green} />
-                </View>
-                <View style={styles.actionCopy}>
-                  <Text style={styles.actionTitle}>Réserver une séance</Text>
-                  <Text style={styles.actionHint}>Choisir un créneau avec un moniteur</Text>
-                </View>
-                <ChevronRight size={20} color={dark.green} />
-              </View>
-            </Bouncy>
-          </FadeUp>
-
-          <FadeUp delay={240}>
-            <View style={styles.sectionHead}>
-              <Text style={styles.sectionLabel}>Mes réservations</Text>
-              <Pressable
-                onPress={() => navigation.navigate('MesReservations')}
-                hitSlop={8}
-                accessibilityRole="link"
-              >
-                <Text style={styles.seeAll}>Voir tout</Text>
-              </Pressable>
-            </View>
-
-            {upcoming.length === 0 ? (
-              <View style={styles.emptyCard}>
-                <View style={styles.emptyIcon}>
-                  <Calendar size={22} color={BLUE_INFO} />
-                </View>
-                <Text style={styles.emptyText}>Aucune séance réservée pour le moment.</Text>
-              </View>
+              </>
             ) : (
-              upcoming.slice(0, 3).map((item) => (
-                <View key={String(item.id)} style={styles.reservationItem}>
-                  <Pressable
-                    style={{ flex: 1, minWidth: 0 }}
-                    onPress={() => {
-                      const hours = item.creneau
-                        ? (() => {
-                            const [sh, sm] = item.creneau!.startTime
-                              .split(':')
-                              .map((v) => parseInt(v, 10) || 0)
-                            const [eh, em] = item.creneau!.endTime
-                              .split(':')
-                              .map((v) => parseInt(v, 10) || 0)
-                            return Math.max(0.5, Math.round((eh - sh + (em - sm) / 60) * 2) / 2)
-                          })()
-                        : 0
-                      navigation.navigate('ReservationConfirm', {
-                        reservationId: item.id,
-                        moniteurName: item.moniteur?.fullName || 'Moniteur',
-                        vehicleBrand: item.moniteur?.vehicleBrand || '',
-                        date: item.creneau?.date || '',
-                        startTime: item.creneau?.startTime || '',
-                        endTime: item.creneau?.endTime || '',
-                        hours,
-                        priceFcfa: item.priceFcfa || item.creneau?.priceFcfa || 0,
-                        paymentMethod: item.paymentStatus === 'paid' ? 'solde' : 'mobile_money',
-                        fromList: true,
-                      })
-                    }}
-                  >
-                    <Text style={styles.reservationTitle}>
-                      {item.creneau
-                        ? `${item.creneau.date} · ${item.creneau.startTime} – ${item.creneau.endTime}`
-                        : 'Séance'}
-                    </Text>
-                    <Text style={styles.reservationMeta}>
-                      {item.moniteur?.fullName || 'Moniteur'} · {statusLabel(item)}
-                    </Text>
-                  </Pressable>
-                  {item.canCancel ? (
-                    <Pressable
-                      style={styles.cancelLink}
-                      onPress={() => {
-                        setError(null)
-                        setCancelReason('')
-                        setCancelTarget(item)
-                      }}
-                    >
-                      <Text style={styles.cancelLinkText}>Annuler</Text>
-                    </Pressable>
-                  ) : null}
-                </View>
-              ))
-            )}
-
-            <View style={styles.infoCard}>
-              <View style={styles.infoIcon}>
-                <Info size={20} color={BLUE_INFO} />
-              </View>
-              <Text style={styles.infoText}>
-                Tu peux annuler une séance jusqu’à 24 h avant, avec une justification transmise à
-                l’administration.
+              <Text style={styles.progressMeta} numberOfLines={2}>
+                {error ?? 'Chargement de ta progression…'}
               </Text>
-            </View>
-          </FadeUp>
+            )}
+          </View>
 
-          <LegalFooter />
-        </ScrollView>
+          <View style={[styles.cardsRow, { height: cardsH }]}>
+            {[
+              {
+                key: 'lessons',
+                title: 'Leçons',
+                hint: 'Manœuvres, circulation et examen',
+                image: require('../../assets/code-route/cards/revision.jpg'),
+                shade: ['rgba(255,196,222,0.97)', 'rgba(255,214,232,0.72)', 'rgba(255,236,245,0)'] as [string, string, string],
+                iconBg: 'rgba(219,39,119,0.92)',
+                arrow: '#DB2777',
+                Icon: BookOpen,
+                go: () => navigation.navigate('LeconsChapitres'),
+              },
+              {
+                key: 'reserve',
+                title: 'Réserver une séance',
+                hint: 'Choisir un créneau avec un moniteur',
+                image: require('../../assets/code-route/cards/examens.jpg'),
+                shade: ['rgba(255,205,150,0.97)', 'rgba(255,224,186,0.72)', 'rgba(255,243,226,0)'] as [string, string, string],
+                iconBg: 'rgba(234,88,12,0.92)',
+                arrow: '#EA580C',
+                Icon: CalendarPlus,
+                go: () => navigation.navigate('ReservationFlow'),
+              },
+            ].map((card) => (
+              <View key={card.key} style={styles.cardCell}>
+                <Bouncy scaleTo={0.98} onPress={card.go}>
+                  <View style={[styles.tile, { height: cardsH }]}>
+                    <Image source={card.image} style={styles.tileImage} resizeMode="cover" />
+                    <LinearGradient
+                      colors={card.shade}
+                      locations={[0, 0.5, 1]}
+                      start={{ x: 0, y: 0.7 }}
+                      end={{ x: 1, y: 0.15 }}
+                      style={StyleSheet.absoluteFillObject}
+                      pointerEvents="none"
+                    />
+                    <View style={styles.tileBody}>
+                      <View style={[styles.tileIcon, { backgroundColor: card.iconBg }]}>
+                        <card.Icon size={16} color="#FFFFFF" />
+                      </View>
+                      <Text style={styles.tileTitle} numberOfLines={2}>{card.title}</Text>
+                      {cardsH >= 120 ? (
+                        <Text style={styles.tileHint} numberOfLines={2}>{card.hint}</Text>
+                      ) : null}
+                      <View style={styles.tileArrow}>
+                        <ChevronRight size={15} color={card.arrow} />
+                      </View>
+                    </View>
+                  </View>
+                </Bouncy>
+              </View>
+            ))}
+          </View>
+
+          <Bouncy scaleTo={0.98} onPress={() => navigation.navigate('MesReservations')}>
+            <View style={[styles.wideCard, { height: wideH }]}>
+              <Image
+                source={require('../../assets/code-route/cards/notes.jpg')}
+                style={styles.wideImage}
+                resizeMode="cover"
+              />
+              <LinearGradient
+                colors={['#0A1E55', '#0A1E55', 'rgba(10,30,85,0.55)', 'rgba(10,30,85,0)']}
+                locations={[0, 0.42, 0.7, 1]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={StyleSheet.absoluteFillObject}
+                pointerEvents="none"
+              />
+              <View style={styles.wideBody}>
+                <View style={styles.wideIcon}>
+                  <Calendar size={22} color="#FFFFFF" />
+                </View>
+                <View style={styles.wideCopy}>
+                  <Text style={styles.wideTitle}>Mes réservations</Text>
+                  <Text style={styles.wideSub} numberOfLines={2}>
+                    {upcoming.length === 0
+                      ? 'Aucune séance réservée pour le moment.'
+                      : `${upcoming.length} séance${upcoming.length > 1 ? 's' : ''} à venir.`}
+                  </Text>
+                </View>
+                <View style={styles.wideArrow}>
+                  <ChevronRight size={20} color={dark.textPrimary} />
+                </View>
+              </View>
+            </View>
+          </Bouncy>
+        </View>
 
         <Modal
           visible={Boolean(cancelTarget)}
@@ -572,6 +566,76 @@ export function ConduiteScreen() {
 }
 
 const styles = StyleSheet.create({
+  body: { flex: 1, paddingHorizontal: 16, paddingTop: 2, paddingBottom: 12, gap: 12 },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 14,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(0,16,48,0.05)',
+    ...shadows.md,
+  },
+  cardsRow: { flexDirection: 'row', gap: 12 },
+  cardCell: { flex: 1 },
+  tile: { borderRadius: 26, overflow: 'hidden', ...shadows.card },
+  tileImage: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
+  tileBody: { flex: 1, padding: 12, justifyContent: 'flex-end' },
+  tileIcon: { width: 28, height: 28, borderRadius: 999, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  tileTitle: { fontFamily: fonts.displayBold, fontSize: 15, lineHeight: 18, color: dark.textPrimary, paddingRight: 30 },
+  tileHint: { marginTop: 3, fontFamily: fonts.bodyMedium, fontSize: 11.5, lineHeight: 15, color: '#475569', paddingRight: 34 },
+  tileArrow: {
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.sm,
+  },
+  wideCard: { borderRadius: 26, overflow: 'hidden', backgroundColor: '#0A1E55', ...shadows.card },
+  wideImage: { position: 'absolute', top: 0, right: 0, bottom: 0, width: '62%', height: '100%' },
+  wideBody: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, zIndex: 2 },
+  wideIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+  wideCopy: { flex: 1, maxWidth: '62%' },
+  wideTitle: { fontFamily: fonts.displayBold, fontSize: 19, color: '#FFFFFF', letterSpacing: -0.3 },
+  wideSub: { marginTop: 2, fontFamily: fonts.bodyMedium, fontSize: 12, lineHeight: 16, color: 'rgba(255,255,255,0.92)' },
+  wideArrow: {
+    marginLeft: 'auto',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    ...shadows.sm,
+  },
+  topBarSub: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: dark.textMuted },
+  bellDot: {
+    position: 'absolute',
+    top: 10,
+    right: 11,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#EF4444',
+    borderWidth: 2,
+    borderColor: '#F1F5F9',
+  },
   root: {
     flex: 1,
     backgroundColor: '#F8FAFC',
@@ -583,18 +647,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 8,
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 12,
   },
   roundBtn: {
     width: 44,
     height: 44,
-    borderRadius: 999,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    ...shadows.sm,
+    backgroundColor: '#F1F5F9',
   },
   topBarCenter: {
     flex: 1,
@@ -605,8 +668,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   topBarTitle: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 22,
+    fontFamily: fonts.displayBold,
+    fontSize: 19,
+    lineHeight: 23,
     color: dark.textPrimary,
   },
   scroll: {

@@ -23,20 +23,50 @@ function notifyListeners() {
   }
 }
 
-async function checkConnectivity(): Promise<boolean> {
+async function ping(url: string, timeoutMs: number, noCors = false): Promise<boolean> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 4000)
-    const response = await fetch(`${getApiBase().replace(/\/api$/, '')}/api/health`, {
-      method: 'HEAD',
+    const response = await fetch(url, {
+      method: noCors ? 'GET' : 'HEAD',
+      mode: noCors ? 'no-cors' : undefined,
       signal: controller.signal,
       cache: 'no-store',
     })
-    clearTimeout(timer)
-    return response.ok
+    return noCors ? true : response.ok
   } catch {
     return false
+  } finally {
+    clearTimeout(timer)
   }
+}
+
+let failures = 0
+
+/**
+ * « Hors connexion » = l'appareil n'a vraiment plus d'internet. Un serveur lent ou en veille
+ * (démarrage à froid) ne suffit pas : on ne bascule qu'après deux échecs de suite, une fois
+ * qu'un point de contrôle public confirme aussi l'absence de réseau.
+ */
+async function checkConnectivity(): Promise<boolean> {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    failures = 2
+    return false
+  }
+  const apiOk = await ping(`${getApiBase().replace(/\/api$/, '')}/api/health`, 10000)
+  if (apiOk) {
+    failures = 0
+    return true
+  }
+  // L'API ne répond pas : l'appareil a-t-il quand même internet ?
+  const internetOk = await ping('https://www.gstatic.com/generate_204', 6000, true)
+  if (internetOk) {
+    failures = 0
+    return true
+  }
+  failures += 1
+  // Un seul échec isolé ne coupe pas la connexion : on garde l'état précédent.
+  return failures < 2 ? currentState.isConnected : false
 }
 
 function startPolling() {
@@ -68,6 +98,14 @@ async function initializeNetInfo() {
   currentState = { isConnected: reachable, isInternetReachable: reachable }
   notifyListeners()
   startPolling()
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('offline', () => {
+      currentState = { isConnected: false, isInternetReachable: false }
+      failures = 2
+      notifyListeners()
+    })
+    window.addEventListener('online', () => void refreshNetInfo())
+  }
 }
 
 /**

@@ -12,6 +12,7 @@ import {
   Lock,
   Pencil,
   ShieldCheck,
+  Bell,
   Smartphone,
   Trophy,
   TriangleAlert,
@@ -23,12 +24,13 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  useWindowDimensions,
   StyleSheet,
   Text,
   View,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
   fetchAccessMe,
   fetchAccessModules,
@@ -43,7 +45,7 @@ import {
 } from '../api/revision'
 import { Bouncy } from '../components/Bouncy'
 import { CodeRouteBanner } from '../components/CodeRouteBanner'
-import { OfflinePackCard } from '../components/OfflinePackCard'
+import { OfflineHeaderButton } from '../components/OfflineHeaderButton'
 import { FadeUp } from '../components/FadeUp'
 import { HomeBottomAnimation } from '../components/HomeBottomAnimation'
 import { MobileMoneyCheckout } from '../components/MobileMoneyCheckout'
@@ -52,6 +54,7 @@ import { ScreenLoader } from '../components/ScreenLoader'
 import { SkeletonList } from '../components/Skeleton'
 import { useOffline } from '../context/OfflineContext'
 import { useRequireAuth } from '../hooks/useRequireAuth'
+import { useUnreadNotifications } from '../hooks/useUnreadNotifications'
 import type { RootStackParamList } from '../navigation/types'
 import { PAYMENT_OPERATORS } from '../utils/paymentOperators'
 import { brand, dark, fonts, radii, shadows } from '../theme'
@@ -70,11 +73,11 @@ type Category = {
 }
 
 const toneShade: Record<Tone, readonly [string, string, string]> = {
-  pink: ['rgba(219,39,119,0.05)', 'rgba(219,39,119,0.35)', 'rgba(157,23,77,0.92)'],
-  orange: ['rgba(234,88,12,0.05)', 'rgba(234,88,12,0.35)', 'rgba(154,52,18,0.92)'],
-  green: ['rgba(0,176,80,0.05)', 'rgba(0,176,80,0.32)', 'rgba(0,100,40,0.92)'],
+  pink: ['rgba(255,236,245,0)', 'rgba(255,214,232,0.72)', 'rgba(255,196,222,0.97)'],
+  orange: ['rgba(255,243,226,0)', 'rgba(255,224,186,0.72)', 'rgba(255,205,150,0.97)'],
+  green: ['rgba(232,250,238,0)', 'rgba(200,240,214,0.72)', 'rgba(168,230,192,0.97)'],
   navy: ['rgba(0,16,48,0.05)', 'rgba(0,16,48,0.38)', 'rgba(0,16,48,0.92)'],
-  cyan: ['rgba(2,132,199,0.05)', 'rgba(2,132,199,0.35)', 'rgba(3,105,161,0.92)'],
+  cyan: ['rgba(232,243,255,0)', 'rgba(196,224,252,0.72)', 'rgba(160,205,248,0.97)'],
 }
 
 const toneIconBg: Record<Tone, string> = {
@@ -97,30 +100,28 @@ export function CodeRouteScreen() {
   const navigation = useNavigation<Nav>()
   const { user, loading } = useRequireAuth(navigation)
   const { isOffline } = useOffline()
+  const unreadCount = useUnreadNotifications(Boolean(user))
   const [accessMe, setAccessMe] = useState<AccessMe | null>(null)
   const [modules, setModules] = useState<AccessModule[]>([])
   const [journey, setJourney] = useState<LearnerJourney | null>(null)
   const [accessLoading, setAccessLoading] = useState(true)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const { height: windowHeight } = useWindowDimensions()
+  const insets = useSafeAreaInsets()
 
   const loadAccess = useCallback(async (silent = false) => {
     if (!user) return
     if (!silent) setAccessLoading(true)
     try {
       // fetchAccessMe revient au dernier abonnement connu si le réseau est coupé (valable jusqu'à sa date de fin).
-      const [me, catalog, journeyData] = await Promise.all([
-        fetchAccessMe(),
-        fetchAccessModules().catch(() => [] as AccessModule[]),
-        fetchLearnerJourney().catch(() => null),
-      ])
+      // Le catalogue et le parcours se chargent en parallèle sans retarder l'affichage de la page.
+      void fetchAccessModules().then(setModules).catch(() => undefined)
+      void fetchLearnerJourney().then(setJourney).catch(() => undefined)
+      const me = await fetchAccessMe()
       setAccessMe(me)
-      setModules(catalog)
-      setJourney(journeyData)
     } catch {
       setAccessMe(null)
-      setModules([])
-      setJourney(null)
     } finally {
       setAccessLoading(false)
       setRefreshing(false)
@@ -189,7 +190,23 @@ export function CodeRouteScreen() {
     ]
   }, [journey])
 
+  const gridCategories = categories.filter((c) => c.id !== 'CodeCours')
+  const coursCategory = categories.find((c) => c.id === 'CodeCours')
+
   if (loading || !user) return <ScreenLoader />
+
+  // Tout tient sur un seul écran : la hauteur disponible est répartie entre les blocs.
+  const GAP = 12
+  // Hauteur réelle disponible : écran moins zones système, en-tête (~68) et marges du bloc.
+  const bodyHeight = Math.max(
+    380,
+    Math.round(windowHeight - insets.top - insets.bottom - 68 - 12 - 12),
+  )
+  const usable = Math.max(0, bodyHeight - GAP * 3)
+  const scale = Math.max(0.68, Math.min(1.15, bodyHeight / 560))
+  const bannerH = Math.round(usable * 0.31)
+  const coursH = Math.round(usable * 0.14)
+  const rowH = Math.floor((usable - bannerH - coursH - GAP) / 2)
 
   const codeModule = modules.find((m) => m.key === 'code')
   const codePrice = codeModule ? computeModuleAmount('code', codeModule.price, 1) : 2000
@@ -241,16 +258,30 @@ export function CodeRouteScreen() {
       <Pressable
         style={({ pressed }) => [styles.roundBtn, pressed && styles.pressed]}
         onPress={() => navigation.navigate('Home')}
-        accessibilityLabel="Retour"
+        accessibilityLabel="Revenir à l'accueil"
         hitSlop={10}
       >
-        <ChevronLeft size={22} color={dark.textPrimary} />
+        <ChevronLeft size={26} color={dark.textPrimary} />
       </Pressable>
       <View style={styles.topBarCenter}>
-        <CodeModuleIcon size={28} />
-        <Text style={styles.topBarTitle}>Code de la route</Text>
+        <CodeModuleIcon size={42} />
+        <View>
+          <Text style={styles.topBarTitle}>Code de la route</Text>
+          <Text style={styles.topBarSub}>Apprendre • Réviser • Réussir</Text>
+        </View>
       </View>
-      <View style={styles.roundBtnSpacer} accessibilityElementsHidden />
+      <View style={styles.topBarRight}>
+        <OfflineHeaderButton />
+      <Pressable
+          style={({ pressed }) => [styles.roundBtn, pressed && styles.pressed]}
+          onPress={() => navigation.navigate('Notifications')}
+          accessibilityLabel="Notifications"
+          hitSlop={10}
+      >
+          <Bell size={24} color={dark.textPrimary} />
+          {unreadCount > 0 ? <View style={styles.bellDot} /> : null}
+          </Pressable>
+      </View>
     </View>
   )
 
@@ -421,91 +452,104 @@ export function CodeRouteScreen() {
     <View style={styles.root}>
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         {header}
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true)
-                void loadAccess(true)
-              }}
-              tintColor={dark.green}
-            />
-          }
-        >
-          <FadeUp delay={40}>
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressSeg, styles.progressGreen, { flex: Math.max(chapterProgress, 0.08) }]} />
-              <View style={[styles.progressSeg, styles.progressGold, { flex: 0.18 }]} />
-              <View style={[styles.progressSeg, styles.progressNavy, { flex: Math.max(0.12, 1 - chapterProgress) }]} />
-            </View>
-            {journey?.code.chaptersTotal ? (
-              <Text style={styles.progressCaption}>
-                {journey.code.chaptersDone}/{journey.code.chaptersTotal} chapitres
-                {journey.code.currentStop?.chapterName
-                  ? ` · ${journey.code.currentStop.chapterName}`
-                  : ''}
-              </Text>
-            ) : null}
-          </FadeUp>
-
-          <FadeUp delay={100}>
-            <CodeRouteBanner />
-          </FadeUp>
-
-          <OfflinePackCard />
-
-          <View style={styles.grid}>
-            {categories.map((category, index) => {
-              const Icon = category.Icon
-              return (
-                <FadeUp key={category.id} delay={160 + index * 60} style={styles.gridItem}>
-                  <Bouncy
-                    scaleTo={0.98}
-                    onPress={() => {
-                      navigation.navigate(category.id)
-                    }}
-                  >
-                    <View style={styles.card}>
-                      <Image source={category.image} style={styles.cardImage} resizeMode="cover" />
-                      <LinearGradient
-                        colors={[...toneShade[category.tone]]}
-                        locations={[0, 0.4, 1]}
-                        style={styles.cardShade}
-                        pointerEvents="none"
-                      />
-                      <View style={styles.cardBody}>
-                        <View
-                          style={[
-                            styles.cardIcon,
-                            { backgroundColor: toneIconBg[category.tone] },
-                          ]}
-                        >
-                          <Icon size={16} color="#FFFFFF" />
+        <View style={styles.body}>
+          {bodyHeight > 0 ? (
+            <>
+              <View style={{ height: bannerH }}>
+                <CodeRouteBanner
+                  height={bannerH}
+                  scale={scale}
+                  onStart={() => navigation.navigate('RevisionChapitres')}
+                />
+              </View>
+              <View style={[styles.grid, { gap: GAP }]}>
+                {gridCategories.map((category) => {
+                  const Icon = category.Icon
+                  return (
+                    <View key={category.id} style={[styles.gridItem, { height: rowH }]}>
+                      <Bouncy scaleTo={0.98} onPress={() => navigation.navigate(category.id)}>
+                        <View style={[styles.card, { height: rowH }]}>
+                          <Image source={category.image} style={styles.cardImage} resizeMode="cover" />
+                          <LinearGradient
+                            colors={[...toneShade[category.tone]].reverse() as [string, string, string]}
+                            locations={[0, 0.5, 1]}
+                            start={{ x: 0, y: 0.7 }}
+                            end={{ x: 1, y: 0.15 }}
+                            style={styles.cardShade}
+                            pointerEvents="none"
+                          />
+                          <View style={[styles.cardBody, { padding: rowH < 120 ? 10 : 12 }]}>
+                            <View
+                              style={[
+                                styles.cardIcon,
+                                {
+                                  backgroundColor: toneIconBg[category.tone],
+                                  width: rowH < 120 ? 24 : 30 * scale,
+                                  height: rowH < 120 ? 24 : 30 * scale,
+                                  marginBottom: rowH < 120 ? 4 : 6 * scale,
+                                },
+                              ]}
+                            >
+                              <Icon size={rowH < 120 ? 13 : 16 * scale} color="#FFFFFF" />
+                            </View>
+                            <Text
+                              style={[styles.cardTitle, { fontSize: 15 * scale, lineHeight: 18 * scale }]}
+                              numberOfLines={2}
+                            >
+                              {category.label}
+                            </Text>
+                            {rowH >= 120 ? (
+                              <Text
+                                style={[styles.cardSubtitle, { fontSize: 11.5 * scale, lineHeight: 15 * scale }]}
+                                numberOfLines={2}
+                              >
+                                {category.subtitle}
+                              </Text>
+                            ) : null}
+                            <View style={styles.cardArrow}>
+                              <ChevronRight size={15} color={toneArrow[category.tone]} />
+                            </View>
+                          </View>
                         </View>
-                        <Text style={styles.cardTitle}>{category.label}</Text>
-                        <Text style={styles.cardSubtitle} numberOfLines={3}>
-                          {category.subtitle}
-                        </Text>
-                        <View style={styles.cardArrow}>
-                          <ChevronRight size={16} color={toneArrow[category.tone]} />
-                        </View>
+                      </Bouncy>
+                    </View>
+                  )
+                })}
+              </View>
+              {coursCategory ? (
+                <Bouncy scaleTo={0.98} onPress={() => navigation.navigate(coursCategory.id)}>
+                  <View style={[styles.coursCard, { height: coursH, marginTop: 0 }]}>
+                    <Image source={coursCategory.image} style={styles.coursImage} resizeMode="cover" />
+                    <LinearGradient
+                      colors={['#0A1E55', '#0A1E55', 'rgba(10,30,85,0.55)', 'rgba(10,30,85,0)']}
+                      locations={[0, 0.42, 0.7, 1]}
+                      start={{ x: 0, y: 0.5 }}
+                      end={{ x: 1, y: 0.5 }}
+                      style={StyleSheet.absoluteFillObject}
+                      pointerEvents="none"
+                    />
+                    <View style={styles.coursBody}>
+                      <View style={[styles.coursIcon, { width: 46 * scale, height: 46 * scale, borderRadius: 23 * scale }]}>
+                        <GraduationCap size={22 * scale} color="#FFFFFF" />
+                      </View>
+                      <View style={styles.coursCopy}>
+                        <Text style={[styles.coursTitle, { fontSize: 19 * scale }]}>{coursCategory.label}</Text>
+                        {scale >= 0.8 ? (
+                          <Text style={[styles.coursSub, { fontSize: 12 * scale, lineHeight: 16 * scale }]} numberOfLines={2}>
+                            {coursCategory.subtitle}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <View style={styles.coursArrow}>
+                        <ChevronRight size={20} color={dark.textPrimary} />
                       </View>
                     </View>
-                  </Bouncy>
-                </FadeUp>
-              )
-            })}
-          </View>
-
-          <FadeUp delay={480}>
-            <View style={styles.footer}>
-              <HomeBottomAnimation compact />
-            </View>
-          </FadeUp>
-        </ScrollView>
+                  </View>
+                </Bouncy>
+              ) : null}
+            </>
+          ) : null}
+        </View>
       </SafeAreaView>
     </View>
   )
@@ -523,13 +567,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
+    paddingHorizontal: 18,
     paddingTop: 10,
-    paddingBottom: 14,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,16,48,0.05)',
-    ...shadows.sm,
+    paddingBottom: 12,
+    backgroundColor: 'transparent',
   },
   roundBtn: {
     width: 44,
@@ -766,19 +807,41 @@ const styles = StyleSheet.create({
   },
   topBarTitle: {
     fontFamily: fonts.displayBold,
-    fontSize: 17,
+    fontSize: 19,
+    lineHeight: 23,
     color: dark.textPrimary,
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   },
+  topBarSub: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12.5,
+    color: dark.textMuted,
+  },
+  topBarRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   topBarCenter: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+    gap: 10,
   },
-  scroll: {
-    paddingHorizontal: 18,
-    paddingTop: 4,
-    paddingBottom: 28,
+  bellDot: {
+    position: 'absolute',
+    top: 10,
+    right: 11,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#EF4444',
+    borderWidth: 2,
+    borderColor: '#F1F5F9',
+  },
+  body: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 2,
+    paddingBottom: 12,
+    gap: 12,
   },
   progressTrack: {
     flexDirection: 'row',
@@ -814,12 +877,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   gridItem: {
-    width: '47.5%',
+    width: '48%',
     flexGrow: 1,
   },
   card: {
-    height: 196,
-    borderRadius: 24,
+    height: 150,
+    borderRadius: 26,
     overflow: 'hidden',
     ...shadows.card,
   },
@@ -849,18 +912,19 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontFamily: fonts.displayBold,
-    fontSize: 13,
-    lineHeight: 17,
-    color: '#fff',
-    textTransform: 'uppercase',
-    letterSpacing: 0.2,
+    fontSize: 16,
+    lineHeight: 20,
+    color: dark.textPrimary,
+    letterSpacing: -0.2,
+    paddingRight: 30,
   },
   cardSubtitle: {
-    marginTop: 4,
+    marginTop: 3,
     fontFamily: fonts.bodyMedium,
-    fontSize: 11.5,
-    lineHeight: 15,
-    color: 'rgba(255,255,255,0.92)',
+    fontSize: 12,
+    lineHeight: 16,
+    color: '#475569',
+    paddingRight: 34,
   },
   cardArrow: {
     position: 'absolute',
@@ -876,6 +940,53 @@ const styles = StyleSheet.create({
   },
   footer: {
     marginTop: 8,
+  },
+  coursCard: {
+    height: 104,
+    marginTop: 12,
+    borderRadius: 26,
+    overflow: 'hidden',
+    backgroundColor: '#0A1E55',
+    ...shadows.card,
+  },
+  coursImage: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: '62%',
+    height: '100%',
+  },
+  coursBody: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 16,
+    zIndex: 2,
+  },
+  coursIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+  coursCopy: { flex: 1, maxWidth: '62%' },
+  coursTitle: { fontFamily: fonts.displayBold, fontSize: 21, color: '#FFFFFF', letterSpacing: -0.3 },
+  coursSub: { marginTop: 3, fontFamily: fonts.bodyMedium, fontSize: 13, lineHeight: 18, color: 'rgba(255,255,255,0.92)' },
+  coursArrow: {
+    marginLeft: 'auto',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    ...shadows.sm,
   },
   accessLock: {
     width: 72,

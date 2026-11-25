@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { constructFedaPayEvent, mapFedaPayStatus } from '../services/fedapay.js'
+import { constructFedaPayEvent, mapFedaPayStatus, PLATFORM_ID } from '../services/fedapay.js'
 import {
   applyApprovedAccessPayment,
   applyFailedAccessPayment,
@@ -43,6 +43,13 @@ router.post('/', async (req, res) => {
   const eventName = event?.name || event?.type || ''
   const eventId = String(event?.id || `${eventName}:${event?.entity?.id || event?.object?.id || ''}`)
   const object = event?.entity || event?.object || event?.data?.object || {}
+
+  // Compte FedaPay partagé entre plusieurs SaaS : on ignore les paiements marqués pour une autre plateforme.
+  const origine = String((object?.custom_metadata || object?.metadata || {}).platform || '')
+  if (origine && origine !== PLATFORM_ID) {
+    logger.info('Webhook FedaPay d’une autre plateforme ignoré', { eventName, platform: origine })
+    return res.status(200).json({ received: true, ignored: true })
+  }
 
   try {
     const payment = await findPaymentFromFedaEvent(object)

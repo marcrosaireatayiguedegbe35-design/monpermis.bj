@@ -52,6 +52,8 @@ import {
 } from '../../api/reservations'
 import { fetchAccessMe } from '../../api/accessRequests'
 import { Bouncy } from '../../components/Bouncy'
+import { CodeRouteBanner } from '../../components/CodeRouteBanner'
+import { DriveModuleIcon } from '../../components/ModuleIcons'
 import { EmptyState } from '../../components/EmptyState'
 import { FadeUp } from '../../components/FadeUp'
 import { LegalFooter } from '../../components/LegalFooter'
@@ -174,6 +176,9 @@ export function ReservationFlowScreen() {
   const [durationHelpVisible, setDurationHelpVisible] = useState(true)
   const stepProgress = useRef(new Animated.Value(0)).current
 
+  const pagerRef = useRef<ScrollView>(null)
+  const [pagerWidth, setPagerWidth] = useState(0)
+  const [moniteurIndex, setMoniteurIndex] = useState(0)
   const stepOrder = step === 'moniteur' || step === 'profile' ? 0 : step === 'duration' ? 1 : 2
 
   useEffect(() => {
@@ -428,13 +433,14 @@ export function ReservationFlowScreen() {
             accessibilityLabel="Retour"
             hitSlop={8}
           >
-            <ChevronLeft size={22} color={dark.textPrimary} />
+            <ChevronLeft size={26} color={dark.textPrimary} />
           </Pressable>
           <View style={styles.topBarCenter}>
-            <View style={styles.topBarIcon}>
-              <CalendarPlus size={15} color={ORANGE} />
+            <DriveModuleIcon size={42} />
+            <View>
+              <Text style={styles.topBarTitle}>Nouvelle séance</Text>
+              <Text style={styles.topBarSub}>Moniteur • Durée • Créneau</Text>
             </View>
-            <Text style={styles.topBarTitle}>Nouvelle séance</Text>
           </View>
           <Pressable
             style={({ pressed }) => [styles.roundBtn, pressed && styles.pressed]}
@@ -442,7 +448,7 @@ export function ReservationFlowScreen() {
             accessibilityLabel="Notifications"
             hitSlop={8}
           >
-            <Bell size={19} color={dark.textMuted} />
+            <Bell size={24} color={dark.textPrimary} />
             {unreadCount > 0 ? <View style={styles.notifDot} /> : null}
           </Pressable>
         </View>
@@ -543,121 +549,124 @@ export function ReservationFlowScreen() {
           {step === 'moniteur' ? (
             <View>
               <FadeUp delay={80}>
-                <Text style={styles.introTitle}>Réserver une séance</Text>
-                <Text style={styles.introText}>
-                  Consultez le profil du moniteur, choisissez la durée, puis un créneau libre.
-                </Text>
-                <View style={styles.sectionRow}>
-                  <View style={styles.sectionIcon}>
-                    <User size={16} color={dark.green} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.section}>Choisissez un moniteur</Text>
-                    <Text style={styles.sectionHint}>
-                      Tous nos moniteurs sont certifiés et expérimentés.
-                    </Text>
-                  </View>
-                </View>
+                <Text style={styles.pickTitle}>Choisis ton moniteur</Text>
+                <Text style={styles.pickSub}>Glisse pour voir les autres moniteurs certifiés.</Text>
               </FadeUp>
 
-              {busy ? <ActivityIndicator color={dark.green} style={{ marginVertical: 12 }} /> : null}
+              {busy ? <ActivityIndicator color={dark.green} style={{ marginVertical: 24 }} /> : null}
               {!busy && moniteurs.length === 0 ? (
-                <Text style={styles.empty}>Aucun moniteur disponible pour le moment.</Text>
+                <View style={styles.emptyCard}>
+                  <View style={styles.emptyIcon}>
+                    <CalendarOff size={22} color="#3B82F6" />
+                  </View>
+                  <Text style={styles.emptyCardText}>Aucun moniteur disponible pour le moment.</Text>
+                </View>
               ) : null}
 
-              {moniteurs.map((moniteur, index) => {
-                const typeLabel = moniteur.vehicleTypes?.[0] || 'Véhicule'
-                const priceLabel = moniteur.defaultPriceFcfa
-                  ? `${moniteur.defaultPriceFcfa.toLocaleString('fr-FR')} F/h`
-                  : null
-                return (
-                  <FadeUp key={moniteur.id} delay={100 + index * 40}>
-                    <Bouncy scaleTo={0.98} onPress={() => void loadProfile(moniteur.id)}>
-                      <View style={styles.choice}>
-                        <View style={styles.moniteurRow}>
-                          <View style={styles.avatarWrap}>
-                            {moniteur.photoUrl ? (
-                              <Image
-                                source={{ uri: resolveMediaUrl(moniteur.photoUrl) }}
-                                style={styles.listAvatar}
-                              />
-                            ) : moniteur.vehiclePhotoUrl ? (
-                              <Image
-                                source={{ uri: resolveMediaUrl(moniteur.vehiclePhotoUrl) }}
-                                style={styles.listAvatar}
-                              />
+              {moniteurs.length > 0 ? (
+                <View onLayout={(e) => setPagerWidth(Math.round(e.nativeEvent.layout.width))}>
+                  <ScrollView
+                    ref={pagerRef}
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    onMomentumScrollEnd={(e) => {
+                      if (pagerWidth > 0) {
+                        setMoniteurIndex(Math.round(e.nativeEvent.contentOffset.x / pagerWidth))
+                      }
+                    }}
+                    scrollEventThrottle={16}
+                  >
+                    {moniteurs.map((moniteur) => {
+                      const typeLabel = moniteur.vehicleTypes?.[0] || 'Véhicule'
+                      const photo = moniteur.photoUrl || moniteur.vehiclePhotoUrl
+                      return (
+                        <View key={moniteur.id} style={[styles.pickCard, { width: pagerWidth || 300 }]}>
+                          <View style={styles.pickAvatarWrap}>
+                            {photo ? (
+                              <Image source={{ uri: resolveMediaUrl(photo) }} style={styles.pickAvatar} />
                             ) : (
-                              <View style={[styles.listAvatar, styles.carPlaceholder]}>
-                                <Text style={styles.avatarInitial}>
+                              <View style={[styles.pickAvatar, styles.carPlaceholder]}>
+                                <Text style={styles.pickInitial}>
                                   {moniteur.fullName.slice(0, 1).toUpperCase()}
                                 </Text>
                               </View>
                             )}
                             <View style={styles.avatarBadge}>
-                              <Check size={10} color="#FFFFFF" strokeWidth={3} />
+                              <Check size={11} color="#FFFFFF" strokeWidth={3} />
                             </View>
                           </View>
-                          <View style={{ flex: 1, minWidth: 0 }}>
-                            <Text style={styles.choiceText}>{moniteur.fullName}</Text>
-                            <Text style={styles.brandText}>
-                              {moniteur.vehicleBrand || 'Marque non renseignée'}
+                          <Text style={styles.pickName} numberOfLines={1}>{moniteur.fullName}</Text>
+                          <Text style={styles.pickMeta} numberOfLines={1}>
+                            {[moniteur.vehicleBrand, moniteur.city].filter(Boolean).join(' · ') || 'Moniteur certifié'}
+                          </Text>
+                          {moniteur.defaultPriceFcfa ? (
+                            <Text style={styles.pickPrice}>
+                              {moniteur.defaultPriceFcfa.toLocaleString('fr-FR')} F / h
                             </Text>
+                          ) : null}
+                          <View style={styles.pickPills}>
                             <View style={styles.typePill}>
                               <Car size={12} color={dark.green} />
                               <Text style={styles.typePillText}>{typeLabel}</Text>
                             </View>
-                          </View>
-                        </View>
-
-                        {(priceLabel || moniteur.city) ? (
-                          <View style={styles.statsRow}>
-                            {priceLabel ? (
-                              <View style={styles.statItem}>
-                                <Text style={styles.statValue}>{priceLabel}</Text>
-                                <Text style={styles.statLabel}>Tarif</Text>
-                              </View>
-                            ) : null}
-                            {moniteur.city ? (
-                              <View style={styles.statItem}>
-                                <Text style={styles.statValue} numberOfLines={1}>
-                                  {moniteur.city}
-                                </Text>
-                                <Text style={styles.statLabel}>Ville</Text>
-                              </View>
-                            ) : null}
-                            <View style={styles.statItem}>
-                              <Text style={styles.statValue} numberOfLines={1}>
-                                {typeLabel}
-                              </Text>
-                              <Text style={styles.statLabel}>Véhicule</Text>
+                            <View style={styles.typePill}>
+                              <ShieldCheck size={12} color={dark.green} />
+                              <Text style={styles.typePillText}>Vérifié</Text>
                             </View>
                           </View>
-                        ) : null}
-
-                        <View style={styles.seeProfileBtn}>
-                          <Text style={styles.seeProfile}>Voir le profil du moniteur</Text>
-                          <ChevronRight size={16} color={ORANGE} />
                         </View>
-                      </View>
-                    </Bouncy>
-                  </FadeUp>
-                )
-              })}
+                      )
+                    })}
+                  </ScrollView>
 
-              <FadeUp delay={180}>
-                <View style={styles.trustCard}>
-                  <ShieldCheck size={22} color={dark.green} />
-                  <View style={styles.trustCopy}>
-                    <Text style={styles.trustTitle}>Votre sécurité, notre priorité</Text>
-                    <Text style={styles.trustText}>
-                      Tous nos moniteurs sont vérifiés et évalués par nos apprenants.
-                    </Text>
+                  <View style={styles.pickNav}>
+                    <Pressable
+                      hitSlop={10}
+                      accessibilityLabel="Moniteur précédent"
+                      onPress={() => {
+                        const next = Math.max(0, moniteurIndex - 1)
+                        pagerRef.current?.scrollTo({ x: next * pagerWidth, animated: true })
+                        setMoniteurIndex(next)
+                      }}
+                    >
+                      <ChevronLeft size={20} color={moniteurIndex === 0 ? '#CBD5E1' : dark.textPrimary} />
+                    </Pressable>
+                    <View style={styles.pickDots}>
+                      {moniteurs.slice(0, 8).map((m, i) => (
+                        <View key={m.id} style={[styles.pickDot, i === moniteurIndex && styles.pickDotOn]} />
+                      ))}
+                    </View>
+                    <Pressable
+                      hitSlop={10}
+                      accessibilityLabel="Moniteur suivant"
+                      onPress={() => {
+                        const next = Math.min(moniteurs.length - 1, moniteurIndex + 1)
+                        pagerRef.current?.scrollTo({ x: next * pagerWidth, animated: true })
+                        setMoniteurIndex(next)
+                      }}
+                    >
+                      <ChevronRight
+                        size={20}
+                        color={moniteurIndex >= moniteurs.length - 1 ? '#CBD5E1' : dark.textPrimary}
+                      />
+                    </Pressable>
                   </View>
-                  <View style={styles.trustCheck}>
-                    <Check size={14} color={dark.green} strokeWidth={3} />
-                  </View>
+
+                  <Bouncy
+                    scaleTo={0.98}
+                    onPress={() => {
+                      const chosen = moniteurs[Math.min(moniteurIndex, moniteurs.length - 1)]
+                      if (chosen) void loadProfile(chosen.id)
+                    }}
+                  >
+                    <View style={styles.pickBtn}>
+                      <Text style={styles.pickBtnText}>Choisir ce moniteur</Text>
+                      <ChevronRight size={18} color="#FFFFFF" />
+                    </View>
+                  </Bouncy>
                 </View>
-              </FadeUp>
+              ) : null}
             </View>
           ) : null}
 
@@ -1358,9 +1367,42 @@ export function ReservationFlowScreen() {
 }
 
 const styles = StyleSheet.create({
+  pickTitle: { fontFamily: fonts.displayBold, fontSize: 24, color: dark.textPrimary, letterSpacing: -0.4 },
+  pickSub: { marginTop: 2, marginBottom: 14, fontFamily: fonts.body, fontSize: 13.5, color: dark.textMuted },
+  pickCard: {
+    alignItems: 'center',
+    paddingVertical: 26,
+    paddingHorizontal: 20,
+    gap: 6,
+    borderRadius: 30,
+    backgroundColor: '#FFF3E2',
+    borderWidth: 1,
+    borderColor: 'rgba(234,88,12,0.12)',
+  },
+  pickAvatarWrap: { marginBottom: 6 },
+  pickAvatar: { width: 112, height: 112, borderRadius: 56 },
+  pickInitial: { fontFamily: fonts.displayBold, fontSize: 40, color: '#7A3E00' },
+  pickName: { fontFamily: fonts.displayBold, fontSize: 22, color: dark.textPrimary },
+  pickMeta: { fontFamily: fonts.bodyMedium, fontSize: 14, color: dark.textMuted },
+  pickPrice: { marginTop: 4, fontFamily: fonts.displayExtraBold, fontSize: 24, color: '#EA580C' },
+  pickPills: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  pickNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14, marginVertical: 14 },
+  pickDots: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  pickDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#CBD5E1' },
+  pickDotOn: { width: 20, backgroundColor: dark.textPrimary },
+  pickBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 999,
+    backgroundColor: dark.green,
+  },
+  pickBtnText: { fontFamily: fonts.bodyBold, fontSize: 16, color: '#FFFFFF' },
   root: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F4F7FB',
   },
   safe: {
     flex: 1,
@@ -1369,22 +1411,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 8,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,16,48,0.05)',
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 12,
+    backgroundColor: 'transparent',
   },
   roundBtn: {
     width: 44,
     height: 44,
-    borderRadius: 999,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    ...shadows.sm,
+    backgroundColor: '#F1F5F9',
   },
+  topBarSub: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: dark.textMuted },
+  bannerWrap: { marginBottom: 14 },
+  emptyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    marginBottom: 14,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(0,16,48,0.05)',
+    ...shadows.md,
+  },
+  emptyIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E8F0FE',
+  },
+  emptyCardText: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 14, color: dark.textPrimary },
   topBarCenter: {
     flex: 1,
     flexDirection: 'row',
@@ -1402,8 +1464,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   topBarTitle: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 18,
+    fontFamily: fonts.displayBold,
+    fontSize: 19,
+    lineHeight: 23,
     color: dark.textPrimary,
   },
   notifDot: {
@@ -1416,8 +1479,8 @@ const styles = StyleSheet.create({
     backgroundColor: ORANGE,
   },
   scroll: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingTop: 4,
     paddingBottom: 120,
   },
   stickyBar: {
@@ -1492,11 +1555,13 @@ const styles = StyleSheet.create({
   },
   stepperCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    paddingVertical: 18,
+    borderRadius: 26,
+    paddingVertical: 14,
     paddingHorizontal: 12,
-    marginBottom: 20,
-    ...shadows.card,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(0,16,48,0.05)',
+    ...shadows.md,
   },
   stepsRow: {
     flexDirection: 'row',
@@ -1616,11 +1681,13 @@ const styles = StyleSheet.create({
     color: dark.textMuted,
   },
   choice: {
-    borderRadius: 20,
+    borderRadius: 26,
     padding: 16,
     marginBottom: 14,
     backgroundColor: '#FFFFFF',
-    ...shadows.card,
+    borderWidth: 1,
+    borderColor: 'rgba(0,16,48,0.05)',
+    ...shadows.md,
   },
   choiceText: {
     color: dark.textPrimary,
@@ -1747,7 +1814,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 8,
     padding: 16,
-    borderRadius: 18,
+    borderRadius: 24,
     backgroundColor: brand.greenPale,
   },
   trustCopy: {

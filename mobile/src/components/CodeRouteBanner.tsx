@@ -23,7 +23,7 @@ const HOLD_MS = 6000
 const CROSSFADE_MS = 2800
 
 /** Diaporama voitures : fondu croisé très fluide (images empilées). */
-export function CodeRouteBanner() {
+export function CodeRouteBanner({ height, scale = 1, title = 'Code de la route', text = 'Révision, sujets test et examen blanc — avance à ton rythme.', badge = 'Ton parcours' }: { height?: number; scale?: number; onStart?: () => void; title?: string; text?: string; badge?: string }) {
   const [index, setIndex] = useState(0)
   const opacities = useRef(BANNER_IMAGES.map((_, i) => new Animated.Value(i === 0 ? 1 : 0))).current
   const parallax = useRef(new Animated.Value(0)).current
@@ -72,19 +72,19 @@ export function CodeRouteBanner() {
     return () => clearTimeout(timer)
   }, [index, opacities])
 
-  const scale = parallax.interpolate({
+  const zoom = parallax.interpolate({
     inputRange: [0, 1],
     outputRange: [1, 1.04],
   })
 
   return (
-    <View style={styles.banner} accessibilityRole="image">
+    <View style={[styles.banner, height ? { height, marginBottom: 0 } : null]} accessibilityRole="image">
       <View style={styles.stack}>
         {BANNER_IMAGES.map((src, i) => (
           <Animated.Image
             key={i}
             source={src}
-            style={[styles.slide, { opacity: opacities[i], transform: [{ scale }] }]}
+            style={[styles.slide, { opacity: opacities[i], transform: [{ scale: zoom }] }]}
             resizeMode="cover"
           />
         ))}
@@ -97,13 +97,15 @@ export function CodeRouteBanner() {
       />
       <View style={styles.badge} pointerEvents="none">
         <View style={styles.badgeDot} />
-        <Text style={styles.badgeText}>Ton parcours</Text>
+        <Text style={styles.badgeText}>{badge}</Text>
       </View>
       <View style={styles.caption} pointerEvents="none">
-        <Text style={styles.title}>Code de la route</Text>
-        <Text style={styles.text}>
-          Révision, sujets test et examen blanc — avance à ton rythme.
-        </Text>
+        <Text style={[styles.title, { fontSize: 22 * scale, lineHeight: 26 * scale }]}>{title}</Text>
+        {scale >= 0.8 ? (
+          <Text style={[styles.text, { fontSize: 13.5 * scale, lineHeight: 19 * scale }]} numberOfLines={2}>
+            {text}
+          </Text>
+        ) : null}
       </View>
       <View style={styles.dots} pointerEvents="none">
         {BANNER_IMAGES.map((_, i) => (

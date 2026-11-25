@@ -1,6 +1,6 @@
 import { getLocalBankByChapterOrder } from '../data/codeRoute/banks'
 import { apiAuthed } from '../api/client'
-import { clearMediaCache, downloadMedia, getCachedMediaUri, mediaCacheStats, mediaKeyFromUrl } from './mediaCache'
+import { clearMediaCache, downloadMedia, hasMedia, mediaCacheStats } from './mediaCache'
 import { resolveMediaUrl } from './mediaUrl'
 
 /**
@@ -61,15 +61,12 @@ export function listPackMediaUrls(): string[] {
   return [...urls]
 }
 
-/** Combien de médias sont déjà sur l'appareil (sans réseau). */
+/** Combien de médias sont déjà sur l'appareil (vérification réelle des fichiers, sans réseau). */
 export async function offlinePackStatus(): Promise<OfflinePackProgress> {
   const urls = listPackMediaUrls()
-  const stats = await mediaCacheStats()
-  const keys = new Set(urls.map((url) => mediaKeyFromUrl(url)).filter((key): key is string => Boolean(key)))
   let done = 0
-  // Le total en octets vient de l'index ; le nombre de fichiers présents se recoupe avec la liste attendue.
-  const { isMediaDownloaded } = await import('./mediaCache')
-  for (const key of keys) if (await isMediaDownloaded(key)) done += 1
+  for (const url of urls) if (await hasMedia(url)) done += 1
+  const stats = await mediaCacheStats()
   const total = urls.length
   return { running: false, done, total, bytes: stats.bytes, failed: 0, complete: total > 0 && done >= total }
 }
@@ -100,11 +97,21 @@ export async function startOfflinePackDownload(): Promise<OfflinePackProgress> {
   const urls = listPackMediaUrls()
   const pending: string[] = []
   for (const url of urls) {
-    if (!(await getCachedMediaUri(url))) pending.push(url)
+    if (!(await hasMedia(url))) pending.push(url)
   }
   let done = urls.length - pending.length
   let failed = 0
   publish({ running: true, total: urls.length, done, failed: 0, complete: false })
+
+  // Chaque fichier est retenté (réseau instable) ; un fichier réellement introuvable est compté en échec.
+  const fetchWithRetry = async (url: string) => {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      if (cancelRequested) return false
+      if (await downloadMedia(url)) return true
+      await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1) ** 2))
+    }
+    return false
+  }
 
   let cursor = 0
   const worker = async () => {
@@ -112,7 +119,7 @@ export async function startOfflinePackDownload(): Promise<OfflinePackProgress> {
       const index = cursor
       cursor += 1
       if (index >= pending.length) return
-      const ok = await downloadMedia(pending[index])
+      const ok = await fetchWithRetry(pending[index])
       if (ok) done += 1
       else failed += 1
       if ((done + failed) % 5 === 0 || done + failed === urls.length) {

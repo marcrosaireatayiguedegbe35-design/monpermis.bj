@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
-import { CheckCircle2, CloudDownload, Trash2, WifiOff } from 'lucide-react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Check, CloudDownload, FileText, Pause, Play, Trash2, WifiOff } from 'lucide-react-native'
+import Svg, { Circle } from 'react-native-svg'
 import { useOffline } from '../context/OfflineContext'
 import {
   cancelOfflinePackDownload,
@@ -11,15 +12,50 @@ import {
   subscribeOfflinePack,
   type OfflinePackProgress,
 } from '../utils/offlinePack'
-import { dark, fonts, radii } from '../theme'
+import { dark, fonts, radii, shadows } from '../theme'
 
 const formatMo = (bytes: number) => `${Math.max(1, Math.round(bytes / (1024 * 1024)))} Mo`
+
+const STROKE = 6
+
+/** Anneau de progression (pourcentage au centre). */
+function ProgressRing({ ratio, complete, size: RING }: { ratio: number; complete: boolean; size: number }) {
+  const radius = (RING - STROKE) / 2
+  const circumference = 2 * Math.PI * radius
+  const offset = circumference * (1 - Math.min(1, Math.max(0, ratio)))
+  return (
+    <View style={{ width: RING, height: RING }}>
+      <Svg width={RING} height={RING}>
+        <Circle cx={RING / 2} cy={RING / 2} r={radius} stroke="#E6EEF8" strokeWidth={STROKE} fill="none" />
+        <Circle
+          cx={RING / 2}
+          cy={RING / 2}
+          r={radius}
+          stroke={dark.green}
+          strokeWidth={STROKE}
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={offset}
+          transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
+        />
+      </Svg>
+      <View style={styles.ringCenter} pointerEvents="none">
+        {complete ? (
+          <Check size={30} color={dark.green} strokeWidth={3} />
+        ) : (
+          <Text style={[styles.ringText, { fontSize: RING * 0.26 }]}>{Math.round(ratio * 100)}%</Text>
+        )}
+      </View>
+    </View>
+  )
+}
 
 /**
  * Carte « Code sans connexion » : télécharge les audios et images pour réviser et passer des examens
  * hors ligne pendant toute la durée de l'abonnement. À n'afficher que si l'accès Code est actif.
  */
-export function OfflinePackCard() {
+export function OfflinePackCard({ height, scale = 1 }: { height?: number; scale?: number }) {
   const { isOffline } = useOffline()
   const [progress, setProgress] = useState<OfflinePackProgress | null>(null)
   const [sizeBytes, setSizeBytes] = useState<number | null>(null)
@@ -40,109 +76,92 @@ export function OfflinePackCard() {
   const ratio = total > 0 ? Math.min(1, done / total) : 0
 
   return (
-    <View style={styles.card}>
-      <View style={styles.row}>
-        <View style={[styles.iconWrap, complete && styles.iconWrapDone]}>
-          {complete ? (
-            <CheckCircle2 size={20} color="#FFFFFF" />
-          ) : isOffline ? (
-            <WifiOff size={20} color="#FFFFFF" />
-          ) : (
-            <CloudDownload size={20} color="#FFFFFF" />
-          )}
-        </View>
-        <View style={styles.copy}>
-          <Text style={styles.title}>
-            {complete ? 'Code disponible sans connexion' : 'Utiliser le Code sans connexion'}
-          </Text>
-          <Text style={styles.sub}>
-            {complete
-              ? 'Les questions, les audios et les images sont sur ton téléphone, pendant toute la durée de ton abonnement.'
-              : isOffline
-                ? 'Connecte-toi à internet pour télécharger les audios et images.'
-                : `Télécharge les audios et images une fois${sizeBytes ? ` (≈ ${formatMo(sizeBytes)})` : ''}, de préférence en Wi-Fi, puis révise et passe des examens sans internet.`}
-          </Text>
-        </View>
+    <View style={[styles.card, height ? { height, marginBottom: 0 } : null]}>
+      <ProgressRing ratio={complete ? 1 : ratio} complete={complete} size={Math.round(58 * scale)} />
+      <View style={styles.copy}>
+        <Text style={[styles.title, { fontSize: 15 * scale, lineHeight: 19 * scale }]} numberOfLines={1}>
+          {complete ? 'Code sans connexion prêt' : 'Code sans connexion'}
+        </Text>
+        <Text style={[styles.sub, { fontSize: 12.5 * scale }]} numberOfLines={1}>
+          {isOffline && !complete
+            ? 'Connecte-toi pour télécharger'
+            : `${done} / ${total} fichiers${progress.bytes ? ` • ${formatMo(progress.bytes)}` : ''}${failed > 0 ? ` • ${failed} à réessayer` : ''}`}
+        </Text>
       </View>
-
-      {running || (!complete && done > 0) ? (
-        <View style={styles.progressBlock}>
-          <View style={styles.track}>
-            <View style={[styles.fill, { width: `${Math.round(ratio * 100)}%` }]} />
-          </View>
-          <Text style={styles.progressText}>
-            {done} / {total} fichiers{progress.bytes ? ` · ${formatMo(progress.bytes)}` : ''}
-            {failed > 0 ? ` · ${failed} à réessayer` : ''}
-          </Text>
-        </View>
-      ) : null}
-
-      <View style={styles.actions}>
-        {running ? (
-          <Pressable style={[styles.btn, styles.btnGhost]} onPress={cancelOfflinePackDownload}>
-            <ActivityIndicator size="small" color={dark.green} />
-            <Text style={styles.btnGhostText}>Mettre en pause</Text>
-          </Pressable>
-        ) : complete ? (
-          <Pressable style={[styles.btn, styles.btnGhost]} onPress={() => void removeOfflinePack()}>
-            <Trash2 size={16} color={dark.textMuted} />
-            <Text style={[styles.btnGhostText, { color: dark.textMuted }]}>Libérer l’espace</Text>
-          </Pressable>
-        ) : (
-          <Pressable
-            style={[styles.btn, styles.btnPrimary, isOffline && styles.btnDisabled]}
-            disabled={isOffline}
-            onPress={start}
-          >
-            <CloudDownload size={16} color="#FFFFFF" />
-            <Text style={styles.btnPrimaryText}>{done > 0 ? 'Reprendre le téléchargement' : 'Télécharger'}</Text>
-          </Pressable>
-        )}
-      </View>
+      {running ? (
+        <Pressable style={[styles.btn, styles.btnGhost]} onPress={cancelOfflinePackDownload}>
+          <Pause size={15} color={dark.green} />
+          <Text style={styles.btnGhostText}>Pause</Text>
+        </Pressable>
+      ) : complete ? (
+        <Pressable style={[styles.btn, styles.btnGhost]} onPress={() => void removeOfflinePack()}>
+          <Trash2 size={15} color={dark.textMuted} />
+          <Text style={[styles.btnGhostText, { color: dark.textMuted }]}>Libérer</Text>
+        </Pressable>
+      ) : (
+        <Pressable
+          style={[styles.btn, styles.btnPrimary, isOffline && styles.btnDisabled]}
+          disabled={isOffline}
+          onPress={start}
+        >
+          <Play size={15} color="#FFFFFF" fill="#FFFFFF" />
+          <Text style={styles.btnPrimaryText}>{done > 0 ? 'Reprendre' : 'Télécharger'}</Text>
+        </Pressable>
+      )}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   card: {
-    marginTop: 14,
-    padding: 14,
-    borderRadius: radii.lg,
-    backgroundColor: '#F0FDF4',
+    marginBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 26,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(0,176,80,0.25)',
-    gap: 10,
+    borderColor: 'rgba(0,16,48,0.05)',
+    ...shadows.md,
   },
-  row: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  top: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  ringCenter: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: dark.textPrimary,
   },
-  iconWrapDone: { backgroundColor: dark.green },
-  copy: { flex: 1, gap: 2 },
-  title: { fontFamily: fonts.bodyBold, fontSize: 15, color: dark.textPrimary },
+  ringText: { fontFamily: fonts.displayBold, fontSize: 22, color: dark.textPrimary },
+  copy: { flex: 1, minWidth: 0, gap: 2 },
+  title: { fontFamily: fonts.displayBold, fontSize: 16, lineHeight: 21, color: dark.textPrimary },
   sub: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: dark.textMuted },
-  progressBlock: { gap: 6 },
-  track: { height: 8, borderRadius: 4, backgroundColor: 'rgba(0,16,48,0.08)', overflow: 'hidden' },
-  fill: { height: 8, borderRadius: 4, backgroundColor: dark.green },
-  progressText: { fontFamily: fonts.body, fontSize: 12, color: dark.textMuted },
-  actions: { flexDirection: 'row' },
+  cloud: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E8F0FE',
+    alignSelf: 'flex-start',
+  },
+  cloudDone: { backgroundColor: dark.greenSoft },
+  divider: { height: 1, backgroundColor: 'rgba(0,16,48,0.07)', marginTop: 14, marginBottom: 12 },
+  bottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  fileInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  fileText: { flexShrink: 1, fontFamily: fonts.bodyMedium, fontSize: 14, color: dark.textPrimary },
   btn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 11,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderRadius: radii.pill,
   },
-  btnPrimary: { backgroundColor: dark.green },
-  btnPrimaryText: { fontFamily: fonts.bodyBold, fontSize: 14, color: '#FFFFFF' },
-  btnGhost: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.12)' },
+  btnPrimary: { backgroundColor: '#16A34A' },
+  btnPrimaryText: { fontFamily: fonts.bodyBold, fontSize: 15, color: '#FFFFFF' },
+  btnGhost: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.14)' },
   btnGhostText: { fontFamily: fonts.bodyBold, fontSize: 14, color: dark.green },
   btnDisabled: { opacity: 0.5 },
 })

@@ -163,7 +163,7 @@ async function loadAccessSnapshot(): Promise<AccessMe | null> {
 }
 
 export async function fetchAccessMe(): Promise<AccessMe> {
-  try {
+  const fromNetwork = async (): Promise<AccessMe> => {
     const me = await apiAuthed<AccessMe>('/access-requests/me').catch((error) => {
       // Une courte coupure réseau : une seule nouvelle tentative avant de se rabattre sur le dernier état connu.
       if (error instanceof ApiError && error.status === undefined) return apiAuthed<AccessMe>('/access-requests/me')
@@ -171,6 +171,18 @@ export async function fetchAccessMe(): Promise<AccessMe> {
     })
     void saveAccessSnapshot(me)
     return me
+  }
+  try {
+    // Si le serveur tarde (démarrage à froid) et qu'un accès est déjà connu sur l'appareil, on l'utilise
+    // tout de suite : la page s'affiche sans attendre, valable jusqu'à la fin de l'abonnement.
+    const snapshot = await loadAccessSnapshot()
+    if (!snapshot) return await fromNetwork()
+    const pending = fromNetwork()
+    pending.catch(() => undefined)
+    return await Promise.race([
+      pending,
+      new Promise<AccessMe>((resolve) => setTimeout(() => resolve(snapshot), 6000)),
+    ]).catch(() => snapshot)
   } catch (error) {
     if (error instanceof ApiError && error.status === undefined) {
       const snapshot = await loadAccessSnapshot()

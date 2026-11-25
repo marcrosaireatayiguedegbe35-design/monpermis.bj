@@ -3,12 +3,13 @@ import { Platform } from 'react-native'
 
 /**
  * Stockage durable des audios et images des questions pour l'usage hors connexion.
- * - Web : Cache Storage du navigateur.
+ * - Web : IndexedDB du navigateur (fonctionne aussi en http sur le réseau local, contrairement au Cache Storage).
  * - Mobile : dossier persistant de l'application (expo-file-system), jamais purgé par le système.
  * Les médias sont adressés par leur chemin `/content/code-audio|code-images/chapitre-N/X.ext`.
  */
 const INDEX_KEY = '@mp/media-index:v1'
-const WEB_CACHE = 'mp-media-v1'
+const WEB_DB = 'mp-media-v2'
+const WEB_STORE = 'files'
 const DIR_NAME = 'mp-media/'
 
 type MediaIndex = { files: Record<string, number> } // clé → taille en octets
@@ -36,13 +37,47 @@ async function readIndex(): Promise<MediaIndex> {
   return indexMemory
 }
 
+let writeChain: Promise<void> = Promise.resolve()
+
+/** Écritures sérialisées : la dernière version de l'index est toujours celle qui reste enregistrée. */
 async function writeIndex(index: MediaIndex) {
   indexMemory = index
-  try {
-    await AsyncStorage.setItem(INDEX_KEY, JSON.stringify(index))
-  } catch {
-    /* ignore */
-  }
+  writeChain = writeChain
+    .catch(() => undefined)
+    .then(() => AsyncStorage.setItem(INDEX_KEY, JSON.stringify(indexMemory)))
+    .catch(() => undefined)
+  await writeChain
+}
+
+function openWebDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(WEB_DB, 1)
+    request.onupgradeneeded = () => request.result.createObjectStore(WEB_STORE)
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+}
+
+async function webPut(key: string, blob: Blob) {
+  const db = await openWebDb()
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(WEB_STORE, 'readwrite')
+    tx.objectStore(WEB_STORE).put(blob, key)
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
+  db.close()
+}
+
+async function webGet(key: string): Promise<Blob | undefined> {
+  const db = await openWebDb()
+  const blob = await new Promise<Blob | undefined>((resolve, reject) => {
+    const request = db.transaction(WEB_STORE, 'readonly').objectStore(WEB_STORE).get(key)
+    request.onsuccess = () => resolve(request.result as Blob | undefined)
+    request.onerror = () => reject(request.error)
+  })
+  db.close()
+  return blob
 }
 
 async function fileSystem() {
@@ -53,21 +88,50 @@ function nativePath(base: string, key: string) {
   return `${base}${DIR_NAME}${key.replace(/\//g, '__')}`
 }
 
+async function webHas(key: string): Promise<boolean> {
+  const db = await openWebDb()
+  const count = await new Promise<number>((resolve, reject) => {
+    const request = db.transaction(WEB_STORE, 'readonly').objectStore(WEB_STORE).count(key)
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+  db.close()
+  return count > 0
+}
+
+/** Le fichier est-il réellement sur l'appareil ? (indépendant de l'index, qui peut être en retard). */
+async function existsOnDevice(key: string): Promise<boolean> {
+  try {
+    if (isWeb) return typeof indexedDB !== 'undefined' && (await webHas(key))
+    const FS = await fileSystem()
+    return (await FS.getInfoAsync(nativePath(FS.documentDirectory ?? '', key))).exists
+  } catch {
+    return false
+  }
+}
+
+/** Vérifie la présence réelle d'un média et rattrape l'index s'il l'avait oublié. */
+export async function hasMedia(url: string): Promise<boolean> {
+  const key = mediaKeyFromUrl(url)
+  if (!key) return false
+  if (!(await existsOnDevice(key))) return false
+  const index = await readIndex()
+  if (index.files[key] == null) await writeIndex({ files: { ...index.files, [key]: 0 } })
+  return true
+}
+
 /** URI locale d'un média déjà téléchargé, ou `undefined`. Ne touche jamais le réseau. */
 export async function getCachedMediaUri(url: string): Promise<string | undefined> {
   const key = mediaKeyFromUrl(url)
   if (!key) return undefined
-  const index = await readIndex()
-  if (index.files[key] == null) return undefined
   try {
     if (isWeb) {
       const existing = webObjectUrls.get(key)
       if (existing) return existing
-      if (typeof caches === 'undefined') return undefined
-      const cache = await caches.open(WEB_CACHE)
-      const response = await cache.match(url.split('?')[0]) // la version (?v=) ne change pas le fichier
-      if (!response) return undefined
-      const objectUrl = URL.createObjectURL(await response.blob())
+      if (typeof indexedDB === 'undefined') return undefined
+      const blob = await webGet(key)
+      if (!blob) return undefined
+      const objectUrl = URL.createObjectURL(blob)
       webObjectUrls.set(key, objectUrl)
       return objectUrl
     }
@@ -84,17 +148,17 @@ export async function getCachedMediaUri(url: string): Promise<string | undefined
 export async function downloadMedia(url: string): Promise<boolean> {
   const key = mediaKeyFromUrl(url)
   if (!key) return false
-  const index = await readIndex()
-  if (index.files[key] != null && (await getCachedMediaUri(url))) return true
+  if (await hasMedia(url)) return true
   try {
     let bytes = 0
     if (isWeb) {
-      if (typeof caches === 'undefined') return false
+      if (typeof indexedDB === 'undefined') return false
       const response = await fetch(url.split('?')[0])
       if (!response.ok) return false
-      const cache = await caches.open(WEB_CACHE)
-      await cache.put(url.split('?')[0], response.clone())
-      bytes = Number(response.headers.get('content-length')) || (await response.clone().blob()).size
+      const blob = await response.blob()
+      if (blob.size === 0) return false
+      await webPut(key, blob)
+      bytes = blob.size
     } else {
       const FS = await fileSystem()
       const base = FS.documentDirectory ?? ''
@@ -142,9 +206,14 @@ export async function clearMediaCache() {
   const index = await readIndex()
   try {
     if (isWeb) {
-      if (typeof caches !== 'undefined') await caches.delete(WEB_CACHE)
       for (const url of webObjectUrls.values()) URL.revokeObjectURL(url)
       webObjectUrls.clear()
+      if (typeof indexedDB !== 'undefined') {
+        await new Promise<void>((resolve) => {
+          const request = indexedDB.deleteDatabase(WEB_DB)
+          request.onsuccess = request.onerror = request.onblocked = () => resolve()
+        })
+      }
     } else {
       const FS = await fileSystem()
       await FS.deleteAsync(`${FS.documentDirectory ?? ''}${DIR_NAME}`, { idempotent: true })

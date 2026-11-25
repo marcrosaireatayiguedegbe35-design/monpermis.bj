@@ -10,6 +10,7 @@ let configuredEnvironment = ''
  * Identifiants UI (app / web) → modes API FedaPay (Benin, sans redirection).
  * Docs : mtn_open (MTN BJ), moov (Moov BJ), sbin (Celtiis BJ).
  */
+export const PLATFORM_ID = String(process.env.FEDAPAY_PLATFORM_ID || 'monpermis').trim() || 'monpermis'
 export const FEDAPAY_MOBILE_OPERATORS = ['mtn', 'moov', 'celtiis']
 
 const UI_TO_FEDAPAY_MODE = {
@@ -279,7 +280,8 @@ export async function createFedaPayCheckout({
     amount: safeAmount,
     currency: { iso: 'XOF' },
     callback_url: safeCallbackUrl,
-    custom_metadata: customMetadata,
+    // Étiquette d'origine : permet d'identifier cette plateforme parmi les autres SaaS branchés sur le même compte FedaPay.
+    custom_metadata: { ...customMetadata, platform: PLATFORM_ID },
   }
 
   const attemptCreate = async (includeEmail) => {

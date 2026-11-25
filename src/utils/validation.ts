@@ -27,8 +27,8 @@ export function validateLoginIdentifier(value: string): string | undefined {
   return validatePhone(value)
 }
 
-/** Format attendu : 0147880143 */
-export const PHONE_PLACEHOLDER = '0147880143'
+/** Texte indicatif du champ (volontairement sans numéro d'exemple). */
+export const PHONE_PLACEHOLDER = 'Numéro de téléphone'
 const PHONE_PATTERN = /^\d{10}$/
 
 export function normalizePhone(phone: string): string {
@@ -44,7 +44,7 @@ export function validatePhone(phone: string): string | undefined {
   if (!phone.trim()) return 'Le téléphone est requis'
   const normalized = normalizePhone(phone)
   if (!PHONE_PATTERN.test(normalized)) {
-    return `Format invalide. Exemple : ${PHONE_PLACEHOLDER}`
+    return 'Format invalide : saisis les 10 chiffres de ton numéro (ex. 01 XX XX XX XX).'
   }
   return undefined
 }

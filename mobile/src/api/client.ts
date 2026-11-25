@@ -55,6 +55,8 @@ function mergeHeaders(
   return { ...base, ...(extra as Record<string, string>) }
 }
 
+const REQUEST_TIMEOUT_MS = 12000
+
 async function fetchWithRetries(
   url: string,
   init: RequestInit,
@@ -63,7 +65,14 @@ async function fetchWithRetries(
   let lastError: unknown
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      return await fetch(url, init)
+      // Délai maximal : sans réponse, la requête échoue au lieu de laisser l'écran bloqué indéfiniment.
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+      try {
+        return await fetch(url, { signal: controller.signal, ...init })
+      } finally {
+        clearTimeout(timer)
+      }
     } catch (error) {
       lastError = error
       if (attempt < retries) {
