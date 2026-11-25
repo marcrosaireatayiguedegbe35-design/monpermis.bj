@@ -9,7 +9,14 @@ import {
 } from 'react'
 import { ApiError } from '../api/client'
 import { useIdleLogout } from '../hooks/useIdleLogout'
-import { fetchMoniteurMe, loginMoniteur, logoutMoniteur, type MoniteurUser } from '../api/auth'
+import {
+  changeMoniteurPassword,
+  completeMoniteurOnboarding,
+  fetchMoniteurMe,
+  loginMoniteur,
+  logoutMoniteur,
+  type MoniteurUser,
+} from '../api/auth'
 
 const TOKEN_KEY = 'monpermis_moniteur_token'
 
@@ -38,6 +45,10 @@ interface MoniteurAuthContextValue {
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ homePath: string }>
   signOut: () => void
+  /** Remplace le mot de passe provisoire par celui choisi par le moniteur. */
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>
+  /** Termine le parcours photo / véhicule / horaires et ouvre le tableau de bord. */
+  completeOnboarding: () => Promise<void>
 }
 
 const MoniteurAuthContext = createContext<MoniteurAuthContextValue | null>(null)
@@ -78,9 +89,24 @@ export function MoniteurAuthProvider({ children }: { children: ReactNode }) {
     return { homePath: homePath || '/' }
   }, [])
 
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    const token = readToken()
+    if (!token) throw new Error('Session expirée')
+    const { moniteur: updated, token: newToken } = await changeMoniteurPassword(token, currentPassword, newPassword)
+    writeToken(newToken)
+    setMoniteur(updated)
+  }, [])
+
+  const completeOnboarding = useCallback(async () => {
+    const token = readToken()
+    if (!token) throw new Error('Session expirée')
+    const { moniteur: updated } = await completeMoniteurOnboarding(token)
+    setMoniteur(updated)
+  }, [])
+
   const value = useMemo(
-    () => ({ moniteur, loading, signIn, signOut }),
-    [moniteur, loading, signIn, signOut],
+    () => ({ moniteur, loading, signIn, signOut, changePassword, completeOnboarding }),
+    [moniteur, loading, signIn, signOut, changePassword, completeOnboarding],
   )
 
   return <MoniteurAuthContext.Provider value={value}>{children}</MoniteurAuthContext.Provider>

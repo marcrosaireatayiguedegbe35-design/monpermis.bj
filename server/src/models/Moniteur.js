@@ -29,6 +29,10 @@ const moniteurSchema = new mongoose.Schema(
     },
     passwordHash: { type: String, default: '', select: false },
     activeLogin: { type: Boolean, default: false },
+    /** Mot de passe provisoire donné par l'administration : à changer à la première connexion. */
+    mustChangePassword: { type: Boolean, default: false },
+    /** Compte créé par l'administration : photo, véhicule et horaires à renseigner après le premier mot de passe. */
+    needsOnboarding: { type: Boolean, default: false },
     lastLoginAt: { type: Date },
     /** Verrouillage anti force brute (même politique que les admins). */
     failedLoginAttempts: { type: Number, default: 0 },
@@ -62,6 +66,8 @@ const moniteurSchema = new mongoose.Schema(
   },
   { timestamps: true },
 )
+
+moniteurSchema.index({ phone: 1 })
 
 moniteurSchema.index(
   { email: 1 },
@@ -114,6 +120,7 @@ moniteurSchema.methods.toJSONSafe = function toJSONSafe() {
     email: this.email || '',
     activeLogin: Boolean(this.activeLogin),
     hasPassword: Boolean(this.passwordHash),
+    mustChangePassword: Boolean(this.mustChangePassword),
     lastLoginAt: this.lastLoginAt || null,
     specialties: this.specialties || [],
     vehicleTypes: this.vehicleTypes || [],
@@ -142,6 +149,8 @@ moniteurSchema.methods.toAuthJSON = function toAuthJSON() {
     email: this.email || '',
     phone: this.phone || '',
     activeLogin: Boolean(this.activeLogin),
+    mustChangePassword: Boolean(this.mustChangePassword),
+    needsOnboarding: Boolean(this.needsOnboarding),
     photoUrl: this.photoUrl || '',
     city: this.city || '',
   }

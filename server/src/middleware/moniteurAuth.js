@@ -2,7 +2,12 @@ import jwt from 'jsonwebtoken'
 import { Moniteur } from '../models/Moniteur.js'
 import { isTokenRevoked } from './security.js'
 
-export async function requireMoniteurAuth(req, res, next) {
+/**
+ * Authentification moniteur. Tant que le mot de passe provisoire n'est pas changé, seules les routes
+ * qui l'autorisent explicitement (`allowPasswordChange`) répondent : session, déconnexion, changement.
+ */
+function buildMoniteurAuth({ allowPasswordChange }) {
+  return async function moniteurAuth(req, res, next) {
   try {
     const header = req.headers.authorization
     if (!header?.startsWith('Bearer ')) {
@@ -38,9 +43,21 @@ export async function requireMoniteurAuth(req, res, next) {
       })
     }
 
+    if (moniteur.mustChangePassword && !allowPasswordChange) {
+      return res.status(403).json({
+        success: false,
+        error: 'Choisissez d’abord votre nouveau mot de passe',
+        code: 'PASSWORD_CHANGE_REQUIRED',
+      })
+    }
+
     req.moniteur = moniteur
     next()
   } catch {
     return res.status(401).json({ success: false, error: 'Session expirée ou invalide' })
   }
+  }
 }
+
+export const requireMoniteurAuth = buildMoniteurAuth({ allowPasswordChange: false })
+export const requireMoniteurAuthAllowPasswordChange = buildMoniteurAuth({ allowPasswordChange: true })

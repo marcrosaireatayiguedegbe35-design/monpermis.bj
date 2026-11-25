@@ -8,6 +8,9 @@ export interface MoniteurUser {
   email: string
   phone: string
   activeLogin: boolean
+  mustChangePassword?: boolean
+  /** Photo, véhicule et horaires à renseigner après le premier mot de passe. */
+  needsOnboarding?: boolean
   photoUrl?: string
   city?: string
 }
@@ -18,11 +21,23 @@ interface AuthResponse {
   homePath?: string
 }
 
-export function loginMoniteur(email: string, password: string) {
+export function loginMoniteur(login: string, password: string) {
   return apiFetch<AuthResponse>('/api/moniteur/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ login, password }),
   })
+}
+
+export function changeMoniteurPassword(token: string, currentPassword: string, newPassword: string) {
+  return apiFetch<{ moniteur: MoniteurUser; token: string }>(
+    '/api/moniteur/auth/change-password',
+    { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) },
+    token,
+  )
+}
+
+export function completeMoniteurOnboarding(token: string) {
+  return apiFetch<{ moniteur: MoniteurUser }>('/api/moniteur/auth/onboarding-complete', { method: 'POST' }, token)
 }
 
 export function logoutMoniteur(token: string) {

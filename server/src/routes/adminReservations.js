@@ -17,6 +17,7 @@ import {
 } from '../utils/localDate.js'
 import { creditHeuresEffectueesForCompletion } from '../utils/reservationLifecycle.js'
 import { passwordPolicyError } from '../middleware/security.js'
+import { normalizeBeninPhone } from '../services/fedapay.js'
 import { filterAllowedMoniteurVideos } from '../utils/moniteurVideos.js'
 import { sanitizePublicUrl, sanitizePublicUrlList } from '../utils/publicUrl.js'
 
@@ -95,20 +96,26 @@ router.get('/moniteurs', async (_req, res) => {
 
 router.post('/moniteurs', audit('create', 'moniteur'), async (req, res) => {
   try {
+    // L'administration ne donne que le téléphone et un mot de passe provisoire :
+    // le moniteur complète lui-même son nom, sa photo, son véhicule, etc.
+    const phone = normalizeBeninPhone(req.body.phone)
+    if (!phone) {
+      return res.status(400).json({ success: false, error: 'Numéro de téléphone invalide' })
+    }
+    if (await Moniteur.exists({ phone })) {
+      return res.status(409).json({ success: false, error: 'Ce numéro est déjà utilisé par un moniteur' })
+    }
+
     let firstName = String(req.body.firstName || '').trim()
     let lastName = String(req.body.lastName || '').trim()
     const fullName = String(req.body.fullName || req.body.name || '').trim()
-
     if ((!firstName || !lastName) && fullName) {
       const parts = fullName.split(/\s+/).filter(Boolean)
       firstName = parts[0] || fullName
       lastName = parts.slice(1).join(' ') || '—'
     }
-
-    if (firstName.length < 2) {
-      return res.status(400).json({ success: false, error: 'Nom du moniteur requis' })
-    }
-    if (lastName.length < 1) lastName = '—'
+    if (firstName.length < 2) firstName = 'Nouveau'
+    if (lastName.length < 1) lastName = 'moniteur'
 
     const password = String(req.body.password || '')
     const pwdError = passwordPolicyError(password)
@@ -126,9 +133,11 @@ router.post('/moniteurs', audit('create', 'moniteur'), async (req, res) => {
     const moniteur = await Moniteur.create({
       firstName,
       lastName,
-      phone: String(req.body.phone || '').trim(),
+      phone,
       email,
       activeLogin: req.body.activeLogin === false ? false : true,
+      mustChangePassword: true,
+      needsOnboarding: true,
       specialties: Array.isArray(req.body.specialties)
         ? req.body.specialties.map((item) => String(item).trim()).filter(Boolean)
         : [],
@@ -156,6 +165,7 @@ router.post('/moniteurs', audit('create', 'moniteur'), async (req, res) => {
       data: {
         moniteur: saved.toJSONSafe(),
         loginEmail: saved.email || email,
+        loginPhone: saved.phone,
       },
     })
   } catch (error) {
@@ -184,7 +194,21 @@ router.patch('/moniteurs/:id', audit('update', 'moniteur'), async (req, res) => 
     }
     if (req.body.firstName !== undefined) moniteur.firstName = String(req.body.firstName).trim()
     if (req.body.lastName !== undefined) moniteur.lastName = String(req.body.lastName).trim()
-    if (req.body.phone !== undefined) moniteur.phone = String(req.body.phone).trim()
+    if (req.body.phone !== undefined) {
+      const raw = String(req.body.phone || '').trim()
+      if (raw) {
+        const phone = normalizeBeninPhone(raw)
+        if (!phone) {
+          return res.status(400).json({ success: false, error: 'Numéro de téléphone invalide' })
+        }
+        if (await Moniteur.exists({ phone, _id: { $ne: moniteur._id } })) {
+          return res.status(409).json({ success: false, error: 'Ce numéro est déjà utilisé par un moniteur' })
+        }
+        moniteur.phone = phone
+      } else {
+        moniteur.phone = ''
+      }
+    }
     if (req.body.email !== undefined) {
       moniteur.email = String(req.body.email || '')
         .trim()
@@ -200,6 +224,8 @@ router.patch('/moniteurs/:id', audit('update', 'moniteur'), async (req, res) => 
         return res.status(400).json({ success: false, error: pwdError })
       }
       await moniteur.setPassword(password)
+      // Nouveau mot de passe attribué par l'administration : provisoire, à changer à la connexion.
+      moniteur.mustChangePassword = true
     }
     if (req.body.specialties !== undefined) {
       moniteur.specialties = Array.isArray(req.body.specialties)

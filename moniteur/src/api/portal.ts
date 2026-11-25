@@ -226,6 +226,8 @@ export function fetchProfile(token: string) {
 export function updateProfile(
   token: string,
   payload: Partial<{
+    firstName: string
+    lastName: string
     phone: string
     city: string
     bio: string

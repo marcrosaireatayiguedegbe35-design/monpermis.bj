@@ -177,10 +177,10 @@ export function MoniteursPage() {
     e.preventDefault()
     const token = getAdminToken()
     if (!token) return
-    const name = moniteurName.trim()
+    const phone = moniteurName.trim()
     const password = createPassword
-    if (name.length < 2) {
-      setError('Saisissez le nom du moniteur')
+    if (phone.replace(/\D/g, '').length < 8) {
+      setError('Saisissez le numéro de téléphone du moniteur')
       return
     }
     if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password)) {
@@ -193,18 +193,15 @@ export function MoniteursPage() {
     setCreatedLoginEmail(null)
     try {
       const data = await createMoniteur(token, {
-        fullName: name,
+        phone,
         password,
         activeLogin: true,
       })
-      const loginEmail = data.loginEmail || data.moniteur.email || ''
       setMoniteurName('')
       setCreatePassword('')
-      setCreatedLoginEmail(loginEmail || null)
+      setCreatedLoginEmail(null)
       setSuccess(
-        loginEmail
-          ? `Compte « ${data.moniteur.fullName} » créé. Identifiant : ${loginEmail} — remettez-le avec le mot de passe au moniteur. Le profil public se remplit sur le portail.`
-          : `Compte « ${data.moniteur.fullName} » créé.`,
+        `Compte créé pour le ${data.loginPhone || data.moniteur.phone}. Donnez-lui ce numéro et le mot de passe provisoire : à sa première connexion, il choisira son propre mot de passe puis complétera son profil.`,
       )
       await load()
     } catch (err) {
@@ -481,27 +478,29 @@ export function MoniteursPage() {
           <div className="cx-ph-txt">
             <h2 className="cx-panel-title">Créer un compte moniteur</h2>
             <p className="cx-muted">
-              Un identifiant de connexion est généré automatiquement. Photos, véhicule, ville et bio sont saisis par le
-              moniteur sur son portail.
+              Il suffit du numéro de téléphone et d’un mot de passe provisoire. Le moniteur se connecte avec ce numéro,
+              change son mot de passe, puis remplit lui-même son nom, sa photo, son véhicule, sa ville et sa présentation.
             </p>
           </div>
         </div>
         <form onSubmit={handleCreateMoniteur} className="cx-field-row">
           <input
             className="cx-input"
+            type="tel"
+            inputMode="tel"
             value={moniteurName}
             onChange={(e) => setMoniteurName(e.target.value)}
-            placeholder="Nom complet"
+            placeholder="Numéro de téléphone"
+            autoComplete="off"
             required
-            minLength={2}
           />
           <input
             className="cx-input"
-            type="password"
+            type="text"
             value={createPassword}
             onChange={(e) => setCreatePassword(e.target.value)}
-            placeholder="Mot de passe (min. 8)"
-            autoComplete="new-password"
+            placeholder="Mot de passe provisoire (min. 8)"
+            autoComplete="off"
             required
             minLength={8}
           />

@@ -35,6 +35,8 @@ function UploadButton({
 export function ProfilPage() {
   const { moniteur } = useMoniteurAuth()
   const [profile, setProfile] = useState<MoniteurProfile | null>(null)
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [phone, setPhone] = useState('')
   const [city, setCity] = useState('')
   const [bio, setBio] = useState('')
@@ -57,6 +59,8 @@ export function ProfilPage() {
 
   const applyProfile = (data: MoniteurProfile) => {
     setProfile(data)
+    setFirstName(data.firstName === 'Nouveau' ? '' : data.firstName || '')
+    setLastName(data.lastName === 'moniteur' && data.firstName === 'Nouveau' ? '' : data.lastName || '')
     setPhone(data.phone || '')
     setCity(data.city || '')
     setBio(data.bio || '')
@@ -124,6 +128,8 @@ export function ProfilPage() {
     setSuccess(null)
     try {
       const payload: Parameters<typeof updateProfile>[1] = {
+        ...(firstName.trim() ? { firstName: firstName.trim() } : {}),
+        ...(lastName.trim() ? { lastName: lastName.trim() } : {}),
         phone: phone.trim(),
         city: city.trim(),
         bio: bio.trim(),
@@ -193,7 +199,7 @@ export function ProfilPage() {
             <div className="cx-prof-facts">
               <div>
                 <span>Identifiant</span>
-                <b>{profile.email}</b>
+                <b>{profile.phone || profile.email}</b>
               </div>
               <div>
                 <span>Tarif horaire</span>
@@ -217,12 +223,12 @@ export function ProfilPage() {
               <PanelHead icon={<UserRound aria-hidden />} title="Informations" sub="Coordonnées et conditions de vos séances" />
               <div className="cx-form-grid">
                 <label>
-                  Nom
-                  <input value={fullName} disabled readOnly />
+                  Prénom
+                  <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Votre prénom" />
                 </label>
                 <label>
-                  Identifiant de connexion
-                  <input value={profile.email} disabled readOnly />
+                  Nom
+                  <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Votre nom" />
                 </label>
                 <label>
                   Téléphone

@@ -12,6 +12,7 @@ import {
 } from '../models/Moniteur.js'
 import { requireMoniteurAuth } from '../middleware/moniteurAuth.js'
 import { passwordPolicyError } from '../middleware/security.js'
+import { normalizeBeninPhone } from '../services/fedapay.js'
 import { imageUpload } from '../middleware/upload.js'
 import { notifyUser } from '../services/notifications.js'
 import { uploadImageBuffer } from '../services/cloudinary.js'
@@ -627,7 +628,27 @@ router.patch('/profile', async (req, res) => {
   try {
     const m = req.moniteur
 
-    if (req.body.phone !== undefined) m.phone = String(req.body.phone || '').trim()
+    if (req.body.firstName !== undefined) {
+      const value = String(req.body.firstName || '').trim()
+      if (value.length < 2) return res.status(400).json({ success: false, error: 'Prénom requis' })
+      m.firstName = value.slice(0, 60)
+    }
+    if (req.body.lastName !== undefined) {
+      const value = String(req.body.lastName || '').trim()
+      if (value.length < 1) return res.status(400).json({ success: false, error: 'Nom requis' })
+      m.lastName = value.slice(0, 60)
+    }
+    if (req.body.phone !== undefined) {
+      const raw = String(req.body.phone || '').trim()
+      const phone = raw ? normalizeBeninPhone(raw) : ''
+      if (raw && !phone) {
+        return res.status(400).json({ success: false, error: 'Numéro de téléphone invalide' })
+      }
+      if (phone && (await Moniteur.exists({ phone, _id: { $ne: m._id } }))) {
+        return res.status(409).json({ success: false, error: 'Ce numéro est déjà utilisé par un moniteur' })
+      }
+      m.phone = phone
+    }
     if (req.body.city !== undefined) m.city = String(req.body.city || '').trim()
     if (req.body.bio !== undefined) {
       m.bio = String(req.body.bio || '').trim().slice(0, MONITEUR_BIO_MAX)
