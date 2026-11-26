@@ -554,3 +554,35 @@ html,body{background:#f1f4f2}
 .mp-mo-d.is-on b{color:#fff}
 .mp-mo-d.is-on i.has{background:#fff}
 .mp-mo-title{margin:4px 2px 0;font:700 17px var(--mp-display);text-transform:capitalize}
+
+
+/* ---------- Séances : filtres + cartes (maquette verte) ---------- */
+.mp-ses-tabs{display:flex;gap:8px;flex-wrap:wrap}
+.mp-ses-tabs button{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border:0;border-radius:999px;background:#F3F3F3;color:#444;font:600 14px var(--mp-body);cursor:pointer}
+.mp-ses-tabs button b{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#0B7F47;color:#fff;font-size:12px;display:grid;place-items:center}
+.mp-ses-tabs button.is-on{background:#0B7F47;color:#fff;font-weight:700}
+.mp-ses-tabs button.is-on b{background:#fff;color:#0B7F47}
+.mp-ses-empty{margin:18px 0;text-align:center;color:var(--mp-muted);font-size:14.5px}
+.mp-ses-list{display:flex;flex-direction:column;gap:12px}
+.mp-ses{display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:18px;background:#F6F6F6}
+.mp-ses.is-pending{background:#fff;border:1.5px solid #0B7F47}
+.mp-ses.is-done{background:#fff;border:1px solid #E6E6E6}
+.mp-ses-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mp-ses-top small{font-size:13px;font-weight:600;color:#595959}
+.mp-ses-chip{padding:5px 10px;border-radius:999px;background:#0B7F47;color:#fff;font-size:12px;font-weight:700}
+.mp-ses-chip.is-wait{background:#EAF6EF;color:#0B7F47}
+.mp-ses.is-done .mp-ses-chip{background:#E6E6E6;color:#444}
+.mp-ses-who{display:flex;align-items:center;gap:12px}
+.mp-ses-avatar{flex:none;width:46px;height:46px;border-radius:50%;background:#fff;color:#0B7F47;font-weight:700;display:grid;place-items:center}
+.mp-ses.is-pending .mp-ses-avatar{background:#EAF6EF}
+.mp-ses-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mp-ses-info b{font:700 16px var(--mp-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mp-ses-info small{font-size:13.5px;color:#595959}
+.mp-ses-call{flex:none;width:42px;height:42px;border-radius:50%;background:#EAF6EF;color:#0B7F47;display:grid;place-items:center;text-decoration:none}
+.mp-ses-call svg{width:20px;height:20px}
+.mp-ses-actions{display:flex;gap:10px}
+.mp-ses-actions button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;min-height:46px;border-radius:12px;font:700 15px var(--mp-body);cursor:pointer}
+.mp-ses-actions svg{width:18px;height:18px}
+.mp-ses-actions .is-accept{border:0;background:#0B7F47;color:#fff}
+.mp-ses-actions .is-refuse{border:1.5px solid #D5D5D5;background:#fff;color:#111}
+.mp-ses-actions button:disabled{opacity:.6}

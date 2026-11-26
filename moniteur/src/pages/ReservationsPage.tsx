@@ -1,30 +1,54 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Check, ChevronDown, RefreshCw, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Check, Phone, RefreshCw, X } from 'lucide-react'
 import {
   confirmReservation,
+  fetchHistory,
   fetchReservations,
   refuseReservation,
   type ReservationItem,
 } from '../api/portal'
 import { getMoniteurToken, isAuthError } from '../context/MoniteurAuthContext'
 import { PageSection } from '../components/model/PageSection'
-import { dateParts, Empty, formatMoney, Notice } from '../components/model/Kit'
+import { formatMoney, Notice } from '../components/model/Kit'
 
-type Tab = 'pending' | 'confirmed'
+type Tab = 'upcoming' | 'pending' | 'done'
 
 function todayKey() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+function initialsOf(name?: string) {
+  const parts = (name || '').trim().split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+  return (parts[0] || 'A').slice(0, 2).toUpperCase()
+}
+
+/** « Aujourd'hui », « Demain » ou « Jeu. 27 nov. » */
+function dayLabel(date?: string) {
+  if (!date) return ''
+  const diff = Math.round((new Date(`${date}T12:00:00`).getTime() - new Date(`${todayKey()}T12:00:00`).getTime()) / 86400000)
+  if (diff === 0) return 'Aujourd’hui'
+  if (diff === 1) return 'Demain'
+  return new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+    .format(new Date(`${date}T12:00:00`))
+    .replace(/^./, (c) => c.toUpperCase())
+}
+
+function sortByDate(list: ReservationItem[], reverse = false) {
+  const key = (item: ReservationItem) => `${item.creneau?.date || ''} ${item.creneau?.startTime || ''}`
+  return [...list].sort((a, b) => (reverse ? key(b).localeCompare(key(a)) : key(a).localeCompare(key(b))))
+}
+
 export function ReservationsPage() {
   const [items, setItems] = useState<ReservationItem[]>([])
+  const [done, setDone] = useState<ReservationItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
-  const [tab, setTab] = useState<Tab>('pending')
-  const [openId, setOpenId] = useState<string | null>(null)
+  const [tab, setTab] = useState<Tab>('upcoming')
+  const firstLoad = useRef(true)
 
   const load = useCallback(async () => {
     const token = getMoniteurToken()
@@ -32,8 +56,17 @@ export function ReservationsPage() {
     setLoading(true)
     setError(null)
     try {
-      const data = await fetchReservations(token, 'all_active')
-      setItems(data.reservations)
+      const [active, completed] = await Promise.all([
+        fetchReservations(token, 'all_active'),
+        fetchHistory(token, 'completed').catch(() => ({ reservations: [] as ReservationItem[] })),
+      ])
+      setItems(active.reservations)
+      setDone(completed.reservations)
+      // À l'ouverture, on met en avant les demandes qui attendent une réponse.
+      if (firstLoad.current) {
+        firstLoad.current = false
+        if (active.reservations.some((item) => item.status === 'pending_moniteur')) setTab('pending')
+      }
     } catch (err) {
       setError(isAuthError(err) ? err.message : 'Chargement impossible')
     } finally {
@@ -45,9 +78,10 @@ export function ReservationsPage() {
     void load()
   }, [load])
 
-  const pending = useMemo(() => items.filter((item) => item.status === 'pending_moniteur'), [items])
-  const confirmed = useMemo(() => items.filter((item) => item.status === 'confirmed'), [items])
-  const visible = tab === 'pending' ? pending : confirmed
+  const pending = useMemo(() => sortByDate(items.filter((item) => item.status === 'pending_moniteur')), [items])
+  const upcoming = useMemo(() => sortByDate(items.filter((item) => item.status === 'confirmed')), [items])
+  const finished = useMemo(() => sortByDate(done, true), [done])
+  const visible = tab === 'pending' ? pending : tab === 'upcoming' ? upcoming : finished
 
   const handleConfirm = async (item: ReservationItem) => {
     const token = getMoniteurToken()
@@ -85,25 +119,13 @@ export function ReservationsPage() {
     }
   }
 
-  // Regroupement par jour, dans l'ordre chronologique.
-  const groups = useMemo(() => {
-    const map = new Map<string, ReservationItem[]>()
-    for (const item of visible) {
-      const key = item.creneau?.date || ''
-      map.set(key, [...(map.get(key) ?? []), item])
-    }
-    return [...map.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, list]) => ({
-        date,
-        list: list.sort((a, b) => (a.creneau?.startTime || '').localeCompare(b.creneau?.startTime || '')),
-      }))
-  }, [visible])
+  const empty =
+    tab === 'pending' ? 'Aucune demande en attente.' : tab === 'upcoming' ? 'Aucune séance à venir.' : 'Aucune séance terminée.'
 
   return (
     <PageSection
       kicker="Réservations"
-      title="Mes rendez-vous"
+      title="Séances"
       actions={
         <button type="button" className="cx-refresh" onClick={() => void load()} disabled={loading}>
           <RefreshCw aria-hidden />
@@ -113,117 +135,67 @@ export function ReservationsPage() {
     >
       <Notice error={error} success={success} />
 
-      <div className="mp-ag-seg" role="group" aria-label="Filtrer les réservations">
-        <button
-          type="button"
-          className={tab === 'pending' ? 'is-on' : ''}
-          aria-pressed={tab === 'pending'}
-          onClick={() => {
-            setTab('pending')
-            setOpenId(null)
-          }}
-        >
-          À confirmer <b>{pending.length}</b>
+      <div className="mp-ses-tabs" role="tablist" aria-label="Filtrer les séances">
+        <button type="button" role="tab" aria-selected={tab === 'upcoming'} className={tab === 'upcoming' ? 'is-on' : ''} onClick={() => setTab('upcoming')}>
+          À venir
         </button>
-        <button
-          type="button"
-          className={tab === 'confirmed' ? 'is-on' : ''}
-          aria-pressed={tab === 'confirmed'}
-          onClick={() => {
-            setTab('confirmed')
-            setOpenId(null)
-          }}
-        >
-          Confirmées <b>{confirmed.length}</b>
+        <button type="button" role="tab" aria-selected={tab === 'pending'} className={tab === 'pending' ? 'is-on' : ''} onClick={() => setTab('pending')}>
+          À confirmer{pending.length ? <b>{pending.length}</b> : null}
+        </button>
+        <button type="button" role="tab" aria-selected={tab === 'done'} className={tab === 'done' ? 'is-on' : ''} onClick={() => setTab('done')}>
+          Terminées
         </button>
       </div>
 
-      {loading && items.length === 0 ? <p className="cx-loading">Chargement…</p> : null}
-      {!loading && visible.length === 0 ? (
-        <section className="cx-panel">
-          <Empty>{tab === 'pending' ? 'Aucune demande en attente.' : 'Aucune séance confirmée.'}</Empty>
-        </section>
-      ) : null}
+      {loading && items.length === 0 && done.length === 0 ? <p className="cx-loading">Chargement…</p> : null}
+      {!loading && visible.length === 0 ? <p className="mp-ses-empty">{empty}</p> : null}
 
-      <div className="mp-ag">
-        {groups.map((group) => {
-          const parts = group.date ? dateParts(group.date) : null
-          const dayDiff = group.date ? Math.round((new Date(`${group.date}T12:00:00`).getTime() - new Date(`${todayKey()}T12:00:00`).getTime()) / 86400000) : 99
-          const title = !group.date
-            ? 'Date inconnue'
-            : dayDiff === 0
-              ? 'Aujourd’hui'
-              : dayDiff === 1
-                ? 'Demain'
-                : (parts?.weekday ?? '').replace(/^./, (c) => c.toUpperCase())
-          const shortDate = parts ? `${parts.day} ${parts.month}` : ''
+      <div className="mp-ses-list">
+        {visible.map((item) => {
+          const isPending = tab === 'pending'
+          const start = item.creneau?.startTime
+          const end = item.creneau?.endTime
+          const phone = item.user?.phone
           return (
-            <section key={group.date || 'none'}>
-              <h3 className="mp-ag-day">
-                <span>{title}</span>
-                <small>{shortDate}</small>
-              </h3>
-              {group.list.map((item) => {
-                const isPending = tab === 'pending'
-                const open = openId === item.id
-                const start = item.creneau?.startTime
-                const end = item.creneau?.endTime
-                return (
-                  <article key={item.id} className={`mp-ag-item${isPending ? ' is-pending' : ''}${open ? ' is-open' : ''}`}>
-                    <button
-                      type="button"
-                      className="mp-ag-row"
-                      aria-expanded={isPending ? open : undefined}
-                      onClick={() => isPending && setOpenId(open ? null : item.id)}
-                    >
-                      <span className="mp-ag-avatar" aria-hidden="true">
-                        {(item.user?.fullName || 'A').slice(0, 1).toUpperCase()}
-                      </span>
-                      <span className="mp-ag-who">
-                        <b>{item.user?.fullName || 'Apprenant'}</b>
-                        <small>{item.user?.phone || item.user?.email || ''}</small>
-                        <span className="mp-ag-chip">
-                          Prévu : {start || '—'} – {end || '—'}
-                        </span>
-                      </span>
-                      <span className="mp-ag-side">
-                        <b>{formatMoney(item.priceFcfa)}</b>
-                        <em className={isPending ? 'wait' : 'ok'}>{isPending ? 'En attente' : 'Confirmée'}</em>
-                      </span>
-                      {isPending ? <ChevronDown className="mp-ag-chev" aria-hidden /> : null}
-                    </button>
-                    {isPending && open ? (
-                      <div className="mp-ag-actions">
-                        <button
-                          type="button"
-                          className="mp-ag-refuse"
-                          disabled={busyId === item.id}
-                          onClick={() => void handleRefuse(item)}
-                        >
-                          <X aria-hidden />
-                          Refuser
-                        </button>
-                        <button
-                          type="button"
-                          className="mp-ag-accept"
-                          disabled={busyId === item.id}
-                          onClick={() => void handleConfirm(item)}
-                        >
-                          <Check aria-hidden />
-                          Accepter
-                        </button>
-                      </div>
-                    ) : null}
-                  </article>
-                )
-              })}
-            </section>
+            <article key={item.id} className={`mp-ses${isPending ? ' is-pending' : ''}${tab === 'done' ? ' is-done' : ''}`}>
+              <div className="mp-ses-top">
+                <span className={`mp-ses-chip${isPending ? ' is-wait' : ''}`}>
+                  {isPending ? 'À confirmer' : tab === 'done' ? 'Terminée' : 'Confirmée'}
+                </span>
+                <small>{dayLabel(item.creneau?.date)}</small>
+              </div>
+              <div className="mp-ses-who">
+                <span className="mp-ses-avatar" aria-hidden="true">
+                  {initialsOf(item.user?.fullName)}
+                </span>
+                <span className="mp-ses-info">
+                  <b>{item.user?.fullName || 'Apprenant'}</b>
+                  <small>
+                    {start || '—'} – {end || '—'} · {formatMoney(item.priceFcfa)}
+                  </small>
+                </span>
+                {phone && !isPending && tab !== 'done' ? (
+                  <a className="mp-ses-call" href={`tel:${phone}`} aria-label={`Appeler ${item.user?.fullName || 'l’apprenant'}`}>
+                    <Phone aria-hidden />
+                  </a>
+                ) : null}
+              </div>
+              {isPending ? (
+                <div className="mp-ses-actions">
+                  <button type="button" className="is-accept" disabled={busyId === item.id} onClick={() => void handleConfirm(item)}>
+                    <Check aria-hidden />
+                    Accepter
+                  </button>
+                  <button type="button" className="is-refuse" disabled={busyId === item.id} onClick={() => void handleRefuse(item)}>
+                    <X aria-hidden />
+                    Refuser
+                  </button>
+                </div>
+              ) : null}
+            </article>
           )
         })}
       </div>
-      {tab === 'pending' && visible.length > 0 ? (
-        <p className="mp-ag-hint">Touchez une demande pour répondre.</p>
-      ) : null}
     </PageSection>
   )
 }
