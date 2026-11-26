@@ -1,8 +1,8 @@
 /* Portail moniteur — pensé pour téléphone. Sur grand écran, une colonne de téléphone centrée. */
 :root{
-  --mp-green:#3a8f7b; --mp-green-2:#52a894; --mp-ink:#1b2b29; --mp-muted:#6a7d79;
-  --mp-bg:#f3f8f6; --mp-pill:#eceff3; --mp-coral:#e5484d;
-  --mp-display:"Poppins","Inter",system-ui,sans-serif; --mp-body:"Inter",system-ui,sans-serif;
+  --mp-green:#0B7F47; --mp-green-2:#2E9A66; --mp-ink:#111111; --mp-muted:#595959;
+  --mp-bg:#ffffff; --mp-pill:#eceff3; --mp-coral:#e5484d;
+  --mp-display:"DM Sans","Inter",system-ui,sans-serif; --mp-body:"DM Sans","Inter",system-ui,sans-serif;
 }
 html,body{background:#e9f0ee}
 body{font-family:var(--mp-body)}
@@ -449,3 +449,25 @@ body{font-family:var(--mp-body)}
 .mp-av-fixed{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:46px;padding:0 14px;border-radius:12px;background:#f1f7f5;border:1px dashed #cfe0da}
 .mp-av-fixed b{font:700 16px var(--mp-body);color:var(--mp-ink)}
 .mp-av-fixed small{font-size:12.5px;font-weight:500;color:var(--mp-muted)}
+
+
+/* ---------- Habillage « épuré vert » (maquette validée) ---------- */
+html,body{background:#f1f4f2}
+.mp-shell{background:#fff;box-shadow:0 0 40px rgba(10,30,58,.08)}
+.mp-top{background:#fff;backdrop-filter:none;padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:12px}
+.mp-avatar{width:44px;height:44px;border-radius:50%;background:#EAF6EF;color:#0B7F47;font-weight:700;display:grid;place-items:center;overflow:hidden;text-decoration:none;flex:none}
+.mp-avatar img{width:100%;height:100%;object-fit:cover;padding:0;border-radius:0;box-shadow:none;background:none}
+.mp-top-title small{font-size:13px;color:var(--mp-muted);font-weight:500}
+.mp-top-title b{font:700 24px var(--mp-display);letter-spacing:-.4px}
+.mp-icon-btn{background:#EAF6EF;color:#0B7F47;box-shadow:none;width:44px;height:44px}
+.mp-dot{border-color:#EAF6EF}
+.mp-tabs{border-radius:0;border:0;border-top:1px solid #E6E6E6;box-shadow:none;padding-top:12px;background:#fff}
+.mp-tab{color:#767676;font-weight:500}
+.mp-tab.is-active{color:#0B7F47;font-weight:700}
+.mp-tab.is-active::after{display:none}
+.mp-tab.is-active svg{stroke-width:2.4}
+.mp-next{background:#0B7F47;box-shadow:none;border-radius:18px}
+.mp-main .cx-panel{border:1px solid #E6E6E6;border-radius:16px;box-shadow:none;background:#fff}
+.mp-main .cx-btn-fill,.mp-main .cx-btn.cx-btn-fill{background:#0B7F47;border-color:#0B7F47;color:#fff;border-radius:12px}
+.mp-main .cx-btn{border-radius:12px}
+.mp-btn{background:#0B7F47}

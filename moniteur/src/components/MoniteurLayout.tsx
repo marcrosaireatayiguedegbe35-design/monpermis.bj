@@ -24,7 +24,8 @@ type NavItem = {
 
 const tabs: NavItem[] = [
   { to: '/', label: 'Accueil', end: true, icon: House },
-  { to: '/reservations', label: 'Demandes', icon: CalendarClock, badge: 'pending' },
+  { to: '/disponibilites', label: 'Agenda', icon: CalendarDays },
+  { to: '/reservations', label: 'Séances', icon: CalendarClock, badge: 'pending' },
   { to: '/revenus', label: 'Revenus', icon: BarChart3 },
   { to: '/profil', label: 'Profil', icon: UserRound },
 ]
@@ -76,8 +77,8 @@ export function MoniteurLayout() {
           )}
         </Link>
         <div className="mp-top-title">
-          <small>Bienvenue</small>
-          <b>{firstName ? `M. ${firstName}` : 'Espace moniteur'}</b>
+          <small>Bonjour</small>
+          <b>{firstName || 'Espace moniteur'}</b>
         </div>
         <Link to="/historique" className="mp-icon-btn" aria-label="Historique des séances">
           <History aria-hidden />
@@ -99,20 +100,11 @@ export function MoniteurLayout() {
       </main>
 
       <nav className="mp-tabs" aria-label="Navigation">
-        {tabs.map((item, index) => {
+        {tabs.map((item) => {
           const Icon = item.icon
           const badge = item.badge === 'pending' ? formatBadge(pending) : undefined
           return (
             <div key={item.to} style={{ display: 'contents' }}>
-              {index === 2 ? (
-                <NavLink
-                  to="/disponibilites"
-                  className={({ isActive }) => `mp-fab${isActive ? ' is-active' : ''}`}
-                  aria-label="Disponibilités"
-                >
-                  <CalendarDays aria-hidden />
-                </NavLink>
-              ) : null}
               <NavLink
                 to={item.to}
                 end={item.end}
