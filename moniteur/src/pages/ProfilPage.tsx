@@ -1,11 +1,11 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Camera, History, ImagePlus, LogOut, Trash2 } from 'lucide-react'
-import { fetchProfile, updateProfile, uploadMoniteurPhoto, type MoniteurProfile } from '../api/portal'
+import { fetchDashboard, fetchProfile, updateProfile, uploadMoniteurPhoto, type DashboardData, type MoniteurProfile } from '../api/portal'
 import { getMoniteurToken, isAuthError, useMoniteurAuth } from '../context/MoniteurAuthContext'
 import { resolveMediaUrl } from '../utils/mediaUrl'
 import { PageSection } from '../components/model/PageSection'
-import { formatMoney, Notice } from '../components/model/Kit'
+import { Notice } from '../components/model/Kit'
 
 type UploadTarget = 'portrait' | 'vehicle' | 'gallery'
 
@@ -61,6 +61,7 @@ export function ProfilPage() {
   const [success, setSuccess] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('infos')
   const [savedSnap, setSavedSnap] = useState('')
+  const [stats, setStats] = useState<DashboardData['stats'] | null>(null)
 
   const applyProfile = (data: MoniteurProfile) => {
     setProfile(data)
@@ -89,7 +90,6 @@ export function ProfilPage() {
         data.photoUrl || '',
         data.vehiclePhotoUrl || '',
         data.photos || [],
-        String(data.defaultPriceFcfa || 5000),
       ]),
     )
   }
@@ -102,6 +102,7 @@ export function ProfilPage() {
     try {
       const data = await fetchProfile(token)
       applyProfile(data.profile)
+      void fetchDashboard(token).then((d) => setStats(d.stats)).catch(() => undefined)
     } catch (err) {
       setError(isAuthError(err) ? err.message : 'Chargement impossible')
     } finally {
@@ -163,7 +164,6 @@ export function ProfilPage() {
           .map((item) => item.trim())
           .filter(Boolean),
         photos,
-        defaultPriceFcfa: Math.max(0, Math.round(Number(defaultPriceFcfa) || 0)),
       }
       if (newPassword) {
         payload.currentPassword = currentPassword
@@ -185,7 +185,7 @@ export function ProfilPage() {
   const displayName = firstName || lastName ? `${firstName} ${lastName}`.trim() : fullName
   const dirty =
     Boolean(profile) &&
-    (JSON.stringify([firstName, lastName, phone, city, bio, vehicleBrand, vehicleType, specialties, photoUrl, vehiclePhotoUrl, photos, defaultPriceFcfa]) !== savedSnap ||
+    (JSON.stringify([firstName, lastName, phone, city, bio, vehicleBrand, vehicleType, specialties, photoUrl, vehiclePhotoUrl, photos]) !== savedSnap ||
       Boolean(newPassword))
 
   // Complétude du profil : ce que les apprenants voient en priorité.
@@ -216,7 +216,7 @@ export function ProfilPage() {
       {!loading && profile ? (
         <>
           <section className="mp-pf-hero">
-            <div className="mp-pf-id">
+            <div className="mp-pf-cover">
               <div className="mp-pf-avatar">
                 {photoUrl ? (
                   <img src={resolveMediaUrl(photoUrl)} alt={`Portrait de ${fullName}`} />
@@ -228,12 +228,29 @@ export function ProfilPage() {
                   <input type="file" accept="image/*" hidden onChange={(e) => void uploadTo(e.target.files?.[0] ?? null, 'portrait')} disabled={uploading === 'portrait'} />
                 </label>
               </div>
-              <div className="mp-pf-who">
-                <b>{displayName || 'Moniteur'}</b>
-                <small>{[city, vehicleBrand].filter(Boolean).join(' · ') || 'Complétez votre profil'}</small>
-                <span className="mp-pf-id-line">{profile.phone || profile.email} · {formatMoney(Number(defaultPriceFcfa) || 0)}/h</span>
+              <b className="mp-pf-name">{displayName || 'Moniteur'}</b>
+              <span className="mp-pf-badge">{[city, vehicleBrand].filter(Boolean).join(' · ') || 'Complétez votre profil'}</span>
+            </div>
+
+            <div className="mp-pf-stats">
+              <div>
+                <b>{`${(Number(defaultPriceFcfa) || 0).toLocaleString('fr-FR')} F`}</b>
+                <small>Tarif / h</small>
+              </div>
+              <div>
+                <b>{stats ? stats.completed : '–'}</b>
+                <small>Séances</small>
+              </div>
+              <div>
+                <b>{stats ? `${stats.hoursCompleted} h` : '–'}</b>
+                <small>Conduites</small>
+              </div>
+              <div>
+                <b>{photos.length}</b>
+                <small>Photos</small>
               </div>
             </div>
+
             <div className="mp-pf-meter">
               <div className="mp-pf-meter-top">
                 <span>Profil complet à</span>
@@ -275,10 +292,13 @@ export function ProfilPage() {
                   Ville / zone
                   <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="ex. Cotonou, Calavi…" />
                 </label>
-                <label className="mp-av-field">
-                  Tarif horaire (FCFA)
-                  <input type="number" inputMode="numeric" min={0} step={500} value={defaultPriceFcfa} onChange={(e) => setDefaultPriceFcfa(e.target.value)} />
-                </label>
+                <div className="mp-av-field mp-av-readonly">
+                  Tarif horaire
+                  <div className="mp-av-fixed">
+                    <b>{(Number(defaultPriceFcfa) || 0).toLocaleString('fr-FR')} FCFA</b>
+                    <small>Fixé par l’administration</small>
+                  </div>
+                </div>
                 <label className="mp-av-field">
                   Spécialités <em>(séparées par des virgules)</em>
                   <input value={specialties} onChange={(e) => setSpecialties(e.target.value)} placeholder="conduite en ville, créneau…" />

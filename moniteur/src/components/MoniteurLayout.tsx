@@ -1,5 +1,6 @@
 import {
   Bell,
+  History,
   CalendarClock,
   CalendarDays,
   LayoutDashboard,
@@ -9,10 +10,9 @@ import {
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import logoUrl from '../assets/logo.png'
 import { fetchDashboard } from '../api/portal'
 import { getMoniteurToken, useMoniteurAuth } from '../context/MoniteurAuthContext'
-import { SITE_NAME } from '../theme/brand'
+import { resolveMediaUrl } from '../utils/mediaUrl'
 
 type NavItem = {
   to: string
@@ -25,10 +25,15 @@ type NavItem = {
 const tabs: NavItem[] = [
   { to: '/', label: 'Accueil', end: true, icon: House },
   { to: '/reservations', label: 'Demandes', icon: CalendarClock, badge: 'pending' },
-  { to: '/disponibilites', label: 'Dispos', icon: CalendarDays },
   { to: '/revenus', label: 'Revenus', icon: BarChart3 },
   { to: '/profil', label: 'Profil', icon: UserRound },
 ]
+
+function initialsOf(fullName?: string) {
+  const parts = (fullName || '').trim().split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+  return (parts[0] || 'MO').slice(0, 2).toUpperCase()
+}
 
 function formatBadge(count: number) {
   if (count <= 0) return undefined
@@ -63,11 +68,20 @@ export function MoniteurLayout() {
   return (
     <div className={`cx-root mp-shell${location.pathname === '/' ? ' mp-shell-fit' : ''}`}>
       <header className="mp-top">
-        <img src={logoUrl} alt={SITE_NAME} />
+        <Link to="/profil" className="mp-avatar" aria-label="Mon profil">
+          {moniteur?.photoUrl ? (
+            <img src={resolveMediaUrl(moniteur.photoUrl)} alt="" />
+          ) : (
+            <span aria-hidden="true">{initialsOf(moniteur?.fullName)}</span>
+          )}
+        </Link>
         <div className="mp-top-title">
-          <b>{firstName ? `Bonjour ${firstName}` : 'Espace moniteur'}</b>
-          <small>Monpermis.bj</small>
+          <small>Bienvenue</small>
+          <b>{firstName ? `M. ${firstName}` : 'Espace moniteur'}</b>
         </div>
+        <Link to="/historique" className="mp-icon-btn" aria-label="Historique des séances">
+          <History aria-hidden />
+        </Link>
         <Link
           to="/reservations"
           className="mp-icon-btn"
@@ -85,24 +99,34 @@ export function MoniteurLayout() {
       </main>
 
       <nav className="mp-tabs" aria-label="Navigation">
-        {tabs.map((item) => {
+        {tabs.map((item, index) => {
           const Icon = item.icon
           const badge = item.badge === 'pending' ? formatBadge(pending) : undefined
           return (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) => `mp-tab${isActive ? ' is-active' : ''}`}
-            >
-              <Icon aria-hidden />
-              <span>{item.label}</span>
-              {badge ? (
-                <span className="mp-badge" aria-label={`${pending} à confirmer`}>
-                  {badge}
-                </span>
+            <div key={item.to} style={{ display: 'contents' }}>
+              {index === 2 ? (
+                <NavLink
+                  to="/disponibilites"
+                  className={({ isActive }) => `mp-fab${isActive ? ' is-active' : ''}`}
+                  aria-label="Disponibilités"
+                >
+                  <CalendarDays aria-hidden />
+                </NavLink>
               ) : null}
-            </NavLink>
+              <NavLink
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) => `mp-tab${isActive ? ' is-active' : ''}`}
+              >
+                <Icon aria-hidden />
+                <span>{item.label}</span>
+                {badge ? (
+                  <span className="mp-badge" aria-label={`${pending} à confirmer`}>
+                    {badge}
+                  </span>
+                ) : null}
+              </NavLink>
+            </div>
           )
         })}
       </nav>

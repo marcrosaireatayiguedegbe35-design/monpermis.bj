@@ -17,17 +17,6 @@ function todayKey() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function toMinutes(value: string) {
-  const [h, m] = value.split(':').map((v) => parseInt(v, 10) || 0)
-  return h * 60 + m
-}
-
-function durationLabel(start: string, end: string) {
-  const hours = Math.max(0, (toMinutes(end) - toMinutes(start)) / 60)
-  if (!hours) return ''
-  return `${Number.isInteger(hours) ? hours : hours.toFixed(1).replace('.', ',')} h`
-}
-
 export function ReservationsPage() {
   const [items, setItems] = useState<ReservationItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -159,14 +148,21 @@ export function ReservationsPage() {
       <div className="mp-ag">
         {groups.map((group) => {
           const parts = group.date ? dateParts(group.date) : null
-          const label = !group.date
+          const dayDiff = group.date ? Math.round((new Date(`${group.date}T12:00:00`).getTime() - new Date(`${todayKey()}T12:00:00`).getTime()) / 86400000) : 99
+          const title = !group.date
             ? 'Date inconnue'
-            : group.date === todayKey()
-              ? `Aujourd’hui · ${parts?.long}`
-              : parts?.long
+            : dayDiff === 0
+              ? 'Aujourd’hui'
+              : dayDiff === 1
+                ? 'Demain'
+                : (parts?.weekday ?? '').replace(/^./, (c) => c.toUpperCase())
+          const shortDate = parts ? `${parts.day} ${parts.month}` : ''
           return (
             <section key={group.date || 'none'}>
-              <h3 className="mp-ag-day">{label}</h3>
+              <h3 className="mp-ag-day">
+                <span>{title}</span>
+                <small>{shortDate}</small>
+              </h3>
               {group.list.map((item) => {
                 const isPending = tab === 'pending'
                 const open = openId === item.id
@@ -180,15 +176,15 @@ export function ReservationsPage() {
                       aria-expanded={isPending ? open : undefined}
                       onClick={() => isPending && setOpenId(open ? null : item.id)}
                     >
-                      <span className="mp-ag-time">
-                        <b>{start || '—'}</b>
-                        <small>{end || ''}</small>
+                      <span className="mp-ag-avatar" aria-hidden="true">
+                        {(item.user?.fullName || 'A').slice(0, 1).toUpperCase()}
                       </span>
                       <span className="mp-ag-who">
                         <b>{item.user?.fullName || 'Apprenant'}</b>
-                        <small>
-                          {[item.user?.phone || item.user?.email, start && end ? durationLabel(start, end) : ''].filter(Boolean).join(' · ')}
-                        </small>
+                        <small>{item.user?.phone || item.user?.email || ''}</small>
+                        <span className="mp-ag-chip">
+                          Prévu : {start || '—'} – {end || '—'}
+                        </span>
                       </span>
                       <span className="mp-ag-side">
                         <b>{formatMoney(item.priceFcfa)}</b>

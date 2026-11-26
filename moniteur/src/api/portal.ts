@@ -65,6 +65,8 @@ export interface DashboardData {
   pending: ReservationItem[]
   upcoming: ReservationItem[]
   today: ReservationItem[]
+  /** Part du prix d'une séance reversée au moniteur, en %. */
+  sharePercent?: number
   earnings: {
     totalEarned: number
     monthEarned: number
@@ -236,7 +238,6 @@ export function updateProfile(
     vehicleTypes: string[]
     specialties: string[]
     photos: string[]
-    defaultPriceFcfa: number
     currentPassword: string
     newPassword: string
   }>,

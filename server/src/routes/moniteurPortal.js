@@ -12,6 +12,7 @@ import {
 import { requireMoniteurAuth } from '../middleware/moniteurAuth.js'
 import { passwordPolicyError } from '../middleware/security.js'
 import { normalizeBeninPhone } from '../services/fedapay.js'
+import { getPlatformFeePercent } from '../utils/platformSettings.js'
 import { imageUpload } from '../middleware/upload.js'
 import { notifyUser } from '../services/notifications.js'
 import { uploadImageBuffer } from '../services/cloudinary.js'
@@ -572,6 +573,8 @@ router.get('/dashboard', async (req, res) => {
         upcoming: upcoming.slice(0, 12).map(hydrateReservation),
         today: todaySessions.map(hydrateReservation),
         earnings: earnings.totals,
+        // Part du prix de chaque séance reversée au moniteur (le reste est la commission de la plateforme).
+        sharePercent: 100 - (await getPlatformFeePercent()),
       },
     })
   } catch (error) {
@@ -668,10 +671,7 @@ router.patch('/profile', async (req, res) => {
     if (req.body.photos !== undefined) {
       m.photos = parseUrlList(req.body.photos, MONITEUR_PHOTOS_MAX)
     }
-    if (req.body.defaultPriceFcfa !== undefined) {
-      const price = Number(req.body.defaultPriceFcfa)
-      if (Number.isFinite(price) && price >= 0) m.defaultPriceFcfa = Math.round(price)
-    }
+    // Le tarif horaire est fixé par l'administration : toute valeur envoyée ici est ignorée.
 
     const currentPassword = String(req.body.currentPassword || '')
     const newPassword = String(req.body.newPassword || req.body.password || '')

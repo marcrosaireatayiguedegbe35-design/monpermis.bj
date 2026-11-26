@@ -111,6 +111,7 @@ export function MoniteursPage() {
   const [editingMoniteur, setEditingMoniteur] = useState<Moniteur | null>(null)
   const [editBio, setEditBio] = useState('')
   const [editPhone, setEditPhone] = useState('')
+  const [editPrice, setEditPrice] = useState('5000')
   const [editEmail, setEditEmail] = useState('')
   const [editPassword, setEditPassword] = useState('')
   const [editActiveLogin, setEditActiveLogin] = useState(false)
@@ -216,6 +217,7 @@ export function MoniteursPage() {
     setEditVehiclePhotoUrl(item.vehiclePhotoUrl || '')
     setEditPhotoUrl(item.photoUrl || '')
     setEditCity(item.city || '')
+    setEditPrice(String(item.defaultPriceFcfa || 5000))
     setEditPhotos(item.photos || [])
     setEditDayHours(toEditDayHours(item.weeklyAvailability))
     setError(null)
@@ -312,6 +314,7 @@ export function MoniteursPage() {
         vehiclePhotoUrl: editVehiclePhotoUrl,
         photoUrl: editPhotoUrl,
         city: editCity.trim(),
+        defaultPriceFcfa: Math.max(0, Math.round(Number(editPrice) || 0)),
         photos: editPhotos.slice(0, MONITEUR_PHOTOS_MAX),
         weeklyAvailability: slots,
       })
@@ -555,6 +558,10 @@ export function MoniteursPage() {
                     <input className="cx-input" value={editSpecialties} onChange={(e) => setEditSpecialties(e.target.value)} placeholder="Spécialités (séparées par des virgules)" />
                     <input className="cx-input" value={editVehicleBrand} onChange={(e) => setEditVehicleBrand(e.target.value)} placeholder="Marque du véhicule" />
                     <input className="cx-input" value={editCity} onChange={(e) => setEditCity(e.target.value)} placeholder="Ville / zone" />
+                    <label>
+                      Tarif horaire (FCFA) — fixé par l’administration
+                      <input className="cx-input" type="number" min={0} step={500} value={editPrice} onChange={(e) => setEditPrice(e.target.value)} />
+                    </label>
                   </div>
                 </div>
 
