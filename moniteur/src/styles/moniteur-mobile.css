@@ -652,3 +652,16 @@ html,body{background:#f1f4f2}
 .mp-hr input[type=time]{height:46px;padding:0 10px;border:1px solid #D6DDE6;border-radius:12px;background:#fff;font:500 16px var(--mp-body);color:#111;text-align:center}
 .mp-hr .mp-av-range{grid-template-columns:84px minmax(0,1fr) auto minmax(0,1fr)}
 .mp-hr .mp-av-range>span{font-size:14px}
+
+/* ---------- Historique des séances ---------- */
+.mp-hs-group{display:flex;flex-direction:column;gap:10px}
+.mp-hs-month{display:flex;align-items:center;justify-content:space-between;margin:6px 2px 0;font:700 15px var(--mp-display);text-transform:capitalize;color:#111}
+.mp-hs-month small{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:#EAF6EF;color:#0B7F47}
+.mp-ses-chip.is-off{background:#F3E4E2;color:#B3261E}
+.mp-ses.is-cancelled{background:#FAFAFA}
+.mp-ses.is-cancelled .mp-ses-info b{color:#595959}
+.mp-hs-reason{margin:0;padding:9px 12px;border-radius:10px;background:#FDF3F2;color:#8A2A24;font-size:13px;line-height:1.4}
+.mp-hs-group .mp-ses.is-done .mp-ses-chip{background:#0B7F47;color:#fff}
+.mp-hs-group .mp-ses.is-done .mp-ses-chip.is-wait{background:#EAF6EF;color:#0B7F47}
+.mp-hs-group .mp-ses.is-done .mp-ses-chip.is-off{background:#F3E4E2;color:#B3261E}
+.mp-hs-group .mp-ses-tabs button,.mp-ses-tabs button{padding:0 12px}

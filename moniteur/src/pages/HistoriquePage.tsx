@@ -1,28 +1,46 @@
-import { useCallback, useEffect, useState } from 'react'
-import { History, RefreshCw } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ChevronLeft, RefreshCw } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { fetchHistory, type ReservationItem } from '../api/portal'
 import { getMoniteurToken, isAuthError } from '../context/MoniteurAuthContext'
 import { PageSection } from '../components/model/PageSection'
-import { dateParts, Empty, formatMoney, Notice, PanelHead, SessionRow } from '../components/model/Kit'
+import { formatMoney, Notice } from '../components/model/Kit'
 
 const FILTERS = [
-  { value: '', label: 'Tous' },
-  { value: 'completed', label: 'Effectuées' },
+  { value: '', label: 'Toutes' },
+  { value: 'completed', label: 'Terminées' },
   { value: 'confirmed', label: 'Confirmées' },
-  { value: 'cancelled', label: 'Annulées / refusées' },
+  { value: 'cancelled', label: 'Annulées' },
 ] as const
 
-function statusChip(status: string) {
-  if (status === 'completed') return <span className="cx-chip-ok">Effectuée</span>
-  if (status === 'confirmed') return <span className="cx-chip cx-blue">Confirmée</span>
-  if (status === 'cancelled') return <span className="cx-chip-ok cx-chip-ko">Annulée / refusée</span>
-  return <span className="cx-chip">{status}</span>
+function initialsOf(name?: string) {
+  const parts = (name || '').trim().split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+  return (parts[0] || 'A').slice(0, 2).toUpperCase()
 }
 
-function toneOf(status: string): 'navy' | 'grey' | undefined {
-  if (status === 'confirmed') return 'navy'
-  if (status === 'cancelled') return 'grey'
-  return undefined
+function statusLabel(status: string) {
+  if (status === 'completed') return 'Terminée'
+  if (status === 'confirmed') return 'Confirmée'
+  if (status === 'cancelled') return 'Annulée'
+  return status
+}
+
+function monthKey(date?: string) {
+  return date ? date.slice(0, 7) : ''
+}
+
+function monthTitle(key: string) {
+  if (!key) return 'Date inconnue'
+  const [y, m] = key.split('-').map(Number)
+  return new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(new Date(y, m - 1, 1))
+}
+
+function dayText(date?: string) {
+  if (!date) return ''
+  return new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+    .format(new Date(`${date}T12:00:00`))
+    .replace(/^./, (c) => c.toUpperCase())
 }
 
 export function HistoriquePage() {
@@ -50,11 +68,27 @@ export function HistoriquePage() {
     void load()
   }, [load])
 
+  // Séances regroupées par mois, les plus récentes d'abord.
+  const groups = useMemo(() => {
+    const map = new Map<string, ReservationItem[]>()
+    for (const item of items) {
+      const key = monthKey(item.creneau?.date)
+      map.set(key, [...(map.get(key) ?? []), item])
+    }
+    return [...map.entries()]
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([key, list]) => ({
+        key,
+        list: list.sort((a, b) =>
+          `${b.creneau?.date || ''} ${b.creneau?.startTime || ''}`.localeCompare(`${a.creneau?.date || ''} ${a.creneau?.startTime || ''}`),
+        ),
+      }))
+  }, [items])
+
   return (
     <PageSection
       kicker="Historique"
-      title="Mes rendez-vous passés"
-      subtitle="Séances effectuées, confirmées, annulées ou refusées."
+      title="Historique des séances"
       actions={
         <button type="button" className="cx-refresh" onClick={() => void load()} disabled={loading}>
           <RefreshCw aria-hidden />
@@ -64,49 +98,62 @@ export function HistoriquePage() {
     >
       <Notice error={error} />
 
-      <section className="cx-panel">
-        <PanelHead
-          icon={<History aria-hidden />}
-          title="Historique des séances"
-          sub={loading ? 'Chargement…' : `${items.length} rendez-vous`}
-          extra={
-            <div className="cx-seg" role="group" aria-label="Filtrer par statut">
-              {FILTERS.map((filter) => (
-                <button
-                  key={filter.value}
-                  type="button"
-                  className={status === filter.value ? 'cx-on' : ''}
-                  aria-pressed={status === filter.value}
-                  onClick={() => setStatus(filter.value)}
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
-          }
-        />
+      <Link to="/profil" className="mp-wk-back">
+        <ChevronLeft aria-hidden />
+        Retour au profil
+      </Link>
 
-        {!loading && items.length === 0 ? <Empty>Aucun rendez-vous dans cet historique.</Empty> : null}
+      <div className="mp-ses-tabs" role="tablist" aria-label="Filtrer par statut">
+        {FILTERS.map((filter) => (
+          <button
+            key={filter.value}
+            type="button"
+            role="tab"
+            aria-selected={status === filter.value}
+            className={status === filter.value ? 'is-on' : ''}
+            onClick={() => setStatus(filter.value)}
+          >
+            {filter.label}
+          </button>
+        ))}
+      </div>
 
-        <div className="cx-sess">
-          {items.map((item) => (
-            <SessionRow
-              key={item.id}
-              date={item.creneau?.date}
-              tone={toneOf(item.status)}
-              title={item.user?.fullName || 'Apprenant'}
-              lines={[
-                item.creneau
-                  ? `${dateParts(item.creneau.date).long} · ${item.creneau.startTime} – ${item.creneau.endTime}`
-                  : 'Séance',
-              ]}
-              warning={item.cancellationReason ? `Motif : ${item.cancellationReason}` : undefined}
-              chip={statusChip(item.status)}
-              amount={formatMoney(item.priceFcfa)}
-            />
-          ))}
-        </div>
-      </section>
+      {loading && items.length === 0 ? <p className="cx-loading">Chargement…</p> : null}
+      {!loading && items.length === 0 ? <p className="mp-ses-empty">Aucune séance dans cet historique.</p> : null}
+
+      {groups.map((group) => (
+        <section key={group.key || 'none'} className="mp-hs-group">
+          <h3 className="mp-hs-month">
+            {monthTitle(group.key)}
+            <small>{group.list.length}</small>
+          </h3>
+          <div className="mp-ses-list">
+            {group.list.map((item) => (
+              <article key={item.id} className={`mp-ses is-done${item.status === 'cancelled' ? ' is-cancelled' : ''}`}>
+                <div className="mp-ses-top">
+                  <span className={`mp-ses-chip${item.status === 'cancelled' ? ' is-off' : item.status === 'confirmed' ? '' : ' is-wait'}`}>
+                    {statusLabel(item.status)}
+                  </span>
+                  <small>{dayText(item.creneau?.date)}</small>
+                </div>
+                <div className="mp-ses-who">
+                  <span className="mp-ses-avatar" aria-hidden="true">
+                    {initialsOf(item.user?.fullName)}
+                  </span>
+                  <span className="mp-ses-info">
+                    <b>{item.user?.fullName || 'Apprenant'}</b>
+                    <small>
+                      {item.creneau ? `${item.creneau.startTime} – ${item.creneau.endTime} · ` : ''}
+                      {formatMoney(item.priceFcfa)}
+                    </small>
+                  </span>
+                </div>
+                {item.cancellationReason ? <p className="mp-hs-reason">Motif : {item.cancellationReason}</p> : null}
+              </article>
+            ))}
+          </div>
+        </section>
+      ))}
     </PageSection>
   )
 }
