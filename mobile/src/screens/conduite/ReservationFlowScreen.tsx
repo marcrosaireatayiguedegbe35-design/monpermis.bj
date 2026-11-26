@@ -59,7 +59,6 @@ import { fetchAccessMe } from '../../api/accessRequests'
 import { Bouncy } from '../../components/Bouncy'
 import { CodeRouteBanner } from '../../components/CodeRouteBanner'
 import { FlowHeader } from '../../components/FlowHeader'
-import { WaveDecor } from '../../components/WaveDecor'
 import { DriveModuleIcon } from '../../components/ModuleIcons'
 import { EmptyState } from '../../components/EmptyState'
 import { FadeUp } from '../../components/FadeUp'
@@ -442,7 +441,6 @@ export function ReservationFlowScreen() {
 
   return (
     <View style={styles.root}>
-      <WaveDecor />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <FlowHeader
           title={step === 'slots' ? 'Créneaux disponibles' : 'Nouvelle séance'}
