@@ -57,6 +57,33 @@ const router = Router()
 const withConduiteAccess = [requireUserAuth]
 const LOCK_MS = 15 * 60 * 1000
 
+const LEARNER_BOOKING_CONFLICT =
+  'Vous avez déjà une séance réservée à ce moment-là. Choisissez une autre heure ou annulez la première réservation.'
+
+/**
+ * Un élève ne peut pas avoir deux séances en même temps : cherche, parmi ses réservations actives
+ * (à payer, à confirmer, confirmées), un créneau dont les horaires croisent ceux demandés.
+ */
+async function findLearnerOverlap({ userId, date, startTime, endTime, excludeCreneauIds = [] }) {
+  const active = await Reservation.find({
+    userId,
+    status: { $in: ['pending_payment', 'pending_moniteur', 'confirmed'] },
+  })
+    .select('creneauId')
+    .lean()
+  if (!active.length) return null
+  const exclude = new Set(excludeCreneauIds.map(String))
+  const ids = active.map((item) => item.creneauId).filter((id) => !exclude.has(String(id)))
+  if (!ids.length) return null
+  return Creneau.findOne({
+    _id: { $in: ids },
+    date,
+    startTime: { $lt: endTime },
+    endTime: { $gt: startTime },
+  }).lean()
+}
+
+
 /** Créneaux qui bloquent une plage pour les autres élèves (réservés, bloqués, ou verrou pending). */
 function busySlotFilter(viewerUserId, now = new Date()) {
   return {
@@ -648,6 +675,18 @@ router.get('/creneaux', ...withConduiteAccess, async (req, res) => {
 /** Verrouille un créneau (anti double-réservation) pendant le checkout. */
 router.post('/creneaux/:id/lock', ...withConduiteAccess, async (req, res) => {
   try {
+    const target = await Creneau.findById(req.params.id).select('date startTime endTime').lean()
+    if (
+      target &&
+      (await findLearnerOverlap({
+        userId: req.user._id,
+        date: target.date,
+        startTime: target.startTime,
+        endTime: target.endTime,
+      }))
+    ) {
+      return res.status(409).json({ success: false, error: LEARNER_BOOKING_CONFLICT, code: 'LEARNER_OVERLAP' })
+    }
     const now = new Date()
     const lockedUntil = new Date(now.getTime() + LOCK_MS)
 
@@ -724,6 +763,16 @@ router.post('/creneaux/lock-range', ...withConduiteAccess, async (req, res) => {
         success: false,
         error: `Seulement ${chain.length} créneau(x) consécutif(s) disponible(s) à partir de cette heure.`,
       })
+    }
+
+    const conflict = await findLearnerOverlap({
+      userId: req.user._id,
+      date: chain[0].date,
+      startTime: chain[0].startTime,
+      endTime: chain[chain.length - 1].endTime,
+    })
+    if (conflict) {
+      return res.status(409).json({ success: false, error: LEARNER_BOOKING_CONFLICT, code: 'LEARNER_OVERLAP' })
     }
 
     const now = new Date()
@@ -829,6 +878,21 @@ router.post('/reservations', ...withConduiteAccess, async (req, res) => {
 
     if (!creneauIds.length) {
       return res.status(400).json({ success: false, error: 'Créneau requis' })
+    }
+
+    const requested = await Creneau.find({ _id: { $in: creneauIds } })
+      .select('date startTime endTime')
+      .lean()
+    for (const item of requested) {
+      const conflict = await findLearnerOverlap({
+        userId: req.user._id,
+        date: item.date,
+        startTime: item.startTime,
+        endTime: item.endTime,
+      })
+      if (conflict) {
+        return res.status(409).json({ success: false, error: LEARNER_BOOKING_CONFLICT, code: 'LEARNER_OVERLAP' })
+      }
     }
 
     const now = new Date()
