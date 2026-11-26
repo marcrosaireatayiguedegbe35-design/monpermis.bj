@@ -16,12 +16,16 @@ import {
   Images,
   MapPin,
   Pencil,
-  Play,
   RefreshCw,
   ShieldCheck,
   User,
   Wallet,
   X,
+  Moon,
+  Sun,
+  Sunset,
+  Timer,
+  CalendarCheck,
 } from 'lucide-react-native'
 import {
   ActivityIndicator,
@@ -54,6 +58,8 @@ import {
 import { fetchAccessMe } from '../../api/accessRequests'
 import { Bouncy } from '../../components/Bouncy'
 import { CodeRouteBanner } from '../../components/CodeRouteBanner'
+import { FlowHeader } from '../../components/FlowHeader'
+import { WaveDecor } from '../../components/WaveDecor'
 import { DriveModuleIcon } from '../../components/ModuleIcons'
 import { EmptyState } from '../../components/EmptyState'
 import { FadeUp } from '../../components/FadeUp'
@@ -69,14 +75,20 @@ import { useUnreadNotifications } from '../../hooks/useUnreadNotifications'
 import type { RootStackParamList } from '../../navigation/types'
 import { brand, dark, fonts, shadows } from '../../theme'
 import { optimizedImageUrl, resolveMediaUrl } from '../../utils/mediaUrl'
-import { resolveMoniteurVideoEmbed } from '../../utils/mediaEmbed'
-import { safeOpenUrl } from '../../utils/safeOpenUrl'
 import { useViewport } from '../../utils/viewport'
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ReservationFlow'>
 type Step = 'moniteur' | 'profile' | 'duration' | 'slots'
 
 const DURATION_OPTIONS = [1, 2, 3, 4]
+
+/** « Marc Rosaire ATAYI GUEDEGBE » → prénoms / nom (les mots tout en majuscules forment le nom). */
+function splitFullName(fullName: string) {
+  const words = fullName.trim().split(/\s+/).filter(Boolean)
+  const firstUpper = words.findIndex((w, i) => i > 0 && w === w.toUpperCase() && /[A-ZÀ-Ý]/.test(w))
+  const cut = firstUpper > 0 ? firstUpper : words.length > 1 ? 1 : words.length
+  return { first: words.slice(0, cut).join(' '), last: words.slice(cut).join(' ') }
+}
 
 function timeToMinutes(value: string) {
   const [h, m] = value.split(':').map((v) => parseInt(v, 10) || 0)
@@ -173,6 +185,10 @@ export function ReservationFlowScreen() {
   const [error, setError] = useState<string | null>(null)
   const [mmOpen, setMmOpen] = useState(false)
   const [bioExpanded, setBioExpanded] = useState(false)
+  const [galleryAll, setGalleryAll] = useState(false)
+  const [pagerHeight, setPagerHeight] = useState(0)
+  const [profileTab, setProfileTab] = useState<'about' | 'photos'>('about')
+  const [slotPeriod, setSlotPeriod] = useState<'morning' | 'afternoon' | 'evening'>('morning')
   const [vehicleImageIndex, setVehicleImageIndex] = useState(0)
   const [durationHelpVisible, setDurationHelpVisible] = useState(true)
   const stepProgress = useRef(new Animated.Value(0)).current
@@ -426,134 +442,34 @@ export function ReservationFlowScreen() {
 
   return (
     <View style={styles.root}>
+      <WaveDecor />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <View style={styles.topBar}>
-          <Pressable
-            style={({ pressed }) => [styles.roundBtn, pressed && styles.pressed]}
-            onPress={handleBack}
-            accessibilityLabel="Retour"
-            hitSlop={8}
-          >
-            <ChevronLeft size={26} color={dark.textPrimary} />
-          </Pressable>
-          <View style={styles.topBarCenter}>
-            <DriveModuleIcon size={42} />
-            <View>
-              <Text style={styles.topBarTitle}>Nouvelle séance</Text>
-              <Text style={styles.topBarSub}>Moniteur • Durée • Créneau</Text>
-            </View>
-          </View>
-          <Pressable
-            style={({ pressed }) => [styles.roundBtn, pressed && styles.pressed]}
-            onPress={() => navigation.navigate('Notifications')}
-            accessibilityLabel="Notifications"
-            hitSlop={8}
-          >
-            <Bell size={24} color={dark.textPrimary} />
-            {unreadCount > 0 ? <View style={styles.notifDot} /> : null}
-          </Pressable>
-        </View>
+        <FlowHeader
+          title={step === 'slots' ? 'Créneaux disponibles' : 'Nouvelle séance'}
+          subtitle={
+            step === 'slots'
+              ? 'Sélectionnez un créneau pour votre séance'
+              : step === 'moniteur'
+                ? 'Votre formation, notre priorité'
+                : 'Moniteur • Durée • Créneau'
+          }
+          logo={step === 'moniteur'}
+          unread={unreadCount}
+          onBack={handleBack}
+          onBell={() => navigation.navigate('Notifications')}
+        />
 
-        <ScrollView
-          contentContainerStyle={[
-            styles.scroll,
-            step === 'profile' && styles.scrollWithProfileSticky,
-            step === 'slots' && selectedStart && selectedEnd && styles.scrollWithProfileSticky,
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
+        <View style={styles.flowBody}>
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <FadeUp delay={40}>
-            <View style={styles.stepperCard}>
-              <View style={styles.stepsRow}>
-                {STEP_META.map((item, index) => {
-                  const current = stepOrder === index
-                  const done = stepOrder > index
-                  const Icon = item.Icon
-                  return (
-                    <View key={item.id} style={styles.stepItem}>
-                      <View style={styles.stepTop}>
-                        {index > 0 ? (
-                          <View
-                            style={[
-                              styles.stepConnector,
-                              styles.stepConnectorLeft,
-                              stepOrder >= index && styles.stepConnectorActive,
-                            ]}
-                          />
-                        ) : (
-                          <View style={styles.stepConnectorSpacer} />
-                        )}
-                        <View
-                          style={[
-                            styles.stepDot,
-                            done && styles.stepDotDone,
-                            current && !done && styles.stepDotCurrent,
-                          ]}
-                        >
-                          {done ? (
-                            <Check size={14} color="#FFFFFF" strokeWidth={3} />
-                          ) : (
-                            <Text
-                              style={[
-                                styles.stepDotText,
-                                current && styles.stepDotTextCurrent,
-                              ]}
-                            >
-                              {index + 1}
-                            </Text>
-                          )}
-                        </View>
-                        {index < STEP_META.length - 1 ? (
-                          <View
-                            style={[
-                              styles.stepConnector,
-                              styles.stepConnectorRight,
-                              stepOrder > index && styles.stepConnectorActive,
-                            ]}
-                          />
-                        ) : (
-                          <View style={styles.stepConnectorSpacer} />
-                        )}
-                      </View>
-                      <Icon
-                        size={16}
-                        color={current || done ? dark.green : dark.textMuted}
-                      />
-                      <Text
-                        style={[
-                          styles.stepPillText,
-                          (current || done) && styles.stepPillTextActive,
-                        ]}
-                      >
-                        {item.label}
-                      </Text>
-                    </View>
-                  )
-                })}
-              </View>
-              <Animated.View
-                style={[
-                  styles.stepperFillHidden,
-                  {
-                    width: stepProgress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['0%', '100%'],
-                    }),
-                  },
-                ]}
-              />
-            </View>
-          </FadeUp>
-
           {step === 'moniteur' ? (
-            <View>
-              <FadeUp delay={80}>
-                <Text style={styles.pickTitle}>Choisis ton moniteur</Text>
-                <Text style={styles.pickSub}>Glisse pour voir les autres moniteurs certifiés.</Text>
-              </FadeUp>
-
+            <View
+              style={{ flex: 1 }}
+              onLayout={(e) => {
+                setPagerWidth(Math.round(e.nativeEvent.layout.width))
+                setPagerHeight(Math.round(e.nativeEvent.layout.height))
+              }}
+            >
               {busy ? <ActivityIndicator color={dark.green} style={{ marginVertical: 24 }} /> : null}
               {!busy && moniteurs.length === 0 ? (
                 <View style={styles.emptyCard}>
@@ -564,688 +480,345 @@ export function ReservationFlowScreen() {
                 </View>
               ) : null}
 
-              {moniteurs.length > 0 ? (
-                <View onLayout={(e) => setPagerWidth(Math.round(e.nativeEvent.layout.width))}>
-                  <ScrollView
-                    ref={pagerRef}
-                    horizontal
-                    pagingEnabled
-                    showsHorizontalScrollIndicator={false}
-                    onMomentumScrollEnd={(e) => {
-                      if (pagerWidth > 0) {
-                        setMoniteurIndex(Math.round(e.nativeEvent.contentOffset.x / pagerWidth))
-                      }
-                    }}
-                    scrollEventThrottle={16}
-                  >
-                    {moniteurs.map((moniteur) => {
-                      const typeLabel = moniteur.vehicleTypes?.[0] || 'Véhicule'
-                      const photo = moniteur.photoUrl || moniteur.vehiclePhotoUrl
-                      return (
-                        <View key={moniteur.id} style={[styles.pickCard, { width: pagerWidth || 300 }]}>
-                          {photo ? (
-                            <Image
-                              source={{ uri: optimizedImageUrl(resolveMediaUrl(photo)) }}
-                              style={[styles.pickPhoto, { width: pagerWidth || 300, height: 430 }]}
-                              resizeMode="cover"
-                            />
-                          ) : (
-                            <View style={styles.pickNoPhoto}>
-                              <Text style={styles.pickInitial}>
-                                {moniteur.fullName.slice(0, 1).toUpperCase()}
-                              </Text>
+              {moniteurs.length > 0 && pagerHeight > 0 && pagerWidth > 0 ? (
+                <ScrollView
+                  ref={pagerRef}
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  style={{ height: pagerHeight }}
+                  onMomentumScrollEnd={(e) =>
+                    setMoniteurIndex(Math.round(e.nativeEvent.contentOffset.x / pagerWidth))
+                  }
+                  scrollEventThrottle={16}
+                >
+                  {moniteurs.map((moniteur, position) => {
+                    const photo = moniteur.photoUrl || moniteur.vehiclePhotoUrl
+                    return (
+                      <View key={moniteur.id} style={{ width: pagerWidth, height: pagerHeight, padding: 2 }}>
+                        <View style={styles.mCard}>
+                          <View style={styles.mPhotoWrap}>
+                            {photo ? (
+                              <Image
+                                source={{ uri: optimizedImageUrl(resolveMediaUrl(photo)) }}
+                                style={styles.mPhoto}
+                                resizeMode="cover"
+                              />
+                            ) : (
+                              <View style={[styles.mPhoto, styles.mNoPhoto]}>
+                                <Text style={styles.mInitial}>{moniteur.fullName.slice(0, 1).toUpperCase()}</Text>
+                              </View>
+                            )}
+                            <View style={styles.mVerified}>
+                              <Check size={13} color="#FFFFFF" strokeWidth={3} />
+                              <Text style={styles.mVerifiedText}>Vérifié</Text>
                             </View>
-                          )}
-                          <LinearGradient
-                            colors={['rgba(5,15,40,0)', 'rgba(5,15,40,0.35)', 'rgba(5,15,40,0.88)']}
-                            locations={[0.25, 0.6, 1]}
-                            style={StyleSheet.absoluteFillObject}
-                            pointerEvents="none"
-                          />
-                          <View style={styles.pickVerified}>
-                            <Check size={12} color="#FFFFFF" strokeWidth={3} />
-                            <Text style={styles.pickVerifiedText}>Vérifié</Text>
+                            {position > 0 ? (
+                              <Pressable
+                                style={[styles.mArrow, { left: 10 }]}
+                                hitSlop={10}
+                                accessibilityLabel="Moniteur précédent"
+                                onPress={() => {
+                                  pagerRef.current?.scrollTo({ x: (position - 1) * pagerWidth, animated: true })
+                                  setMoniteurIndex(position - 1)
+                                }}
+                              >
+                                <ChevronLeft size={22} color="#0A1E55" />
+                              </Pressable>
+                            ) : null}
+                            {position < moniteurs.length - 1 ? (
+                              <Pressable
+                                style={[styles.mArrow, { right: 10 }]}
+                                hitSlop={10}
+                                accessibilityLabel="Moniteur suivant"
+                                onPress={() => {
+                                  pagerRef.current?.scrollTo({ x: (position + 1) * pagerWidth, animated: true })
+                                  setMoniteurIndex(position + 1)
+                                }}
+                              >
+                                <ChevronRight size={22} color="#0A1E55" />
+                              </Pressable>
+                            ) : null}
+                            {moniteurs.length > 1 ? (
+                              <View style={styles.mDots}>
+                                {moniteurs.slice(0, 6).map((m, i) => (
+                                  <View key={m.id} style={[styles.mDot, i === position && styles.mDotOn]} />
+                                ))}
+                              </View>
+                            ) : null}
                           </View>
-                          <View style={styles.pickInfo}>
-                            <Text style={styles.pickName} numberOfLines={1}>{moniteur.fullName}</Text>
-                            <Text style={styles.pickMeta} numberOfLines={1}>
-                              {[moniteur.vehicleBrand, moniteur.city].filter(Boolean).join(' · ') || 'Moniteur certifié'}
+
+                          <Text style={styles.mName} numberOfLines={1}>{moniteur.fullName}</Text>
+                          <View style={styles.mRole}>
+                            <User size={15} color="#2563EB" />
+                            <Text style={styles.mRoleText} numberOfLines={1}>
+                              Moniteur de conduite{moniteur.city ? ` · ${moniteur.city}` : ''}
                             </Text>
-                            <View style={styles.pickPills}>
-                              {moniteur.defaultPriceFcfa ? (
-                                <View style={styles.pickPricePill}>
-                                  <Text style={styles.pickPrice}>
-                                    {moniteur.defaultPriceFcfa.toLocaleString('fr-FR')} F / h
-                                  </Text>
-                                </View>
-                              ) : null}
-                              <View style={styles.pickTypePill}>
-                                <Car size={12} color="#FFFFFF" />
-                                <Text style={styles.pickTypeText}>{typeLabel}</Text>
+                          </View>
+                          <View style={styles.mTiles}>
+                            <View style={[styles.mTile, { backgroundColor: '#EEF3FB' }]}>
+                              <Car size={26} color="#0A1E55" />
+                              <View style={{ flexShrink: 1 }}>
+                                <Text style={styles.mTileValue} numberOfLines={1}>{moniteur.vehicleBrand || 'Véhicule'}</Text>
+                                <Text style={styles.mTileLabel}>Véhicule</Text>
+                              </View>
+                            </View>
+                            <View style={[styles.mTile, { backgroundColor: '#EAF8EF' }]}>
+                              <Wallet size={26} color={dark.green} />
+                              <View style={{ flexShrink: 1 }}>
+                                <Text style={[styles.mTileValue, { color: dark.green }]} numberOfLines={1}>
+                                  {(moniteur.defaultPriceFcfa || 5000).toLocaleString('fr-FR')} F / h
+                                </Text>
+                                <Text style={styles.mTileLabel}>Tarif horaire</Text>
                               </View>
                             </View>
                           </View>
                         </View>
-                      )
-                    })}
-                  </ScrollView>
-
-                  <View style={styles.pickNav}>
-                    <Pressable
-                      hitSlop={10}
-                      accessibilityLabel="Moniteur précédent"
-                      onPress={() => {
-                        const next = Math.max(0, moniteurIndex - 1)
-                        pagerRef.current?.scrollTo({ x: next * pagerWidth, animated: true })
-                        setMoniteurIndex(next)
-                      }}
-                    >
-                      <ChevronLeft size={20} color={moniteurIndex === 0 ? '#CBD5E1' : dark.textPrimary} />
-                    </Pressable>
-                    <View style={styles.pickDots}>
-                      {moniteurs.slice(0, 8).map((m, i) => (
-                        <View key={m.id} style={[styles.pickDot, i === moniteurIndex && styles.pickDotOn]} />
-                      ))}
-                    </View>
-                    <Pressable
-                      hitSlop={10}
-                      accessibilityLabel="Moniteur suivant"
-                      onPress={() => {
-                        const next = Math.min(moniteurs.length - 1, moniteurIndex + 1)
-                        pagerRef.current?.scrollTo({ x: next * pagerWidth, animated: true })
-                        setMoniteurIndex(next)
-                      }}
-                    >
-                      <ChevronRight
-                        size={20}
-                        color={moniteurIndex >= moniteurs.length - 1 ? '#CBD5E1' : dark.textPrimary}
-                      />
-                    </Pressable>
-                  </View>
-
-                  <Bouncy
-                    scaleTo={0.98}
-                    onPress={() => {
-                      const chosen = moniteurs[Math.min(moniteurIndex, moniteurs.length - 1)]
-                      if (chosen) void loadProfile(chosen.id)
-                    }}
-                  >
-                    <View style={styles.pickBtn}>
-                      <Text style={styles.pickBtnText}>Choisir ce moniteur</Text>
-                      <ChevronRight size={18} color="#FFFFFF" />
-                    </View>
-                  </Bouncy>
-                </View>
+                      </View>
+                    )
+                  })}
+                </ScrollView>
               ) : null}
             </View>
           ) : null}
 
-        {step === 'profile' && profile ? (
-          <View style={styles.profileWrap}>
-            <FadeUp delay={60}>
-              <Text style={styles.introTitle}>Profil du moniteur</Text>
-              <View style={styles.titleAccent} />
-            </FadeUp>
-
-            {busy ? <ActivityIndicator color={dark.green} style={{ marginVertical: 12 }} /> : null}
-
-            <FadeUp delay={100}>
-              <View style={styles.profileHero}>
-                <View style={styles.avatarWrap}>
+          {step === 'profile' && profile ? (
+            <View style={{ flex: 1, gap: 12 }}>
+              {busy ? <ActivityIndicator color={dark.green} /> : null}
+              <View style={styles.pCard}>
+                <View style={styles.pHead}>
                   {profile.photoUrl ? (
                     <Image
-                      source={{ uri: resolveMediaUrl(profile.photoUrl) }}
-                      style={styles.profileAvatar}
+                      source={{ uri: optimizedImageUrl(resolveMediaUrl(profile.photoUrl), 500) }}
+                      style={styles.pPhotoSmall}
+                      resizeMode="cover"
                     />
                   ) : (
-                    <View style={[styles.profileAvatar, styles.coverPlaceholder]}>
-                      <Text style={styles.avatarInitial}>
-                        {profile.fullName.slice(0, 1).toUpperCase()}
-                      </Text>
+                    <View style={[styles.pPhotoSmall, styles.mNoPhoto]}>
+                      <Text style={[styles.mInitial, { fontSize: 44 }]}>{profile.fullName.slice(0, 1).toUpperCase()}</Text>
                     </View>
                   )}
-                  <View style={styles.avatarBadge}>
-                    <Check size={12} color="#FFFFFF" strokeWidth={3} />
-                  </View>
-                </View>
-                <View style={styles.profileHeroCopy}>
-                  <Text style={styles.profileName}>{profile.fullName}</Text>
-                  {profile.city ? (
-                    <View style={styles.metaRow}>
-                      <MapPin size={14} color={dark.textMuted} />
-                      <Text style={styles.brandText}>{profile.city}</Text>
-                    </View>
-                  ) : null}
-                  <View style={styles.priceTypePill}>
-                    <Car size={13} color="#FFFFFF" />
-                    <Text style={styles.priceTypePillText}>
-                      {(profile.vehicleTypes?.[0] || 'Véhicule').replace(/^./, (c) =>
-                        c.toUpperCase(),
-                      )}
-                      {profile.defaultPriceFcfa
-                        ? ` · ${profile.defaultPriceFcfa.toLocaleString('fr-FR')} FCFA/h`
-                        : ''}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </FadeUp>
-
-            {(() => {
-              const vehicleImages = [
-                profile.vehiclePhotoUrl,
-                ...(profile.photos || []),
-              ].filter((uri): uri is string => Boolean(uri?.trim()))
-              const safeIndex = Math.min(vehicleImageIndex, Math.max(0, vehicleImages.length - 1))
-              const currentVehicleUri = vehicleImages[safeIndex]
-
-              return (
-                <FadeUp delay={140}>
-                  <View style={styles.vehicleCard}>
-                    <View style={styles.vehicleCardHead}>
-                      <Car size={18} color={dark.green} />
-                      <Text style={styles.vehicleCardTitle}>Véhicule utilisé</Text>
-                    </View>
-
-                    {currentVehicleUri ? (
-                      <ScrollView
-                        horizontal
-                        pagingEnabled
-                        showsHorizontalScrollIndicator={false}
-                        onMomentumScrollEnd={(e) => {
-                          const next = Math.round(
-                            e.nativeEvent.contentOffset.x / Math.max(vehicleSlideWidth, 1),
-                          )
-                          setVehicleImageIndex(next)
-                        }}
-                        style={styles.vehicleCarousel}
-                        decelerationRate="fast"
-                        snapToInterval={vehicleSlideWidth}
-                        snapToAlignment="start"
-                      >
-                        {vehicleImages.map((uri) => (
-                          <Image
-                            key={uri}
-                            source={{ uri: resolveMediaUrl(uri) }}
-                            style={[styles.vehiclePhoto, { width: vehicleSlideWidth }]}
-                          />
-                        ))}
-                      </ScrollView>
-                    ) : (
-                      <View style={[styles.vehiclePhoto, styles.coverPlaceholder]}>
-                        <Text style={styles.carPlaceholderText}>Photo véhicule non disponible</Text>
-                      </View>
-                    )}
-
-                    {vehicleImages.length > 1 ? (
-                      <View style={styles.dotsRow}>
-                        {vehicleImages.map((uri, i) => (
-                          <View
-                            key={`dot-${uri}`}
-                            style={[styles.dot, i === safeIndex && styles.dotActive]}
-                          />
-                        ))}
-                      </View>
+                  <View style={styles.pHeadCopy}>
+                    <Text style={styles.pFirst} numberOfLines={2}>{splitFullName(profile.fullName).first}</Text>
+                    {splitFullName(profile.fullName).last ? (
+                      <Text style={styles.pLast} numberOfLines={1}>{splitFullName(profile.fullName).last}</Text>
                     ) : null}
-
-                    <Text style={styles.vehicleBrand}>
-                      {profile.vehicleBrand || 'Marque non renseignée'}
-                    </Text>
-
-                    {profile.specialties?.length ? (
-                      <View style={styles.featureRow}>
-                        {profile.specialties.map((item) => (
-                          <View key={item} style={styles.featureChip}>
-                            <ShieldCheck size={14} color={dark.green} />
-                            <Text style={styles.featureChipText}>{item}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    ) : null}
-                  </View>
-                </FadeUp>
-              )
-            })()}
-
-            <FadeUp delay={180}>
-              <Pressable
-                style={styles.infoRowCard}
-                onPress={() => {
-                  if (profile.bio?.trim()) setBioExpanded((v) => !v)
-                }}
-                disabled={!profile.bio?.trim()}
-              >
-                <View style={styles.infoRowIcon}>
-                  <FileText size={18} color={dark.green} />
-                </View>
-                <View style={styles.infoRowCopy}>
-                  <Text style={styles.infoRowTitle}>Présentation</Text>
-                  {profile.bio?.trim() ? (
-                    <>
-                      <Text style={styles.infoRowSubtitle} numberOfLines={bioExpanded ? undefined : 2}>
-                        {profile.bio.trim()}
-                      </Text>
-                      {profile.bio.trim().length > 80 ? (
-                        <Text style={styles.seeMore}>
-                          {bioExpanded ? 'Voir moins' : 'Voir plus'}
-                        </Text>
-                      ) : null}
-                    </>
-                  ) : (
-                    <Text style={styles.infoRowSubtitle}>Aucune présentation disponible.</Text>
-                  )}
-                </View>
-                <ChevronRight size={18} color={dark.textMuted} />
-              </Pressable>
-
-              <View style={styles.infoRowCard}>
-                <View style={styles.infoRowIcon}>
-                  <Images size={18} color={dark.green} />
-                </View>
-                <View style={styles.infoRowCopy}>
-                  <Text style={styles.infoRowTitle}>Galerie photo</Text>
-                  {profile.photos?.length ? (
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.galleryRow}
-                    >
-                      {profile.photos.map((photo) => (
-                        <Image
-                          key={photo}
-                          source={{ uri: resolveMediaUrl(photo) }}
-                          style={styles.galleryPhoto}
-                        />
-                      ))}
-                    </ScrollView>
-                  ) : (
-                    <Text style={styles.infoRowSubtitle}>Pas encore de galerie photo.</Text>
-                  )}
-                </View>
-                <ChevronRight size={18} color={dark.textMuted} />
-              </View>
-
-              {profile.videos?.length ? (
-                profile.videos.map((video) => {
-                  const embed = resolveMoniteurVideoEmbed(video)
-                  if (!embed) return null
-                  return (
-                    <Pressable
-                      key={video}
-                      style={styles.infoRowCard}
-                      onPress={() => void safeOpenUrl(embed.watchUrl)}
-                    >
-                      <View style={[styles.infoRowIcon, styles.videoPlayIcon]}>
-                        <Play size={16} color="#FFFFFF" fill="#FFFFFF" />
-                      </View>
-                      <View style={styles.infoRowCopy}>
-                        <Text style={styles.infoRowTitle}>Vidéo de présentation</Text>
-                        <Text style={styles.infoRowSubtitle}>Touchez pour ouvrir la vidéo</Text>
-                      </View>
-                      <ChevronRight size={18} color={dark.textMuted} />
-                    </Pressable>
-                  )
-                })
-              ) : (
-                <View style={styles.infoRowCard}>
-                  <View style={styles.infoRowIcon}>
-                    <Play size={18} color={dark.green} />
-                  </View>
-                  <View style={styles.infoRowCopy}>
-                    <Text style={styles.infoRowTitle}>Vidéo de présentation</Text>
-                    <Text style={styles.infoRowSubtitle}>
-                      Pas encore de vidéo de présentation.
-                    </Text>
-                  </View>
-                  <ChevronRight size={18} color={dark.textMuted} />
-                </View>
-              )}
-            </FadeUp>
-
-            <Pressable style={styles.secondaryBtn} onPress={() => setStep('moniteur')}>
-              <Text style={styles.secondaryBtnText}>Retour à la liste</Text>
-            </Pressable>
-          </View>
-        ) : null}
-
-        {step === 'duration' ? (
-          <View>
-            <FadeUp delay={60}>
-              <Text style={styles.introTitle}>Durée de la séance</Text>
-              <View style={styles.titleAccent} />
-              <Text style={styles.introText}>
-                Choisissez combien d’heures vous souhaitez. Nous afficherons ensuite uniquement les
-                créneaux encore libres pour cette durée.
-              </Text>
-            </FadeUp>
-
-            {selectedMoniteur ? (
-              <FadeUp delay={100}>
-                <View style={styles.durationMoniteurCard}>
-                  <View style={styles.avatarWrap}>
-                    {selectedMoniteur.photoUrl ? (
-                      <Image
-                        source={{ uri: resolveMediaUrl(selectedMoniteur.photoUrl) }}
-                        style={styles.durationMoniteurAvatar}
-                      />
-                    ) : (
-                      <View style={[styles.durationMoniteurAvatar, styles.coverPlaceholder]}>
-                        <Text style={styles.avatarInitial}>
-                          {selectedMoniteur.fullName.slice(0, 1).toUpperCase()}
-                        </Text>
-                      </View>
-                    )}
-                    <View style={styles.avatarBadge}>
-                      <Check size={10} color="#FFFFFF" strokeWidth={3} />
+                    <View style={styles.pVerified}>
+                      <ShieldCheck size={16} color={dark.green} />
+                      <Text style={styles.pVerifiedText}>Profil vérifié</Text>
                     </View>
                   </View>
-                  <View style={styles.durationMoniteurCopy}>
-                    <Text style={styles.choiceText}>{selectedMoniteur.fullName}</Text>
-                    <Text style={styles.brandText}>
-                      {selectedMoniteur.vehicleBrand || 'Véhicule'}
-                      {vehicleType ? (
-                        <>
-                          {' · '}
-                          <Text style={styles.vehicleTypeAccent}>
-                            {vehicleType.replace(/^./, (c) => c.toUpperCase())}
-                          </Text>
-                        </>
-                      ) : null}
-                    </Text>
-                  </View>
                 </View>
-              </FadeUp>
-            ) : null}
-
-            <FadeUp delay={140}>
-              <View style={styles.sectionRow}>
-                <View style={styles.sectionIcon}>
-                  <Clock size={16} color={dark.green} />
-                </View>
-                <Text style={[styles.section, { marginBottom: 0, marginTop: 4 }]}>
-                  Combien d’heures ?
-                </Text>
               </View>
 
-              <View style={styles.durationGrid}>
-                {DURATION_OPTIONS.map((hours) => {
-                  const active = durationHours === hours
-                  const amount = computeDrivingAmount(
-                    hourlyPriceFcfa,
-                    hours,
-                    hoursDiscount,
-                    hoursDiscountMin,
-                  )
-                  return (
-                    <Bouncy
-                      key={hours}
-                      scaleTo={0.97}
-                      style={styles.durationCardWrap}
-                      onPress={() => setDurationHours(hours)}
-                    >
-                      <View
-                        style={[styles.durationCard, active && styles.durationCardActive]}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: active }}
-                        accessibilityLabel={`${hours} heures, ${amount.toLocaleString('fr-FR')} FCFA`}
-                      >
-                        <Text
-                          style={[styles.durationCardHours, active && styles.durationCardHoursActive]}
-                        >
-                          {hours} h
-                        </Text>
-                        <Text
-                          style={[styles.durationCardPrice, active && styles.durationCardPriceActive]}
-                        >
-                          {amount.toLocaleString('fr-FR')} FCFA
-                        </Text>
-                        {active ? (
-                          <View style={styles.durationCheck}>
-                            <Check size={14} color="#FFFFFF" strokeWidth={3} />
-                          </View>
-                        ) : null}
-                      </View>
-                    </Bouncy>
-                  )
-                })}
-              </View>
-            </FadeUp>
-
-            <FadeUp delay={180}>
-              <Bouncy scaleTo={0.98} disabled={busy} onPress={() => setStep('slots')}>
-                <View style={[styles.primaryBtn, styles.durationPrimaryBtn, busy && styles.disabled]}>
-                  <Calendar size={18} color="#FFFFFF" />
-                  <Text style={styles.primaryBtnText}>Voir les créneaux disponibles</Text>
-                  <View style={styles.primaryBtnArrow}>
-                    <ChevronRight size={16} color={dark.green} />
-                  </View>
-                </View>
-              </Bouncy>
-
-              <Bouncy scaleTo={0.98} onPress={() => setStep('moniteur')}>
-                <View style={styles.changeMoniteurCard}>
-                  <View style={styles.changeMoniteurIcon}>
-                    <RefreshCw size={18} color={dark.green} />
-                  </View>
-                  <Text style={styles.changeMoniteurText}>Changer de moniteur</Text>
-                  <ChevronRight size={18} color={dark.textMuted} />
-                </View>
-              </Bouncy>
-
-              {durationHelpVisible ? (
-                <View style={styles.helpCard}>
-                  <View style={styles.helpIcon}>
-                    <Check size={14} color="#FFFFFF" strokeWidth={3} />
-                  </View>
-                  <View style={styles.helpCopy}>
-                    <Text style={styles.helpTitle}>Besoin d’aide ?</Text>
-                    <Text style={styles.helpText}>
-                      Vous pourrez modifier ces informations à tout moment avant la confirmation.
-                    </Text>
-                  </View>
+              <View style={styles.tabsRow}>
+                {([
+                  ['about', 'À propos'],
+                  ['photos', 'Photos'],
+                ] as const).map(([key, label]) => (
                   <Pressable
-                    onPress={() => setDurationHelpVisible(false)}
-                    hitSlop={10}
-                    accessibilityLabel="Fermer"
+                    key={key}
+                    style={[styles.tab, profileTab === key && styles.tabOn]}
+                    onPress={() => setProfileTab(key)}
                   >
-                    <X size={16} color={dark.textMuted} />
+                    <Text style={[styles.tabText, profileTab === key && styles.tabTextOn]}>{label}</Text>
                   </Pressable>
-                </View>
-              ) : null}
-            </FadeUp>
-          </View>
-        ) : null}
-
-        {step === 'slots' ? (
-          <View>
-            <FadeUp delay={60}>
-              <Text style={styles.introTitle}>Choix du créneau</Text>
-              <View style={styles.titleAccent} />
-              <Text style={styles.introText}>
-                Durée choisie : {durationHours} h. Seuls les horaires où le moniteur est réellement
-                libre s’affichent.
-              </Text>
-            </FadeUp>
-
-            <FadeUp delay={100}>
-              <View style={styles.slotsRecapCard}>
-                <View style={styles.slotsRecapMain}>
-                  <View style={styles.avatarWrap}>
-                    {selectedMoniteur?.photoUrl ? (
-                      <Image
-                        source={{ uri: resolveMediaUrl(selectedMoniteur.photoUrl) }}
-                        style={styles.slotsRecapAvatar}
-                      />
-                    ) : (
-                      <View style={[styles.slotsRecapAvatar, styles.coverPlaceholder]}>
-                        <Text style={styles.avatarInitial}>
-                          {(selectedMoniteur?.fullName || 'M').slice(0, 1).toUpperCase()}
-                        </Text>
-                      </View>
-                    )}
-                    <View style={styles.avatarBadge}>
-                      <Check size={10} color="#FFFFFF" strokeWidth={3} />
-                    </View>
-                  </View>
-                  <View style={styles.slotsRecapCopy}>
-                    <Text style={styles.choiceText}>
-                      {selectedMoniteur?.fullName || 'Moniteur'}
-                    </Text>
-                    <View style={styles.slotsRecapVehicleRow}>
-                      <Car size={14} color={dark.green} />
-                      <Text style={styles.brandText}>
-                        {selectedMoniteur?.vehicleBrand || 'Véhicule'}
-                        {vehicleType ? (
-                          <>
-                            {' · '}
-                            <Text style={styles.vehicleTypeAccent}>
-                              {vehicleType.replace(/^./, (c) => c.toUpperCase())}
-                            </Text>
-                          </>
-                        ) : null}
-                      </Text>
-                    </View>
-                    <View style={styles.slotsRecapTags}>
-                      <View style={styles.slotsRecapTag}>
-                        <Wallet size={12} color={dark.green} />
-                        <Text style={styles.slotsRecapTagText}>
-                          {hourlyPriceFcfa.toLocaleString('fr-FR')} FCFA / h
-                        </Text>
-                      </View>
-                      <View style={styles.slotsRecapTag}>
-                        <Clock size={12} color={dark.green} />
-                        <Text style={styles.slotsRecapTagText}>{durationHours} h</Text>
-                      </View>
-                      {soldeHeures !== null ? (
-                        <View style={styles.slotsRecapTag}>
-                          <ShieldCheck size={12} color={dark.green} />
-                          <Text style={styles.slotsRecapTagText}>Solde : {soldeHeures} h</Text>
-                        </View>
-                      ) : null}
-                    </View>
-                  </View>
-                </View>
-                <Pressable
-                  style={styles.slotsEditBtn}
-                  onPress={() => setStep('duration')}
-                  accessibilityLabel="Modifier"
-                >
-                  <Pencil size={14} color={dark.green} />
-                  <Text style={styles.slotsEditText}>Modifier</Text>
-                </Pressable>
+                ))}
               </View>
-            </FadeUp>
 
-            {busy ? <ActivityIndicator color={dark.green} style={{ marginVertical: 12 }} /> : null}
+              <View style={[styles.pCard, { flex: 1 }]}>
+                {profileTab === 'about' ? (
+                  <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                    <Text style={styles.pBio}>
+                      {profile.bio?.trim() || 'Ce moniteur n’a pas encore ajouté de présentation.'}
+                    </Text>
+                    <View style={styles.pFactsRow}>
+                      <View style={styles.pChip}>
+                        <MapPin size={15} color="#0A1E55" />
+                        <Text style={styles.pChipText}>{profile.city || 'Ville non renseignée'}</Text>
+                      </View>
+                      <View style={styles.pChip}>
+                        <Car size={15} color="#0A1E55" />
+                        <Text style={styles.pChipText}>{profile.vehicleBrand || 'Véhicule'}</Text>
+                      </View>
+                      <View style={styles.pChip}>
+                        <Wallet size={15} color="#0A1E55" />
+                        <Text style={styles.pChipText}>{(profile.defaultPriceFcfa || 5000).toLocaleString('fr-FR')} F / h</Text>
+                      </View>
+                    </View>
+                  </ScrollView>
+                ) : null}
 
-            {daysWithSlots.length === 0 && !busy ? (
-              <EmptyState
-                icon={<CalendarOff size={30} color={dark.textMuted} />}
-                title="Aucun créneau disponible"
-                message={`Pas de plage de ${durationHours} h libre sur les 14 prochains jours.`}
-                action={
-                  <View style={{ width: '100%', gap: 8 }}>
-                    <Pressable style={styles.primaryBtn} onPress={() => setStep('duration')}>
-                      <Text style={styles.primaryBtnText}>Réduire la durée</Text>
-                    </Pressable>
-                    <Pressable style={styles.secondaryBtn} onPress={() => setStep('moniteur')}>
-                      <Text style={styles.secondaryBtnText}>Voir un autre moniteur</Text>
-                    </Pressable>
+                {profileTab === 'photos' ? (
+                  (() => {
+                    const gallery = [profile.vehiclePhotoUrl, ...(profile.photos || [])].filter(
+                      (uri): uri is string => Boolean(uri?.trim()),
+                    )
+                    if (gallery.length === 0) return <Text style={styles.pBio}>Pas encore de photos.</Text>
+                    return (
+                      <ScrollView showsVerticalScrollIndicator={false}>
+                        <View style={styles.pGalleryGrid}>
+                          {gallery.map((uri) => (
+                            <Image
+                              key={uri}
+                              source={{ uri: optimizedImageUrl(resolveMediaUrl(uri), 500) }}
+                              style={styles.pGalleryCell}
+                              resizeMode="cover"
+                            />
+                          ))}
+                        </View>
+                      </ScrollView>
+                    )
+                  })()
+                ) : null}
+
+              </View>
+            </View>
+          ) : null}
+
+          {step === 'duration' ? (() => {
+            const base = hourlyPriceFcfa * durationHours
+            const total = computeDrivingAmount(hourlyPriceFcfa, durationHours, hoursDiscount, hoursDiscountMin)
+            const discount = Math.max(0, base - total)
+            return (
+              <View style={{ flex: 1, gap: 14 }}>
+                <View style={styles.dHead}>
+                  <View style={styles.dHeadIcon}>
+                    <Clock size={22} color="#FFFFFF" />
                   </View>
-                }
-              />
-            ) : null}
-
-            {daysWithSlots.length > 0 ? (
-              <FadeUp delay={140}>
-                <View style={styles.sectionRow}>
-                  <View style={styles.sectionIcon}>
-                    <Calendar size={16} color={dark.green} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.dTitle}>Durée de la séance</Text>
+                    <Text style={styles.dSub}>Choisissez la durée de votre séance de conduite.</Text>
                   </View>
-                  <Text style={[styles.section, { marginBottom: 0, marginTop: 4 }]}>Jour</Text>
                 </View>
 
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.dayChipsRow}
-                >
-                  {daysWithSlots.map((day) => {
-                    const active = selectedDate === day.date
-                    const chip = formatDayChip(day.date)
+                <View style={styles.hoursRow}>
+                  {DURATION_OPTIONS.map((hours) => {
+                    const active = durationHours === hours
                     return (
-                      <Bouncy
-                        key={day.date}
-                        scaleTo={0.97}
-                        onPress={() => {
-                          setSelectedDate(day.date)
-                          setSelectedStart(day.slots[0]?.start || '')
-                          setSelectedEnd(day.slots[0]?.end || '')
-                        }}
-                      >
+                      <Bouncy key={hours} scaleTo={0.97} style={{ flex: 1 }} onPress={() => setDurationHours(hours)}>
                         <View
-                          style={[styles.dayChip, active && styles.dayChipActive]}
+                          style={[styles.hoursPill, active && styles.hoursPillOn]}
                           accessibilityRole="button"
                           accessibilityState={{ selected: active }}
+                          accessibilityLabel={`${hours} heures`}
                         >
-                          <Text style={[styles.dayChipWeekday, active && styles.dayChipTextActive]}>
-                            {chip.weekday}
-                          </Text>
-                          <Text style={[styles.dayChipDay, active && styles.dayChipTextActive]}>
-                            {chip.day}
-                          </Text>
-                          <Text style={[styles.dayChipMonth, active && styles.dayChipTextActive]}>
-                            {chip.month}
-                          </Text>
-                          {active ? (
-                            <View style={styles.dayChipCheck}>
-                              <Check size={12} color="#FFFFFF" strokeWidth={3} />
-                            </View>
-                          ) : null}
+                          <Text style={[styles.hoursPillText, active && styles.hoursPillTextOn]}>{hours} h</Text>
                         </View>
                       </Bouncy>
                     )
                   })}
-                </ScrollView>
-              </FadeUp>
-            ) : null}
+                </View>
 
-            {selectedDate ? (
-              <FadeUp delay={180}>
-                <View style={styles.slotsHoursCard}>
-                  <View style={styles.slotsHoursHead}>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <View style={styles.slotsHoursTitleRow}>
-                        <Clock size={16} color={dark.green} />
-                        <Text style={styles.dayTitle}>{formatDateLabel(selectedDate)}</Text>
-                      </View>
-                      <Text style={styles.fieldLabel}>
-                        Horaires libres ({durationHours} h)
-                      </Text>
+                <View style={styles.recap}>
+                  <View style={styles.recapRow}>
+                    <Text style={styles.recapLabel}>Durée</Text>
+                    <Text style={styles.recapValue}>{durationHours} heure{durationHours > 1 ? 's' : ''}</Text>
+                  </View>
+                  <View style={styles.recapRow}>
+                    <Text style={styles.recapLabel}>Tarif horaire</Text>
+                    <Text style={styles.recapValue}>{hourlyPriceFcfa.toLocaleString('fr-FR')} FCFA</Text>
+                  </View>
+                  <View style={styles.recapRow}>
+                    <Text style={styles.recapLabel}>Sous-total</Text>
+                    <Text style={styles.recapValue}>{base.toLocaleString('fr-FR')} FCFA</Text>
+                  </View>
+                  <View style={styles.recapRow}>
+                    <Text style={styles.recapLabel}>Remise</Text>
+                    <Text style={[styles.recapValue, discount > 0 && { color: dark.green }]}>
+                      {discount > 0 ? `− ${discount.toLocaleString('fr-FR')} FCFA` : '—'}
+                    </Text>
+                  </View>
+                  <View style={styles.recapTotalRow}>
+                    <Text style={styles.recapTotalLabel}>Total</Text>
+                    <Text style={styles.recapTotal}>{total.toLocaleString('fr-FR')} FCFA</Text>
+                  </View>
+                  {discount === 0 && hoursDiscount > 0 ? (
+                    <Text style={styles.recapHint}>
+                      Remise de {hoursDiscount.toLocaleString('fr-FR')} FCFA à partir de {hoursDiscountMin} h.
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            )
+          })() : null}
+
+          {step === 'slots' ? (
+            <View style={{ flex: 1, gap: 12 }}>
+              {busy ? <ActivityIndicator color={dark.green} style={{ marginVertical: 12 }} /> : null}
+
+              {daysWithSlots.length === 0 && !busy ? (
+                <EmptyState
+                  icon={<CalendarOff size={30} color={dark.textMuted} />}
+                  title="Aucun créneau disponible"
+                  message={`Pas de plage de ${durationHours} h libre sur les 14 prochains jours.`}
+                  action={
+                    <View style={{ width: '100%', gap: 8 }}>
+                      <Pressable style={styles.primaryBtn} onPress={() => setStep('duration')}>
+                        <Text style={styles.primaryBtnText}>Réduire la durée</Text>
+                      </Pressable>
+                      <Pressable style={styles.secondaryBtn} onPress={() => setStep('moniteur')}>
+                        <Text style={styles.secondaryBtnText}>Voir un autre moniteur</Text>
+                      </Pressable>
                     </View>
+                  }
+                />
+              ) : null}
+
+              {daysWithSlots.length > 0 ? (
+                <>
+                  <View style={styles.sSummary}>
+                    <Text style={styles.sSummaryText}>
+                      {durationHours} h · {priceFcfa.toLocaleString('fr-FR')} FCFA
+                    </Text>
+                    <Pressable style={styles.sEdit} onPress={() => setStep('duration')} accessibilityLabel="Modifier la durée" hitSlop={8}>
+                      <Text style={styles.sEditText}>Modifier</Text>
+                      <Pencil size={15} color={dark.green} />
+                    </Pressable>
                   </View>
 
-                  {earliestBookableTime(selectedDate) ? (
-                    <Text style={styles.brandText}>
-                      Réservation possible à partir de {earliestBookableTime(selectedDate)}{' '}
-                      aujourd’hui.
-                    </Text>
+                  <View style={{ height: 78 }}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.weekRow}>
+                      {daysWithSlots.map((day) => {
+                        const active = selectedDate === day.date
+                        const chip = formatDayChip(day.date)
+                        return (
+                          <Bouncy
+                            key={day.date}
+                            scaleTo={0.97}
+                            onPress={() => {
+                              setSelectedDate(day.date)
+                              setSelectedStart(day.slots[0]?.start || '')
+                              setSelectedEnd(day.slots[0]?.end || '')
+                            }}
+                          >
+                            <View style={[styles.weekDay, active && styles.weekDayOn]} accessibilityRole="button" accessibilityState={{ selected: active }}>
+                              <Text style={[styles.weekDayName, active && styles.weekDayTextOn]}>{chip.weekday}</Text>
+                              <Text style={[styles.weekDayNum, active && styles.weekDayTextOn]}>{chip.day}</Text>
+                              <Text style={[styles.weekDayMonth, active && styles.weekDayTextOn]}>{chip.month}</Text>
+                            </View>
+                          </Bouncy>
+                        )
+                      })}
+                    </ScrollView>
+                  </View>
+
+                  {selectedDate && earliestBookableTime(selectedDate) ? (
+                    <Text style={styles.sNote}>Réservation possible à partir de {earliestBookableTime(selectedDate)} aujourd’hui.</Text>
+                  ) : null}
+                  {selectedDate && selectedDaySlots.length === 0 && !busy ? (
+                    <Text style={styles.sNote}>Plus de créneau disponible ce jour-là. Choisissez un autre jour.</Text>
                   ) : null}
 
-                  {selectedDaySlots.length === 0 ? (
-                    <Text style={styles.empty}>
-                      Plus de créneau disponible aujourd’hui. Choisissez un autre jour.
-                    </Text>
-                  ) : null}
-
-                  <View style={styles.slotsGrid}>
+                  <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
                     {selectedDaySlots.map((slot) => {
                       const active = selectedStart === slot.start && selectedEnd === slot.end
+                      const hour = parseInt(slot.start.slice(0, 2), 10) || 0
+                      const period = hour < 12 ? 'Matin' : hour < 16 ? 'Après-midi' : 'Soir'
                       return (
                         <Bouncy
                           key={`${slot.start}-${slot.end}`}
-                          scaleTo={0.97}
-                          style={styles.slotCardWrap}
+                          scaleTo={0.98}
                           onPress={() => {
                             setSelectedStart(slot.start)
                             setSelectedEnd(slot.end)
@@ -1253,71 +826,55 @@ export function ReservationFlowScreen() {
                           }}
                         >
                           <View
-                            style={[styles.slotCard, active && styles.slotCardActive]}
+                            style={[styles.slotRow, active && styles.slotRowOn]}
                             accessibilityRole="button"
                             accessibilityState={{ selected: active }}
+                            accessibilityLabel={`${slot.start} à ${slot.end}`}
                           >
-                            <Text style={[styles.slotCardText, active && styles.slotCardTextActive]}>
-                              {slot.start} – {slot.end}
-                            </Text>
+                            <Text style={styles.slotRowTime}>{slot.start} → {slot.end}</Text>
+                            <Text style={[styles.slotRowPeriod, active && { color: dark.green }]}>{period}</Text>
                             {active ? (
-                              <Check size={14} color="#FFFFFF" strokeWidth={3} />
+                              <View style={styles.slotRowCheck}>
+                                <Check size={14} color="#FFFFFF" strokeWidth={3} />
+                              </View>
                             ) : null}
                           </View>
                         </Bouncy>
                       )
                     })}
-                  </View>
-                </View>
-              </FadeUp>
-            ) : null}
-
-            <Pressable style={styles.secondaryBtn} onPress={() => setStep('duration')}>
-              <Text style={styles.secondaryBtnText}>Changer la durée</Text>
-            </Pressable>
-            <Pressable style={styles.secondaryBtn} onPress={() => setStep('moniteur')}>
-              <Text style={styles.secondaryBtnText}>Changer de moniteur</Text>
-            </Pressable>
-          </View>
-        ) : null}
-
-          <LegalFooter />
-        </ScrollView>
-
-        {step === 'profile' && profile ? (
-          <View style={styles.profileSticky}>
-            <Bouncy scaleTo={0.98} onPress={() => setStep('duration')}>
-              <View style={styles.primaryBtn}>
-                <Text style={styles.primaryBtnText}>Continuer</Text>
-                <View style={styles.primaryBtnArrow}>
-                  <ChevronRight size={16} color={dark.green} />
-                </View>
-              </View>
-            </Bouncy>
-          </View>
-        ) : null}
-
-        {step === 'slots' && selectedStart && selectedEnd ? (
-          <View style={styles.stickyBar}>
-            <View style={styles.stickyLeft}>
-              <View style={styles.stickyCalIcon}>
-                <Calendar size={16} color={dark.green} />
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={styles.stickyTitle} numberOfLines={1}>
-                  {formatDateLabel(selectedDate)} · {selectedStart} – {selectedEnd}
-                </Text>
-                <Text style={styles.stickyPrice}>
-                  {priceFcfa.toLocaleString('fr-FR')} FCFA
-                  {priceDiscount > 0 ? ` (−${priceDiscount.toLocaleString('fr-FR')})` : ''}
-                </Text>
-              </View>
+                  </ScrollView>
+                </>
+              ) : null}
             </View>
-            <Bouncy scaleTo={0.98} disabled={busy} onPress={() => void onContinue()}>
-              <View style={[styles.stickyBtn, busy && styles.disabled]}>
-                <Text style={styles.stickyBtnText}>{busy ? '…' : 'Confirmer'}</Text>
-                <View style={styles.stickyBtnArrow}>
-                  <ChevronRight size={16} color={dark.green} />
+          ) : null}
+        </View>
+
+        {(step === 'moniteur' && moniteurs.length > 0) || (step === 'profile' && profile) || step === 'duration' || (step === 'slots' && daysWithSlots.length > 0) ? (
+          <View style={styles.bottomBar}>
+            <Bouncy
+              scaleTo={0.98}
+              disabled={busy || (step === 'slots' && !(selectedStart && selectedEnd))}
+              onPress={() => {
+                if (step === 'moniteur') {
+                  const chosen = moniteurs[Math.min(moniteurIndex, moniteurs.length - 1)]
+                  if (chosen) void loadProfile(chosen.id)
+                } else if (step === 'profile') setStep('duration')
+                else if (step === 'duration') setStep('slots')
+                else void onContinue()
+              }}
+            >
+              <View style={[styles.bigBtn, (busy || (step === 'slots' && !(selectedStart && selectedEnd))) && styles.disabled]}>
+                <Text style={styles.bigBtnText}>
+                  {step === 'moniteur'
+                    ? 'Sélectionner ce moniteur'
+                    : step === 'slots'
+                      ? busy
+                        ? 'Un instant…'
+                        : 'Confirmer le créneau'
+                      : 'Continuer'}
+                </Text>
+                <View style={styles.bigBtnArrow}>
+                  <ChevronRight size={20} color={dark.green} />
                 </View>
               </View>
             </Bouncy>
@@ -1377,6 +934,139 @@ export function ReservationFlowScreen() {
 }
 
 const styles = StyleSheet.create({
+  hoursRow: { flexDirection: 'row', gap: 8 },
+  hoursPill: { height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: 'rgba(0,16,48,0.08)' },
+  hoursPillOn: { backgroundColor: dark.green, borderColor: dark.green },
+  hoursPillText: { fontFamily: fonts.displayBold, fontSize: 18, color: '#0A1E55' },
+  hoursPillTextOn: { color: '#FFFFFF' },
+  recap: { flex: 1, justifyContent: 'center', gap: 14, padding: 20, borderRadius: 28, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', ...shadows.md },
+  recapRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  recapLabel: { fontFamily: fonts.bodyMedium, fontSize: 15.5, color: '#5B6B86' },
+  recapValue: { fontFamily: fonts.displayBold, fontSize: 16.5, color: '#0A1E55' },
+  recapTotalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(0,16,48,0.08)' },
+  recapTotalLabel: { fontFamily: fonts.displayBold, fontSize: 20, color: '#0A1E55' },
+  recapTotal: { fontFamily: fonts.displayExtraBold, fontSize: 26, color: dark.green },
+  recapHint: { fontFamily: fonts.bodyMedium, fontSize: 13, color: '#5B6B86', textAlign: 'center' },
+  sSummary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4 },
+  sSummaryText: { fontFamily: fonts.displayBold, fontSize: 17, color: '#0A1E55' },
+  weekRow: { gap: 8, paddingVertical: 2 },
+  weekDay: { width: 62, height: 72, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.06)', ...shadows.sm },
+  weekDayOn: { backgroundColor: dark.green, borderColor: dark.green },
+  weekDayName: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: '#5B6B86', textTransform: 'capitalize' },
+  weekDayNum: { fontFamily: fonts.displayExtraBold, fontSize: 22, color: '#0A1E55' },
+  weekDayMonth: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: '#5B6B86' },
+  weekDayTextOn: { color: '#FFFFFF' },
+  slotRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 18, paddingVertical: 16, borderRadius: 22, backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: 'rgba(0,16,48,0.06)', ...shadows.sm },
+  slotRowOn: { backgroundColor: '#EAF8EF', borderColor: dark.green },
+  slotRowTime: { flex: 1, fontFamily: fonts.displayBold, fontSize: 19, color: '#0A1E55' },
+  slotRowPeriod: { fontFamily: fonts.bodyMedium, fontSize: 14, color: '#5B6B86' },
+  slotRowCheck: { width: 26, height: 26, borderRadius: 13, backgroundColor: dark.green, alignItems: 'center', justifyContent: 'center' },
+  heroWrap: { height: 190, marginBottom: 12, borderRadius: 24, overflow: 'hidden', justifyContent: 'center' },
+  heroCar: { position: 'absolute', right: 0, top: 0, bottom: 0, width: '62%', height: '100%' },
+  heroCopy: { paddingLeft: 4, maxWidth: '62%' },
+  heroTitle: { fontFamily: fonts.displayExtraBold, fontSize: 34, lineHeight: 38, color: '#0A1E55', letterSpacing: -0.8 },
+  heroTitleAccent: { fontFamily: fonts.displayExtraBold, fontSize: 34, lineHeight: 38, color: dark.green, fontStyle: 'italic', letterSpacing: -0.8 },
+  heroUnderline: { width: 120, height: 4, borderRadius: 2, backgroundColor: dark.green, marginTop: 2, marginBottom: 10 },
+  heroText: { fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 20, color: '#33466B' },
+
+  mCard: { flex: 1, padding: 12, borderRadius: 30, backgroundColor: '#FFFFFF', gap: 10, borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', ...shadows.md },
+  mPhotoWrap: { flex: 1, minHeight: 120, borderRadius: 24, overflow: 'hidden', backgroundColor: '#0B3A9E' },
+  mPhoto: { width: '100%', height: '100%' },
+  mNoPhoto: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B3A9E' },
+  mInitial: { fontFamily: fonts.displayBold, fontSize: 96, color: 'rgba(255,255,255,0.28)' },
+  mVerified: { position: 'absolute', top: 14, right: 14, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: dark.green },
+  mVerifiedText: { fontFamily: fonts.bodyBold, fontSize: 13, color: '#FFFFFF' },
+  mArrow: { position: 'absolute', top: '45%', width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center', ...shadows.sm },
+  mDots: { position: 'absolute', right: 16, bottom: 14, flexDirection: 'row', gap: 6 },
+  mDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.55)' },
+  mDotOn: { backgroundColor: '#FFFFFF' },
+  mName: { fontFamily: fonts.displayBold, fontSize: 24, color: '#0A1E55', letterSpacing: -0.4, paddingHorizontal: 4 },
+  mRole: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 4, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(0,16,48,0.06)' },
+  mRoleText: { fontFamily: fonts.bodyMedium, fontSize: 15, color: '#0A1E55' },
+  mTiles: { flexDirection: 'row', gap: 10 },
+  mTile: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 12, borderRadius: 20 },
+  mTileValue: { fontFamily: fonts.displayBold, fontSize: 17, color: '#0A1E55' },
+  mTileLabel: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: '#5B6B86' },
+  mTrust: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 12, paddingHorizontal: 4, borderRadius: 20, backgroundColor: '#F4F7FC' },
+  mTrustItem: { flex: 1, alignItems: 'center', gap: 6, paddingHorizontal: 4 },
+  mTrustText: { fontFamily: fonts.bodyMedium, fontSize: 12, lineHeight: 15, textAlign: 'center', color: '#0A1E55' },
+  mTrustDivider: { width: 1, alignSelf: 'stretch', backgroundColor: 'rgba(0,16,48,0.08)' },
+  mBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 58, borderRadius: 999, backgroundColor: dark.green },
+  mBtnText: { fontFamily: fonts.displayBold, fontSize: 17, color: '#FFFFFF' },
+  mFootPill: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, paddingHorizontal: 18, paddingVertical: 11, borderRadius: 999, backgroundColor: '#EAF0F8' },
+  mFootText: { fontFamily: fonts.bodyMedium, fontSize: 13, color: '#0A1E55' },
+
+  pCard: { padding: 14, borderRadius: 26, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', ...shadows.md },
+  pHead: { flexDirection: 'row', gap: 14 },
+  pPhoto: { width: 136, height: 196, borderRadius: 20, overflow: 'hidden' },
+  pHeadCopy: { flex: 1, minWidth: 0 },
+  pFirst: { fontFamily: fonts.displayExtraBold, fontSize: 24, lineHeight: 28, color: '#0A1E55', letterSpacing: -0.4 },
+  pLast: { fontFamily: fonts.displayBold, fontSize: 17, color: '#5B6B86', marginBottom: 8 },
+  pVerified: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: '#E7F7EC', marginBottom: 10 },
+  pVerifiedText: { fontFamily: fonts.bodyBold, fontSize: 13, color: dark.green },
+  pFacts: { gap: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(0,16,48,0.06)' },
+  pFact: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  pFactLabel: { fontFamily: fonts.body, fontSize: 11.5, color: '#5B6B86' },
+  pFactValue: { fontFamily: fonts.bodyBold, fontSize: 13.5, color: '#0A1E55' },
+  pSectionHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  pSectionHeadRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  pSectionTitle: { fontFamily: fonts.displayBold, fontSize: 19, color: '#0A1E55' },
+  pBio: { fontFamily: fonts.body, fontSize: 15, lineHeight: 23, color: '#1F2F4D' },
+  pMore: { alignSelf: 'flex-start', marginTop: 10, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, backgroundColor: '#E7F7EC' },
+  pMoreText: { fontFamily: fonts.bodyBold, fontSize: 14, color: dark.green },
+  pLink: { fontFamily: fonts.bodyBold, fontSize: 14, color: dark.green },
+  pGallery: { gap: 8 },
+  pGalleryPhoto: { width: 118, height: 108, borderRadius: 16, backgroundColor: '#E8EEF6' },
+
+  dCard: { padding: 16, borderRadius: 28, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', gap: 12, ...shadows.md },
+  dHead: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 },
+  dHeadIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: dark.green, alignItems: 'center', justifyContent: 'center' },
+  dTitle: { fontFamily: fonts.displayBold, fontSize: 22, color: '#0A1E55', letterSpacing: -0.3 },
+  dSub: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: '#5B6B86', marginTop: 2 },
+  dRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 14, paddingVertical: 14, borderRadius: 22, backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: 'rgba(0,16,48,0.06)', ...shadows.sm },
+  dRowActive: { backgroundColor: '#EAF8EF', borderColor: dark.green },
+  dRowIcon: { width: 62, height: 62, borderRadius: 31, backgroundColor: '#E9EFFA', alignItems: 'center', justifyContent: 'center' },
+  dRowIconActive: { backgroundColor: '#D3F2DE' },
+  dHours: { fontFamily: fonts.displayExtraBold, fontSize: 26, color: '#0A1E55' },
+  dPrice: { fontFamily: fonts.bodyMedium, fontSize: 16, color: '#0B3A8C' },
+  dCheck: { position: 'absolute', top: -4, right: -2, width: 30, height: 30, borderRadius: 15, backgroundColor: dark.green, alignItems: 'center', justifyContent: 'center' },
+
+  sDateCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 26, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', ...shadows.md },
+  sDateIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#E7F7EC', alignItems: 'center', justifyContent: 'center' },
+  sDateTitle: { fontFamily: fonts.displayBold, fontSize: 21, color: '#0A1E55' },
+  sDateSub: { fontFamily: fonts.bodyMedium, fontSize: 15, color: '#5B6B86', marginTop: 2 },
+  sEdit: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  sEditText: { fontFamily: fonts.bodyBold, fontSize: 15, color: dark.green },
+  sNote: { fontFamily: fonts.bodyMedium, fontSize: 13.5, color: '#5B6B86', paddingHorizontal: 4 },
+  sGroupHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  sGroupTitle: { fontFamily: fonts.displayBold, fontSize: 20, color: '#0A1E55' },
+  sGroupLine: { flex: 1, height: 1, backgroundColor: 'rgba(0,16,48,0.1)' },
+  sGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -5 },
+  sCell: { width: '25%', padding: 5 },
+  sPill: { height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', ...shadows.sm },
+  sPillActive: { backgroundColor: dark.green, borderColor: dark.green },
+  sPillText: { fontFamily: fonts.displayBold, fontSize: 16, color: '#0A1E55' },
+  sPillTextActive: { color: '#FFFFFF' },
+  sPillCheck: { marginLeft: 8, width: 26, height: 26, borderRadius: 13, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+
+  flowBody: { flex: 1, paddingHorizontal: 18, paddingTop: 4, paddingBottom: 6 },
+  bottomBar: { paddingHorizontal: 18, paddingTop: 6, paddingBottom: 16 },
+  tabsRow: { flexDirection: 'row', gap: 8 },
+  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11, borderRadius: 999, backgroundColor: '#E8EEF6' },
+  tabOn: { backgroundColor: '#0A1E55' },
+  tabText: { fontFamily: fonts.bodyBold, fontSize: 14, color: '#0A1E55' },
+  tabTextOn: { color: '#FFFFFF' },
+  pPhotoSmall: { width: 96, height: 120, borderRadius: 18, overflow: 'hidden' },
+  pFactsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: '#EEF3FB' },
+  pChipText: { fontFamily: fonts.bodyBold, fontSize: 13, color: '#0A1E55' },
+  pGalleryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pGalleryCell: { width: '48.5%', height: 110, borderRadius: 16, backgroundColor: '#E8EEF6' },
+  dTile: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4, borderRadius: 26, backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: 'rgba(0,16,48,0.06)', ...shadows.md },
+  bigBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, height: 58, borderRadius: 29, backgroundColor: dark.green, ...shadows.md },
+  bigBtnText: { fontFamily: fonts.displayBold, fontSize: 20, color: '#FFFFFF' },
+  bigBtnArrow: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+
   pickTitle: { fontFamily: fonts.displayBold, fontSize: 24, color: dark.textPrimary, letterSpacing: -0.4 },
   pickSub: { marginTop: 2, marginBottom: 14, fontFamily: fonts.body, fontSize: 13.5, color: dark.textMuted },
   pickCard: {
@@ -1434,7 +1124,7 @@ const styles = StyleSheet.create({
   pickBtnText: { fontFamily: fonts.bodyBold, fontSize: 16, color: '#FFFFFF' },
   root: {
     flex: 1,
-    backgroundColor: '#F4F7FB',
+    backgroundColor: '#F8FBFC',
   },
   safe: {
     flex: 1,

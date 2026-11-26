@@ -8,7 +8,6 @@ import {
   Moniteur,
   MONITEUR_BIO_MAX,
   MONITEUR_PHOTOS_MAX,
-  MONITEUR_VIDEOS_MAX,
 } from '../models/Moniteur.js'
 import { requireMoniteurAuth } from '../middleware/moniteurAuth.js'
 import { passwordPolicyError } from '../middleware/security.js'
@@ -24,7 +23,6 @@ import {
 } from '../utils/availability.js'
 import { computeCreneauHeures } from '../utils/creneauDuration.js'
 import { normalizeVehicleType } from '../utils/localDate.js'
-import { filterAllowedMoniteurVideos } from '../utils/moniteurVideos.js'
 import { sanitizePublicUrl, sanitizePublicUrlList } from '../utils/publicUrl.js'
 import {
   computeMoniteurEarnings,
@@ -60,7 +58,6 @@ function profilePayload(m) {
     vehicleTypes: m.vehicleTypes || [],
     specialties: m.specialties || [],
     photos: m.photos || [],
-    videos: m.videos || [],
     defaultPriceFcfa: m.defaultPriceFcfa || 5000,
     activeLogin: Boolean(m.activeLogin),
     lastLoginAt: m.lastLoginAt || null,
@@ -670,9 +667,6 @@ router.patch('/profile', async (req, res) => {
     }
     if (req.body.photos !== undefined) {
       m.photos = parseUrlList(req.body.photos, MONITEUR_PHOTOS_MAX)
-    }
-    if (req.body.videos !== undefined) {
-      m.videos = filterAllowedMoniteurVideos(req.body.videos, MONITEUR_VIDEOS_MAX)
     }
     if (req.body.defaultPriceFcfa !== undefined) {
       const price = Number(req.body.defaultPriceFcfa)

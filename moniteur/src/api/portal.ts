@@ -115,7 +115,6 @@ export interface MoniteurProfile {
   vehicleTypes: string[]
   specialties: string[]
   photos: string[]
-  videos: string[]
   defaultPriceFcfa: number
   activeLogin: boolean
   lastLoginAt: string | null
@@ -237,7 +236,6 @@ export function updateProfile(
     vehicleTypes: string[]
     specialties: string[]
     photos: string[]
-    videos: string[]
     defaultPriceFcfa: number
     currentPassword: string
     newPassword: string

@@ -12,7 +12,6 @@ const availabilitySlotSchema = new mongoose.Schema(
 
 export const MONITEUR_BIO_MAX = 2000
 export const MONITEUR_PHOTOS_MAX = 12
-export const MONITEUR_VIDEOS_MAX = 6
 
 const moniteurSchema = new mongoose.Schema(
   {
@@ -61,8 +60,6 @@ const moniteurSchema = new mongoose.Schema(
     bio: { type: String, default: '', trim: true, maxlength: MONITEUR_BIO_MAX },
     /** Galerie de photos du moniteur (URLs). */
     photos: { type: [String], default: [] },
-    /** Vidéos de présentation (URLs YouTube / Vimeo). */
-    videos: { type: [String], default: [] },
   },
   { timestamps: true },
 )
@@ -133,7 +130,6 @@ moniteurSchema.methods.toJSONSafe = function toJSONSafe() {
     city: this.city || '',
     bio: this.bio || '',
     photos: this.photos || [],
-    videos: this.videos || [],
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
   }
@@ -177,7 +173,6 @@ moniteurSchema.methods.toPublicProfileJSON = function toPublicProfileJSON() {
     specialties: this.specialties || [],
     bio: this.bio || '',
     photos: this.photos || [],
-    videos: this.videos || [],
   }
 }
 

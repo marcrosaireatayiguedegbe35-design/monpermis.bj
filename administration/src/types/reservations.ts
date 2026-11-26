@@ -25,7 +25,6 @@ export interface Moniteur {
   city: string
   bio: string
   photos: string[]
-  videos: string[]
 }
 
 export interface Creneau {

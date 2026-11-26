@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import mongoose from 'mongoose'
-import { Moniteur, MONITEUR_BIO_MAX, MONITEUR_PHOTOS_MAX, MONITEUR_VIDEOS_MAX } from '../models/Moniteur.js'
+import { Moniteur, MONITEUR_BIO_MAX, MONITEUR_PHOTOS_MAX } from '../models/Moniteur.js'
 import { Creneau } from '../models/Creneau.js'
 import { Reservation } from '../models/Reservation.js'
 import { User } from '../models/User.js'
@@ -18,7 +18,6 @@ import {
 import { creditHeuresEffectueesForCompletion } from '../utils/reservationLifecycle.js'
 import { passwordPolicyError } from '../middleware/security.js'
 import { normalizeBeninPhone } from '../services/fedapay.js'
-import { filterAllowedMoniteurVideos } from '../utils/moniteurVideos.js'
 import { sanitizePublicUrl, sanitizePublicUrlList } from '../utils/publicUrl.js'
 
 function asObjectId(value) {
@@ -50,10 +49,6 @@ function parseUrlList(raw, max = 50) {
 
 function parsePhotosList(raw) {
   return parseUrlList(raw, MONITEUR_PHOTOS_MAX)
-}
-
-function parseVideosList(raw) {
-  return filterAllowedMoniteurVideos(raw, MONITEUR_VIDEOS_MAX)
 }
 
 function clampBio(value) {
@@ -153,7 +148,6 @@ router.post('/moniteurs', audit('create', 'moniteur'), async (req, res) => {
       city: String(req.body.city || '').trim(),
       bio: clampBio(req.body.bio),
       photos: parsePhotosList(req.body.photos),
-      videos: parseVideosList(req.body.videos),
     })
 
     await moniteur.setPassword(password)
@@ -261,18 +255,6 @@ router.patch('/moniteurs/:id', audit('update', 'moniteur'), async (req, res) => 
     }
     if (req.body.photos !== undefined) {
       moniteur.photos = parsePhotosList(req.body.photos)
-    }
-    if (req.body.videos !== undefined) {
-      const rawVideos = Array.isArray(req.body.videos) ? req.body.videos : []
-      const allowed = parseVideosList(rawVideos)
-      const cleanedRaw = rawVideos.map((item) => String(item || '').trim()).filter(Boolean)
-      if (cleanedRaw.length > 0 && allowed.length < cleanedRaw.length) {
-        return res.status(400).json({
-          success: false,
-          error: 'Vidéos : uniquement des liens YouTube ou Vimeo (https).',
-        })
-      }
-      moniteur.videos = allowed
     }
 
     await moniteur.save()

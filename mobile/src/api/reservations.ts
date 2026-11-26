@@ -86,7 +86,6 @@ export interface MoniteurProfile extends MoniteurPublic {
   specialties: string[]
   bio: string
   photos: string[]
-  videos: string[]
 }
 
 export interface AvailabilityWindow {

@@ -1,5 +1,5 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react'
-import { Camera, Car, ImagePlus, KeyRound, Link2, NotebookPen, Save, Trash2, UserRound, Video } from 'lucide-react'
+import { Camera, Car, ImagePlus, KeyRound, NotebookPen, Save, Trash2, UserRound } from 'lucide-react'
 import { fetchProfile, updateProfile, uploadMoniteurPhoto, type MoniteurProfile } from '../api/portal'
 import { getMoniteurToken, isAuthError, useMoniteurAuth } from '../context/MoniteurAuthContext'
 import { resolveMediaUrl } from '../utils/mediaUrl'
@@ -46,8 +46,6 @@ export function ProfilPage() {
   const [photoUrl, setPhotoUrl] = useState('')
   const [vehiclePhotoUrl, setVehiclePhotoUrl] = useState('')
   const [photos, setPhotos] = useState<string[]>([])
-  const [videos, setVideos] = useState<string[]>([])
-  const [newVideoUrl, setNewVideoUrl] = useState('')
   const [defaultPriceFcfa, setDefaultPriceFcfa] = useState('5000')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -70,7 +68,6 @@ export function ProfilPage() {
     setPhotoUrl(data.photoUrl || '')
     setVehiclePhotoUrl(data.vehiclePhotoUrl || '')
     setPhotos(data.photos || [])
-    setVideos(data.videos || [])
     setDefaultPriceFcfa(String(data.defaultPriceFcfa || 5000))
   }
 
@@ -142,7 +139,6 @@ export function ProfilPage() {
           .map((item) => item.trim())
           .filter(Boolean),
         photos,
-        videos,
         defaultPriceFcfa: Math.max(0, Math.round(Number(defaultPriceFcfa) || 0)),
       }
       if (newPassword) {
@@ -212,7 +208,7 @@ export function ProfilPage() {
               <div>
                 <span>Médias</span>
                 <b>
-                  {photos.length} photo{photos.length > 1 ? 's' : ''} · {videos.length} vidéo{videos.length > 1 ? 's' : ''}
+                  {photos.length} photo{photos.length > 1 ? 's' : ''}
                 </b>
               </div>
             </div>
@@ -341,51 +337,6 @@ export function ProfilPage() {
                   ))}
                 </div>
               )}
-            </section>
-
-            <section className="cx-panel">
-              <PanelHead icon={<Video aria-hidden />} title="Vidéos" sub="Liens YouTube ou Vimeo (6 maximum)" />
-              <div className="cx-field-row">
-                <input
-                  className="cx-input"
-                  value={newVideoUrl}
-                  onChange={(e) => setNewVideoUrl(e.target.value)}
-                  placeholder="https://youtube.com/…"
-                  aria-label="Lien de la vidéo"
-                />
-                <button
-                  type="button"
-                  className="cx-btn"
-                  onClick={() => {
-                    const url = newVideoUrl.trim()
-                    if (!url) return
-                    setVideos((prev) => [...prev, url].slice(0, 6))
-                    setNewVideoUrl('')
-                  }}
-                >
-                  <Link2 aria-hidden />
-                  Ajouter
-                </button>
-              </div>
-              {videos.length > 0 ? (
-                <ul className="cx-video-list">
-                  {videos.map((url) => (
-                    <li key={url}>
-                      <Video aria-hidden style={{ width: '1rem', height: '1rem', color: '#4d6a82', flex: 'none' }} />
-                      <a href={url} target="_blank" rel="noreferrer">
-                        {url}
-                      </a>
-                      <button
-                        type="button"
-                        className="cx-btn cx-btn-danger cx-btn-sm"
-                        onClick={() => setVideos((prev) => prev.filter((item) => item !== url))}
-                      >
-                        Retirer
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
             </section>
 
             <section className="cx-panel">

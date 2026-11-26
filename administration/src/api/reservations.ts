@@ -30,7 +30,6 @@ export function createMoniteur(
     city?: string
     bio?: string
     photos?: string[]
-    videos?: string[]
     weeklyAvailability?: WeeklyAvailabilitySlot[]
   },
 ) {
@@ -63,7 +62,6 @@ export function updateMoniteur(
     city: string
     bio: string
     photos: string[]
-    videos: string[]
     weeklyAvailability: WeeklyAvailabilitySlot[]
   }>,
 ) {

@@ -30,33 +30,6 @@ function mediaSrc(url: string) {
 
 const MONITEUR_BIO_MAX = 2000
 const MONITEUR_PHOTOS_MAX = 12
-const MONITEUR_VIDEOS_MAX = 6
-
-function isAllowedMoniteurVideoUrl(raw: string): boolean {
-  const trimmed = raw.trim()
-  if (!trimmed) return false
-  try {
-    const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(trimmed) ? trimmed : `https://${trimmed}`
-    const url = new URL(withScheme)
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') return false
-    const host = url.hostname.replace(/^www\./, '')
-    if (host === 'youtu.be') return url.pathname.split('/').filter(Boolean).length >= 1
-    if (
-      host === 'youtube.com' ||
-      host === 'm.youtube.com' ||
-      host === 'youtube-nocookie.com' ||
-      host === 'music.youtube.com'
-    ) {
-      return Boolean(url.searchParams.get('v') || /\/(embed|shorts|live|v)\//.test(url.pathname))
-    }
-    if (host.endsWith('vimeo.com')) {
-      return url.pathname.split('/').some((part) => /^\d+$/.test(part))
-    }
-    return false
-  } catch {
-    return false
-  }
-}
 
 type TimeInterval = {
   start: string
@@ -148,8 +121,6 @@ export function MoniteursPage() {
   const [editCity, setEditCity] = useState('')
   const [uploadingEditMoniteurPhoto, setUploadingEditMoniteurPhoto] = useState(false)
   const [editPhotos, setEditPhotos] = useState<string[]>([])
-  const [editVideos, setEditVideos] = useState<string[]>([])
-  const [editNewVideoUrl, setEditNewVideoUrl] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
   const [uploadingEditPhoto, setUploadingEditPhoto] = useState(false)
   const [uploadingEditVehiclePhoto, setUploadingEditVehiclePhoto] = useState(false)
@@ -246,8 +217,6 @@ export function MoniteursPage() {
     setEditPhotoUrl(item.photoUrl || '')
     setEditCity(item.city || '')
     setEditPhotos(item.photos || [])
-    setEditVideos(item.videos || [])
-    setEditNewVideoUrl('')
     setEditDayHours(toEditDayHours(item.weeklyAvailability))
     setError(null)
     setSuccess(null)
@@ -311,30 +280,6 @@ export function MoniteursPage() {
     setEditPhotos((prev) => prev.filter((item) => item !== url))
   }
 
-  const addEditVideo = () => {
-    const url = editNewVideoUrl.trim()
-    if (!url) return
-    if (!isAllowedMoniteurVideoUrl(url)) {
-      setError('Vidéo : uniquement un lien YouTube ou Vimeo (https).')
-      return
-    }
-    if (editVideos.length >= MONITEUR_VIDEOS_MAX) {
-      setError(`Maximum ${MONITEUR_VIDEOS_MAX} vidéos de présentation.`)
-      return
-    }
-    if (editVideos.includes(url)) {
-      setEditNewVideoUrl('')
-      return
-    }
-    setError('')
-    setEditVideos((prev) => [...prev, url])
-    setEditNewVideoUrl('')
-  }
-
-  const removeEditVideo = (url: string) => {
-    setEditVideos((prev) => prev.filter((item) => item !== url))
-  }
-
   const handleSaveEdit = async () => {
     const token = getAdminToken()
     if (!token || !editingMoniteur) return
@@ -368,7 +313,6 @@ export function MoniteursPage() {
         photoUrl: editPhotoUrl,
         city: editCity.trim(),
         photos: editPhotos.slice(0, MONITEUR_PHOTOS_MAX),
-        videos: editVideos.slice(0, MONITEUR_VIDEOS_MAX),
         weeklyAvailability: slots,
       })
       setSuccess(`« ${moniteur.fullName} » enregistré (profil + disponibilité).`)
@@ -746,33 +690,6 @@ export function MoniteursPage() {
                       {uploadingEditPhoto ? 'Import…' : 'Ajouter une photo'}
                       <input type="file" accept="image/*" hidden onChange={(e) => void handleEditGalleryUpload(e.target.files?.[0] ?? null)} />
                     </label>
-                  </div>
-                </div>
-
-                <div className="cx-block">
-                  <h3>Vidéos de présentation</h3>
-                  <p>Liens YouTube ou Vimeo uniquement.</p>
-                  <div className="cx-videos">
-                    {editVideos.map((url) => (
-                      <div key={url} className="cx-video">
-                        <span>{url}</span>
-                        <button type="button" onClick={() => removeEditVideo(url)} title="Retirer">
-                          <X aria-hidden />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="cx-field-row">
-                    <input
-                      className="cx-input"
-                      value={editNewVideoUrl}
-                      onChange={(e) => setEditNewVideoUrl(e.target.value)}
-                      placeholder="https://www.youtube.com/watch?v=…"
-                    />
-                    <button type="button" className="cx-btn" onClick={addEditVideo}>
-                      <Plus aria-hidden />
-                      Ajouter
-                    </button>
                   </div>
                 </div>
               </div>
