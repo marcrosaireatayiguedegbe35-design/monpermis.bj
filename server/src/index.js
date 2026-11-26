@@ -201,10 +201,14 @@ for (const [kind, chapter] of ['code-audio', 'code-images'].flatMap((k) => [1, 2
     `/content/${kind}/chapitre-${chapter}`,
     express.static(path.join(__dirname, `../content/${kind}/chapitre-${chapter}`), {
       index: false,
-      maxAge: '7d',
+      // Les médias peuvent être remplacés : le navigateur revalide à chaque fois (réponse 304 si inchangé).
+      maxAge: 0,
       etag: true,
       lastModified: true,
       fallthrough: true,
+      setHeaders(res) {
+        res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate')
+      },
     }),
   )
 }

@@ -4,6 +4,7 @@ import { useFonts } from './src/hooks/useFonts'
 import { RootNavigator } from './src/navigation/RootNavigator'
 import { brand } from './src/theme'
 import { ensureAudioSession } from './src/utils/audioSession'
+import { purgeStaleMedia } from './src/utils/mediaCache'
 import { MOBILE_MAX_WIDTH } from './src/utils/viewport'
 
 const BOOT_BG = '#FAF9F6'
@@ -13,6 +14,7 @@ export default function App() {
 
   useEffect(() => {
     void ensureAudioSession()
+    void purgeStaleMedia()
   }, [])
 
   // Web : retire le contour rectangulaire de focus du navigateur autour des champs de saisie

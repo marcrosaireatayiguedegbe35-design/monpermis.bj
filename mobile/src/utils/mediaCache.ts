@@ -246,3 +246,48 @@ export async function clearMediaCache() {
   void index
   await writeIndex({ files: {} })
 }
+
+/**
+ * Médias remplacés côté serveur : les copies déjà téléchargées sur l'appareil (ou dans le navigateur)
+ * sont supprimées une seule fois, puis retéléchargées à la prochaine lecture. Ajouter ici toute clé
+ * dont le fichier a été remplacé, et changer PURGE_FLAG pour relancer la purge.
+ */
+const STALE_MEDIA = ['code-audio/chapitre-15/1.mp3', 'code-audio/chapitre-15/2.mp3']
+const PURGE_FLAG = '@mp/media-purged:2026-11-26'
+
+export async function purgeStaleMedia() {
+  try {
+    if (await AsyncStorage.getItem(PURGE_FLAG)) return
+    const index = await readIndex()
+    const files = { ...index.files }
+    for (const key of STALE_MEDIA) {
+      delete files[key]
+      const objectUrl = webObjectUrls.get(key)
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl)
+        webObjectUrls.delete(key)
+      }
+      try {
+        if (isWeb) {
+          if (typeof indexedDB === 'undefined') continue
+          const db = await openWebDb()
+          await new Promise<void>((resolve) => {
+            const tx = db.transaction(WEB_STORE, 'readwrite')
+            tx.objectStore(WEB_STORE).delete(key)
+            tx.oncomplete = tx.onerror = tx.onabort = () => resolve()
+          })
+          db.close()
+        } else {
+          const FS = await fileSystem()
+          await FS.deleteAsync(nativePath(FS.documentDirectory ?? '', key), { idempotent: true })
+        }
+      } catch {
+        /* ignore : le fichier sera simplement retéléchargé */
+      }
+    }
+    await writeIndex({ files })
+    await AsyncStorage.setItem(PURGE_FLAG, '1')
+  } catch {
+    /* ignore */
+  }
+}
