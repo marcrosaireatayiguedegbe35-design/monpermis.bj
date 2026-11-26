@@ -104,7 +104,7 @@ router.get('/reviews', async (req, res) => {
 router.get('/settlements', requireSuperAdmin, async (_req, res) => {
   try {
     const now = new Date()
-    const [due, recent, feePercent] = await Promise.all([
+    const [due, recent, feePercent, awaiting] = await Promise.all([
       Reservation.find({ status: 'completed', settlementStatus: 'due' })
         .sort({ settlementDueAt: 1 })
         .populate('creneauId', 'date startTime endTime')
@@ -118,6 +118,11 @@ router.get('/settlements', requireSuperAdmin, async (_req, res) => {
         .populate('moniteurId', 'firstName lastName')
         .lean(),
       getPlatformFeePercent(),
+      MoniteurPayout.find({ status: { $in: ['pending', 'declined'] } })
+        .sort({ createdAt: -1 })
+        .limit(30)
+        .populate('moniteurId', 'firstName lastName phone')
+        .lean(),
     ])
 
     const groups = new Map()
@@ -171,6 +176,14 @@ router.get('/settlements', requireSuperAdmin, async (_req, res) => {
           laterAmount: list.reduce((n, g) => n + g.laterAmount, 0),
         },
         moniteurs: list,
+        awaitingConfirmation: awaiting.map((row) => ({
+          id: String(row._id),
+          moniteurName: personName(row.moniteurId) || 'Moniteur',
+          amountFcfa: Number(row.amountFcfa) || 0,
+          paidAt: row.paidAt || row.createdAt,
+          status: row.status,
+          declineReason: row.declineReason || '',
+        })),
         recentSettled: recent.map((row) => ({
           id: String(row._id),
           moniteurName: personName(row.moniteurId) || 'Moniteur',
@@ -227,6 +240,7 @@ router.post('/settlements/pay', requireSuperAdmin, audit('create', 'moniteur_set
     const payout = await MoniteurPayout.create({
       moniteurId: moniteur._id,
       amountFcfa,
+      status: 'pending',
       paidAt: settledAt,
       note: String(req.body.note || `Règlement de ${claimed.length} séance${claimed.length > 1 ? 's' : ''}`).trim().slice(0, 500),
       periodLabel: `Séances du ${settledAt.toLocaleDateString('fr-FR')}`,

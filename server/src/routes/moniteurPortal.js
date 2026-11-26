@@ -3,6 +3,7 @@ import mongoose from 'mongoose'
 import { Creneau } from '../models/Creneau.js'
 import { Payment } from '../models/Payment.js'
 import { Reservation } from '../models/Reservation.js'
+import { MoniteurPayout } from '../models/MoniteurPayout.js'
 import { User } from '../models/User.js'
 import {
   Moniteur,
@@ -729,6 +730,53 @@ router.post('/upload-photo', (req, res) => {
       })
     }
   })
+})
+
+/** Le moniteur confirme avoir reçu un versement enregistré par l'administration. */
+router.post('/payouts/:id/confirm', async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, error: 'Identifiant invalide' })
+    }
+    const payout = await MoniteurPayout.findOneAndUpdate(
+      { _id: req.params.id, moniteurId: req.moniteur._id, status: 'pending' },
+      { $set: { status: 'confirmed', confirmedAt: new Date(), declinedAt: null, declineReason: '' } },
+      { new: true },
+    )
+    if (!payout) {
+      return res.status(404).json({ success: false, error: 'Versement introuvable ou déjà traité' })
+    }
+    res.json({ success: true, data: { payout: payout.toJSONSafe() } })
+  } catch (error) {
+    logger.error('Erreur confirmation versement:', error)
+    res.status(500).json({ success: false, error: 'Confirmation impossible' })
+  }
+})
+
+/** Le moniteur déclare ne pas avoir reçu le versement : les séances repassent « à régler » côté administration. */
+router.post('/payouts/:id/decline', async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, error: 'Identifiant invalide' })
+    }
+    const reason = String(req.body?.reason || '').trim().slice(0, 300)
+    const payout = await MoniteurPayout.findOneAndUpdate(
+      { _id: req.params.id, moniteurId: req.moniteur._id, status: 'pending' },
+      { $set: { status: 'declined', declinedAt: new Date(), declineReason: reason } },
+      { new: true },
+    )
+    if (!payout) {
+      return res.status(404).json({ success: false, error: 'Versement introuvable ou déjà traité' })
+    }
+    await Reservation.updateMany(
+      { payoutId: payout._id },
+      { $set: { settlementStatus: 'due', settledAt: null, payoutId: null } },
+    )
+    res.json({ success: true, data: { payout: payout.toJSONSafe() } })
+  } catch (error) {
+    logger.error('Erreur contestation versement:', error)
+    res.status(500).json({ success: false, error: 'Enregistrement impossible' })
+  }
 })
 
 router.get('/earnings', async (req, res) => {

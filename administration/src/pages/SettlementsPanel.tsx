@@ -52,7 +52,7 @@ export function SettlementsPanel() {
     setSuccess(null)
     try {
       const result = await paySettlement(token, { moniteurId, reservationIds: ids })
-      setSuccess(`${money(result.amountFcfa)} réglés à ${name} (${result.settledCount} séance${result.settledCount > 1 ? 's' : ''}).`)
+      setSuccess(`${money(result.amountFcfa)} réglés à ${name} (${result.settledCount} séance${result.settledCount > 1 ? 's' : ''}). Le moniteur doit maintenant confirmer qu’il les a reçus.`)
       await load()
     } catch (err) {
       setError(isAuthError(err) ? err.message : 'Règlement impossible')
@@ -175,6 +175,24 @@ export function SettlementsPanel() {
           </div>
         )}
       </section>
+
+      {data?.awaitingConfirmation?.length ? (
+        <section className="cx-panel">
+          <h3 className="cx-panel-title">Remis, en attente de confirmation du moniteur</h3>
+          <table className="cx-mini-table">
+            <tbody>
+              {data.awaitingConfirmation.map((r) => (
+                <tr key={r.id}>
+                  <td>{r.moniteurName}</td>
+                  <td>{money(r.amountFcfa)}</td>
+                  <td>{r.paidAt ? new Date(r.paidAt).toLocaleDateString('fr-FR') : ''}</td>
+                  <td>{r.status === 'declined' ? `Contesté${r.declineReason ? ` : ${r.declineReason}` : ''}` : 'En attente'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      ) : null}
 
       {data?.recentSettled.length ? (
         <section className="cx-panel">

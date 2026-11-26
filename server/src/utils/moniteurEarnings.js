@@ -75,8 +75,17 @@ export async function computeMoniteurEarnings(moniteurId) {
   const monthEarned = sumShare(completedThisMonth, feePercent)
   const prevMonthEarned = sumShare(completedPrevMonth, feePercent)
   const pendingEarned = sumShare(confirmed, feePercent)
-  const totalPaid = payouts.reduce((acc, item) => acc + (Number(item.amountFcfa) || 0), 0)
+  const statusOf = (item) => item.status || 'confirmed'
+  const totalPaid = payouts
+    .filter((item) => statusOf(item) === 'confirmed')
+    .reduce((acc, item) => acc + (Number(item.amountFcfa) || 0), 0)
+  // Remis par l'administration, pas encore confirmé par le moniteur.
+  const awaitingConfirmation = payouts
+    .filter((item) => statusOf(item) === 'pending')
+    .reduce((acc, item) => acc + (Number(item.amountFcfa) || 0), 0)
   const outstanding = Math.max(0, totalEarned - totalPaid)
+  // Ce que l'administration peut encore enregistrer sans payer deux fois.
+  const payable = Math.max(0, outstanding - awaitingConfirmation)
 
   const recentSessions = completed.slice(0, 50).map((item) => {
     const user = item.userId
@@ -109,6 +118,8 @@ export async function computeMoniteurEarnings(moniteurId) {
     paidAt: item.paidAt || item.createdAt,
     note: item.note || '',
     periodLabel: item.periodLabel || '',
+    status: statusOf(item),
+    declineReason: item.declineReason || '',
   }))
 
   return {
@@ -123,6 +134,8 @@ export async function computeMoniteurEarnings(moniteurId) {
       pendingEarned,
       totalPaid,
       outstanding,
+      awaitingConfirmation,
+      payable,
     },
     recentSessions,
     payouts: payoutHistory,
@@ -144,7 +157,7 @@ export async function computeAllMoniteursEarningsSummary(moniteurs) {
         defaultPriceFcfa: moniteur.defaultPriceFcfa || 5000,
       },
       ...earnings.totals,
-      lastPayoutAt: earnings.payouts[0]?.paidAt || null,
+      lastPayoutAt: earnings.payouts.find((item) => item.status === 'confirmed')?.paidAt || null,
     })
   }
   return results

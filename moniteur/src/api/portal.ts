@@ -83,6 +83,7 @@ export interface EarningsData {
     hoursCompleted: number
     hoursPending: number
     confirmedPendingSessions: number
+    awaitingConfirmation?: number
   }
   recentSessions: {
     id: string
@@ -99,6 +100,8 @@ export interface EarningsData {
     paidAt: string | null
     note: string
     periodLabel: string
+    status: 'pending' | 'confirmed' | 'declined'
+    declineReason?: string
   }[]
 }
 
@@ -196,6 +199,22 @@ export function fetchHistory(token: string, status?: string) {
   return apiFetch<{ reservations: ReservationItem[] }>(
     `/api/moniteur/reservations/history${query}`,
     {},
+    token,
+  )
+}
+
+export function confirmPayout(token: string, id: string) {
+  return apiFetch<{ payout: { id: string; status: string } }>(
+    `/api/moniteur/payouts/${id}/confirm`,
+    { method: 'POST', body: '{}' },
+    token,
+  )
+}
+
+export function declinePayout(token: string, id: string, reason?: string) {
+  return apiFetch<{ payout: { id: string; status: string } }>(
+    `/api/moniteur/payouts/${id}/decline`,
+    { method: 'POST', body: JSON.stringify({ reason: reason || '' }) },
     token,
   )
 }

@@ -77,10 +77,10 @@ router.post(
       }
 
       const earnings = await computeMoniteurEarnings(moniteur._id)
-      if (amountFcfa > earnings.totals.outstanding + 1) {
+      if (amountFcfa > earnings.totals.payable + 1) {
         return res.status(400).json({
           success: false,
-          error: `Montant supérieur au reste dû (${earnings.totals.outstanding} FCFA)`,
+          error: `Montant supérieur au reste à remettre (${earnings.totals.payable} FCFA)`,
         })
       }
 
@@ -92,6 +92,7 @@ router.post(
       const payout = await MoniteurPayout.create({
         moniteurId: moniteur._id,
         amountFcfa,
+        status: 'pending',
         paidAt,
         note: String(req.body.note || '').trim().slice(0, 500),
         periodLabel: String(req.body.periodLabel || '').trim().slice(0, 80),

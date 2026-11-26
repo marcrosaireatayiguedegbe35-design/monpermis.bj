@@ -665,3 +665,17 @@ html,body{background:#f1f4f2}
 .mp-hs-group .mp-ses.is-done .mp-ses-chip.is-wait{background:#EAF6EF;color:#0B7F47}
 .mp-hs-group .mp-ses.is-done .mp-ses-chip.is-off{background:#F3E4E2;color:#B3261E}
 .mp-hs-group .mp-ses-tabs button,.mp-ses-tabs button{padding:0 12px}
+
+
+/* ---------- Versements à confirmer ---------- */
+.mp-rv-confirm{display:flex;flex-direction:column;gap:6px;padding:16px;border:1.5px solid #0B7F47;border-radius:16px;background:#fff}
+.mp-rv-confirm b{font:700 17px var(--mp-display)}
+.mp-rv-confirm small{font-size:13.5px;line-height:1.45;color:#444}
+.mp-rv-confirm-actions{display:flex;gap:10px;margin-top:6px}
+.mp-rv-confirm-actions button{flex:1;min-height:46px;border-radius:12px;font:700 15px var(--mp-body);cursor:pointer}
+.mp-rv-confirm-actions .is-yes{border:0;background:#0B7F47;color:#fff}
+.mp-rv-confirm-actions .is-no{border:1.5px solid #D5D5D5;background:#fff;color:#111}
+.mp-rv-confirm-actions button:disabled{opacity:.6}
+.mp-rv-amount.is-pending{background:#FFF3D6;color:#8A5200}
+.mp-rv-amount.is-declined{background:#F3E4E2;color:#B3261E}
+.mp-ses-tabs button b.mp-rv-tabbadge{margin-left:2px}

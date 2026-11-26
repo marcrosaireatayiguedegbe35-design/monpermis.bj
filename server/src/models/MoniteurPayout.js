@@ -16,6 +16,14 @@ const moniteurPayoutSchema = new mongoose.Schema(
     paidAt: { type: Date, default: Date.now },
     note: { type: String, default: '', trim: true },
     periodLabel: { type: String, default: '', trim: true },
+    /**
+     * Versement enregistré par l'administration : il ne compte comme reçu qu'une fois confirmé par le moniteur.
+     * Les anciens versements (sans statut) sont considérés comme confirmés.
+     */
+    status: { type: String, enum: ['pending', 'confirmed', 'declined'], default: 'confirmed', index: true },
+    confirmedAt: { type: Date, default: null },
+    declinedAt: { type: Date, default: null },
+    declineReason: { type: String, default: '', trim: true },
     createdByAdminId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Admin',
@@ -33,6 +41,10 @@ moniteurPayoutSchema.methods.toJSONSafe = function toJSONSafe() {
     paidAt: this.paidAt || this.createdAt || null,
     note: this.note || '',
     periodLabel: this.periodLabel || '',
+    status: this.status || 'confirmed',
+    confirmedAt: this.confirmedAt || null,
+    declinedAt: this.declinedAt || null,
+    declineReason: this.declineReason || '',
     createdByAdminId: this.createdByAdminId ? String(this.createdByAdminId) : null,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,

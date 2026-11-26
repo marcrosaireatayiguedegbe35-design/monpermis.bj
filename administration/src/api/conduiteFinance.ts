@@ -65,6 +65,14 @@ export interface SettlementsData {
   feePercent: number
   totals: { dueNowAmount: number; dueNowCount: number; laterAmount: number }
   moniteurs: SettlementMoniteur[]
+  awaitingConfirmation: {
+    id: string
+    moniteurName: string
+    amountFcfa: number
+    paidAt: string
+    status: 'pending' | 'declined'
+    declineReason: string
+  }[]
   recentSettled: { id: string; moniteurName: string; date: string; amount: number; settledAt: string }[]
 }
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ArrowDownRight, ArrowUpRight, RefreshCw } from 'lucide-react'
-import { fetchEarnings, type EarningsData } from '../api/portal'
+import { confirmPayout, declinePayout, fetchEarnings, type EarningsData } from '../api/portal'
 import { getMoniteurToken, isAuthError } from '../context/MoniteurAuthContext'
 import { PageSection } from '../components/model/PageSection'
 import { formatMoney, nf, Notice } from '../components/model/Kit'
@@ -23,6 +23,8 @@ export function RevenusPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<'sessions' | 'payouts'>('sessions')
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     const token = getMoniteurToken()
@@ -42,12 +44,37 @@ export function RevenusPage() {
     void load()
   }, [load])
 
+  const answerPayout = async (id: string, accept: boolean) => {
+    const token = getMoniteurToken()
+    if (!token) return
+    let reason = ''
+    if (!accept) {
+      const typed = window.prompt('Vous n’avez pas reçu cet argent ? Précisez si vous le souhaitez :', '')
+      if (typed === null) return
+      reason = typed
+    }
+    setBusyId(id)
+    setError(null)
+    setSuccess(null)
+    try {
+      if (accept) await confirmPayout(token, id)
+      else await declinePayout(token, id, reason)
+      setSuccess(accept ? 'Merci, la réception est confirmée.' : 'C’est noté : l’administration voit que vous n’avez pas reçu ce versement.')
+      await load()
+    } catch (err) {
+      setError(isAuthError(err) ? err.message : 'Action impossible')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   const totals = data?.totals
   const trend =
     totals && totals.prevMonthEarned ? ((totals.monthEarned - totals.prevMonthEarned) / totals.prevMonthEarned) * 100 : null
   const paidShare = totals && totals.totalEarned ? Math.min(100, Math.round((totals.totalPaid / totals.totalEarned) * 100)) : 0
   const sessions = data?.recentSessions ?? []
   const payouts = data?.payouts ?? []
+  const toConfirm = payouts.filter((item) => item.status === 'pending')
 
   return (
     <PageSection
@@ -60,7 +87,7 @@ export function RevenusPage() {
         </button>
       }
     >
-      <Notice error={error} />
+      <Notice error={error} success={success} />
       {loading && !data ? <p className="cx-loading">Chargement…</p> : null}
 
       {totals ? (
@@ -91,6 +118,24 @@ export function RevenusPage() {
             </div>
           </section>
 
+          {toConfirm.map((item) => (
+            <section key={item.id} className="mp-rv-confirm">
+              <b>Avez-vous reçu {formatMoney(item.amountFcfa)} ?</b>
+              <small>
+                L’administration indique vous avoir remis cet argent
+                {item.paidAt ? ` le ${shortDay(item.paidAt)}` : ''}. Confirmez-le uniquement si vous l’avez bien reçu.
+              </small>
+              <div className="mp-rv-confirm-actions">
+                <button type="button" className="is-yes" disabled={busyId === item.id} onClick={() => void answerPayout(item.id, true)}>
+                  Oui, je l’ai reçu
+                </button>
+                <button type="button" className="is-no" disabled={busyId === item.id} onClick={() => void answerPayout(item.id, false)}>
+                  Pas reçu
+                </button>
+              </div>
+            </section>
+          ))}
+
           <p className="mp-rv-note">
             {totals.pendingEarned > 0
               ? `+ ${formatMoney(totals.pendingEarned)} de séances confirmées à venir · `
@@ -104,7 +149,7 @@ export function RevenusPage() {
               Séances
             </button>
             <button type="button" role="tab" aria-selected={tab === 'payouts'} className={tab === 'payouts' ? 'is-on' : ''} onClick={() => setTab('payouts')}>
-              Versements
+              Versements{toConfirm.length ? <b className="mp-rv-tabbadge">{toConfirm.length}</b> : null}
             </button>
           </div>
 
@@ -142,7 +187,9 @@ export function RevenusPage() {
                     <b>{formatMoney(item.amountFcfa)}</b>
                     <small>{[shortDay(item.paidAt), item.periodLabel, item.note].filter(Boolean).join(' · ')}</small>
                   </span>
-                  <span className="mp-rv-amount is-paid">Versé</span>
+                  <span className={`mp-rv-amount is-paid${item.status === 'declined' ? ' is-declined' : item.status === 'pending' ? ' is-pending' : ''}`}>
+                    {item.status === 'declined' ? 'Contesté' : item.status === 'pending' ? 'À confirmer' : 'Reçu'}
+                  </span>
                 </div>
               ))}
             </div>
