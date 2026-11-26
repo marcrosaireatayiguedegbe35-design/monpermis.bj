@@ -634,3 +634,21 @@ html,body{background:#f1f4f2}
 .mp-pf-chips{margin-top:-18px;position:relative}
 .mp-pf-chips span{background:#fff;border:1px solid #CFE6D8;box-shadow:0 2px 8px rgba(11,127,71,.12)}
 .mp-pf-hero .mp-pf-chips{padding-bottom:12px}
+
+
+/* ---------- Mes horaires : une carte par jour ---------- */
+.mp-hr{display:flex;flex-direction:column;gap:10px;padding-bottom:84px}
+.mp-hr-day{border:1px solid #E6E6E6;border-radius:16px;background:#F6F6F6;overflow:hidden}
+.mp-hr-day.is-open{background:#fff;border-color:#BFD9C9}
+.mp-hr-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px}
+.mp-hr-head b{display:block;font:700 16px var(--mp-body)}
+.mp-hr-head small{display:block;margin-top:2px;font-size:13px;color:#595959}
+.mp-hr-day.is-open .mp-hr-head small{color:#0B7F47;font-weight:600}
+.mp-hr-body{display:flex;flex-direction:column;gap:10px;padding:0 16px 14px;border-top:1px solid #EEE}
+.mp-hr .mp-av-range{grid-template-columns:72px minmax(0,1fr) auto minmax(0,1fr);padding-top:12px}
+.mp-hr input[type=time]{min-width:0;width:100%;box-sizing:border-box}
+.mp-hr-link{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;min-height:40px;padding:0;border:0;background:none;color:#0B7F47;font:700 14px var(--mp-body);cursor:pointer}
+.mp-hr-link svg{width:17px;height:17px}
+.mp-hr input[type=time]{height:46px;padding:0 10px;border:1px solid #D6DDE6;border-radius:12px;background:#fff;font:500 16px var(--mp-body);color:#111;text-align:center}
+.mp-hr .mp-av-range{grid-template-columns:84px minmax(0,1fr) auto minmax(0,1fr)}
+.mp-hr .mp-av-range>span{font-size:14px}

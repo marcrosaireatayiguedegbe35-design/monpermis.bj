@@ -143,7 +143,6 @@ export function DisponibilitesPage() {
   const [tab, setTab] = useState<Tab>('agenda')
   const [selected, setSelected] = useState(todayLocal())
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [openDay, setOpenDay] = useState<number | null>(null)
   const [savedHours, setSavedHours] = useState('')
 
   const load = useCallback(async () => {
@@ -314,77 +313,48 @@ export function DisponibilitesPage() {
       ) : null}
 
       {tab === 'week' ? (
-        <form id="mp-week-form" className="mp-av" onSubmit={handleWeeklySave}>
+        <form id="mp-week-form" className="mp-hr" onSubmit={handleWeeklySave}>
           <p className="mp-av-intro">
-            Choisissez un jour pour régler ses horaires ({activeDays} ouvert{activeDays > 1 ? 's' : ''}).
+            Activez les jours où vous êtes disponible, puis réglez vos heures ({activeDays} jour{activeDays > 1 ? 's' : ''} ouvert{activeDays > 1 ? 's' : ''}).
           </p>
-          {(() => {
-            const selected = dayHours.find((d) => d.dayOfWeek === (openDay ?? dayHours.find((x) => x.enabled)?.dayOfWeek ?? 1)) ?? dayHours[0]
-            const selLabel = WEEK_DAYS.find((d) => d.dayOfWeek === selected.dayOfWeek)?.label || ''
+          {dayHours.map((day) => {
+            const label = WEEK_DAYS.find((d) => d.dayOfWeek === day.dayOfWeek)?.label || ''
             return (
-              <>
-                <div className="mp-days" role="tablist" aria-label="Jours de la semaine">
-                  {dayHours.map((day) => {
-                    const label = WEEK_DAYS.find((d) => d.dayOfWeek === day.dayOfWeek)?.label || ''
-                    const on = selected.dayOfWeek === day.dayOfWeek
-                    return (
-                      <button
-                        key={day.dayOfWeek}
-                        type="button"
-                        role="tab"
-                        aria-selected={on}
-                        className={`mp-day${on ? ' is-on' : ''}${day.enabled ? ' is-open' : ''}`}
-                        onClick={() => setOpenDay(day.dayOfWeek)}
-                      >
-                        <small>{label.slice(0, 3)}</small>
-                        <b>{day.enabled ? '●' : '–'}</b>
-                      </button>
-                    )
-                  })}
-                </div>
-
-                <section className="mp-av-card">
-                  <div className="mp-av-dayhead">
-                    <div>
-                      <h3>{selLabel}</h3>
-                      <small className={selected.enabled ? 'is-open' : ''}>{summaryOf(selected)}</small>
-                    </div>
-                    <label className="mp-switch" aria-label={`${selLabel} ouvert`}>
-                      <input
-                        type="checkbox"
-                        checked={selected.enabled}
-                        onChange={(e) => updateDay(selected.dayOfWeek, { enabled: e.target.checked })}
-                      />
-                      <span aria-hidden="true" />
-                    </label>
+              <section key={day.dayOfWeek} className={`mp-hr-day${day.enabled ? ' is-open' : ''}`}>
+                <div className="mp-hr-head">
+                  <div>
+                    <b>{label}</b>
+                    <small>{summaryOf(day)}</small>
                   </div>
-                  {selected.enabled ? (
-                    <>
-                      <p className="mp-av-sub">Horaires de la journée</p>
-                      <Range label="Matin" value={selected.morning} onChange={(morning) => updateDay(selected.dayOfWeek, { morning })} />
-                      <label className="mp-av-pmtoggle">
-                        <input
-                          type="checkbox"
-                          checked={selected.afternoonEnabled}
-                          onChange={(e) => updateDay(selected.dayOfWeek, { afternoonEnabled: e.target.checked })}
-                        />
-                        Ajouter l’après-midi
-                      </label>
-                      {selected.afternoonEnabled ? (
-                        <Range label="Après-midi" value={selected.afternoon} onChange={(afternoon) => updateDay(selected.dayOfWeek, { afternoon })} />
-                      ) : null}
-                      <button type="button" className="mp-av-copy" onClick={() => copyToAll(selected)}>
-                        <Copy aria-hidden />
-                        Appliquer à tous les jours ouverts
+                  <label className="mp-switch" aria-label={`${label} ouvert`}>
+                    <input type="checkbox" checked={day.enabled} onChange={(e) => updateDay(day.dayOfWeek, { enabled: e.target.checked })} />
+                    <span aria-hidden="true" />
+                  </label>
+                </div>
+                {day.enabled ? (
+                  <div className="mp-hr-body">
+                    <Range label="Matin" value={day.morning} onChange={(morning) => updateDay(day.dayOfWeek, { morning })} />
+                    {day.afternoonEnabled ? (
+                      <>
+                        <Range label="Après-midi" value={day.afternoon} onChange={(afternoon) => updateDay(day.dayOfWeek, { afternoon })} />
+                        <button type="button" className="mp-hr-link" onClick={() => updateDay(day.dayOfWeek, { afternoonEnabled: false })}>
+                          Retirer l’après-midi
+                        </button>
+                      </>
+                    ) : (
+                      <button type="button" className="mp-hr-link" onClick={() => updateDay(day.dayOfWeek, { afternoonEnabled: true })}>
+                        + Ajouter l’après-midi
                       </button>
-                    </>
-                  ) : (
-                    <p className="mp-av-sub">Jour fermé : aucune réservation possible. Activez-le pour choisir vos horaires.</p>
-                  )}
-                </section>
-              </>
+                    )}
+                    <button type="button" className="mp-hr-link" onClick={() => copyToAll(day)}>
+                      <Copy aria-hidden />
+                      Appliquer à tous les jours ouverts
+                    </button>
+                  </div>
+                ) : null}
+              </section>
             )
-          })()}
+          })}
         </form>
       ) : null}
 
