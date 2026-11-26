@@ -31,8 +31,10 @@ import { DirectionSection } from '../components/model/DirectionSection'
 import { getAdminToken, isAuthError } from '../context/AdminAuthContext'
 import { Drawer, EmptyState, SkeletonBlock } from '../ui'
 import { MoniteurFinancesPanel } from './MoniteurFinancesPanel'
+import { RevenueBreakdownPanel } from './RevenueBreakdownPanel'
+import { SettlementsPanel } from './SettlementsPanel'
 
-type Tab = 'ledger' | 'refunds' | 'moniteurs'
+type Tab = 'ledger' | 'refunds' | 'moniteurs' | 'breakdown' | 'settlements'
 
 function formatMoney(value: number, currency = 'XOF') {
   return new Intl.NumberFormat('fr-FR', {
@@ -71,7 +73,9 @@ export function FinancesPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const initialTab = (searchParams.get('tab') as Tab | null) || 'ledger'
   const [tab, setTab] = useState<Tab>(
-    initialTab === 'refunds' || initialTab === 'moniteurs' ? initialTab : 'ledger',
+    initialTab === 'refunds' || initialTab === 'moniteurs' || initialTab === 'breakdown' || initialTab === 'settlements'
+      ? initialTab
+      : 'ledger',
   )
 
   const [summary, setSummary] = useState<FinanceSummary | null>(null)
@@ -294,6 +298,8 @@ export function FinancesPage() {
   const tabs: { key: Tab; label: string; badge?: number }[] = [
     { key: 'ledger', label: 'Grand livre' },
     { key: 'refunds', label: 'À rembourser', badge: outstanding && outstanding.count > 0 ? outstanding.count : undefined },
+    { key: 'breakdown', label: 'Code / Conduite' },
+    { key: 'settlements', label: 'À régler aux moniteurs' },
     { key: 'moniteurs', label: 'Paiements moniteurs' },
   ]
 
@@ -423,6 +429,10 @@ export function FinancesPage() {
 
         {tab === 'moniteurs' ? (
           <MoniteurFinancesPanel />
+        ) : tab === 'breakdown' ? (
+          <RevenueBreakdownPanel />
+        ) : tab === 'settlements' ? (
+          <SettlementsPanel />
         ) : (
           <>
             <form className="cx-filter-bar" onSubmit={applyFilters} style={{ marginBottom: '1rem' }}>

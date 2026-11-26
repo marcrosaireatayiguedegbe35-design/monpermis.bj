@@ -1,11 +1,11 @@
 import {
+  Bell,
   CalendarClock,
   CalendarDays,
-  History,
   LayoutDashboard,
-  LogOut,
   UserRound,
-  Wallet,
+  BarChart3,
+  House,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
@@ -23,10 +23,10 @@ type NavItem = {
 }
 
 const tabs: NavItem[] = [
-  { to: '/', label: 'Accueil', end: true, icon: LayoutDashboard },
+  { to: '/', label: 'Accueil', end: true, icon: House },
   { to: '/reservations', label: 'Demandes', icon: CalendarClock, badge: 'pending' },
   { to: '/disponibilites', label: 'Dispos', icon: CalendarDays },
-  { to: '/revenus', label: 'Revenus', icon: Wallet },
+  { to: '/revenus', label: 'Revenus', icon: BarChart3 },
   { to: '/profil', label: 'Profil', icon: UserRound },
 ]
 
@@ -37,7 +37,7 @@ function formatBadge(count: number) {
 
 /** Coque du portail moniteur : pensée pour téléphone (en-tête simple + barre d'onglets en bas). */
 export function MoniteurLayout() {
-  const { moniteur, signOut } = useMoniteurAuth()
+  const { moniteur } = useMoniteurAuth()
   const location = useLocation()
   const [pending, setPending] = useState(0)
 
@@ -61,19 +61,21 @@ export function MoniteurLayout() {
   const firstName = moniteur?.firstName && moniteur.firstName !== 'Nouveau' ? moniteur.firstName : ''
 
   return (
-    <div className="cx-root mp-shell">
+    <div className={`cx-root mp-shell${location.pathname === '/' ? ' mp-shell-fit' : ''}`}>
       <header className="mp-top">
         <img src={logoUrl} alt={SITE_NAME} />
         <div className="mp-top-title">
           <b>{firstName ? `Bonjour ${firstName}` : 'Espace moniteur'}</b>
           <small>Monpermis.bj</small>
         </div>
-        <Link to="/historique" className="mp-icon-btn" aria-label="Historique">
-          <History aria-hidden />
+        <Link
+          to="/reservations"
+          className="mp-icon-btn"
+          aria-label={pending > 0 ? `${pending} demandes à confirmer` : 'Demandes'}
+        >
+          <Bell aria-hidden />
+          {pending > 0 ? <i className="mp-dot" /> : null}
         </Link>
-        <button type="button" className="mp-icon-btn" onClick={signOut} aria-label="Se déconnecter">
-          <LogOut aria-hidden />
-        </button>
       </header>
 
       <main className="mp-main">

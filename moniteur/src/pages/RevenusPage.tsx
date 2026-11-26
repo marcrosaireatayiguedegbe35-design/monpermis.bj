@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Banknote, CheckCircle2, Coins, HandCoins, Landmark, RefreshCw, Wallet } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, Coins, HandCoins, RefreshCw, Wallet } from 'lucide-react'
 import { fetchEarnings, type EarningsData } from '../api/portal'
 import { getMoniteurToken, isAuthError } from '../context/MoniteurAuthContext'
 import { PageSection } from '../components/model/PageSection'
-import { Empty, formatMoney, Kpi, nf, Notice, PanelHead, SessionRow } from '../components/model/Kit'
+import { dateParts, Empty, formatMoney, nf, Notice } from '../components/model/Kit'
 
 function formatDate(value?: string | null) {
   if (!value) return '—'
@@ -17,10 +17,15 @@ function isoDay(value?: string | null) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+function sizeClass(label: string) {
+  return label.length > 13 ? 'mp-t-xs' : label.length > 10 ? 'mp-t-sm' : undefined
+}
+
 export function RevenusPage() {
   const [data, setData] = useState<EarningsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [tab, setTab] = useState<'sessions' | 'payouts'>('sessions')
 
   const load = useCallback(async () => {
     const token = getMoniteurToken()
@@ -43,13 +48,16 @@ export function RevenusPage() {
   const totals = data?.totals
   const trend =
     totals && totals.prevMonthEarned ? ((totals.monthEarned - totals.prevMonthEarned) / totals.prevMonthEarned) * 100 : null
-  const paidShare = totals && totals.totalEarned ? Math.round((totals.totalPaid / totals.totalEarned) * 100) : 0
+  const paidShare = totals && totals.totalEarned ? Math.min(100, Math.round((totals.totalPaid / totals.totalEarned) * 100)) : 0
+  const sessions = data?.recentSessions ?? []
+  const payouts = data?.payouts ?? []
+  const outstandingLabel = formatMoney(totals?.outstanding ?? 0)
+  const heroSize = outstandingLabel.length > 15 ? ' mp-xs' : outstandingLabel.length > 12 ? ' mp-sm' : ''
 
   return (
     <PageSection
       kicker="Finances"
       title="Mes revenus"
-      subtitle="Gains calculés sur les séances effectuées. L’administration enregistre les versements."
       actions={
         <button type="button" className="cx-refresh" onClick={() => void load()} disabled={loading}>
           <RefreshCw aria-hidden />
@@ -62,102 +70,129 @@ export function RevenusPage() {
 
       {totals ? (
         <>
-          <div className="cx-kc-grid">
-            <Kpi
-              icon={<Coins aria-hidden />}
-              tone="blue"
-              label="Gains cumulés"
-              value={nf(totals.totalEarned)}
-              unit="FCFA"
-              sub={`${nf(totals.completedSessions)} séance${totals.completedSessions > 1 ? 's' : ''} · ${nf(totals.hoursCompleted)} h`}
-            />
-            <Kpi
-              icon={<Wallet aria-hidden />}
-              tone="green"
-              label="Ce mois"
-              value={nf(totals.monthEarned)}
-              unit="FCFA"
-              trend={trend}
-              vs={`vs ${formatMoney(totals.prevMonthEarned)} le mois dernier`}
-              sub={`Mois précédent : ${formatMoney(totals.prevMonthEarned)}`}
-            />
-            <Kpi
-              icon={<Landmark aria-hidden />}
-              tone="sky"
-              label="Déjà versé"
-              value={nf(totals.totalPaid)}
-              unit="FCFA"
-              sub={`${paidShare} % des gains cumulés`}
-            />
-            <Kpi
-              icon={<HandCoins aria-hidden />}
-              tone={totals.outstanding > 0 ? 'gold' : 'green'}
-              label="Reste à recevoir"
-              value={nf(totals.outstanding)}
-              unit="FCFA"
-              sub={
-                totals.pendingEarned > 0
-                  ? `+ ${formatMoney(totals.pendingEarned)} de séances confirmées à venir`
-                  : 'Aucune séance confirmée en cours'
-              }
-            />
+          <section className={`mp-rev-hero${heroSize}`}>
+            <div className="mp-rev-top">
+              <span className="mp-rev-ico">
+                <HandCoins aria-hidden />
+              </span>
+              <div>
+                <small>Reste à recevoir</small>
+                <b>{outstandingLabel}</b>
+              </div>
+            </div>
+            <p>
+              {totals.pendingEarned > 0
+                ? `+ ${formatMoney(totals.pendingEarned)} de séances confirmées à venir`
+                : 'Aucune séance confirmée en cours'}
+            </p>
+            <div className="mp-rev-bar" role="img" aria-label={`${paidShare} % des gains déjà versés`}>
+              <i style={{ width: `${paidShare}%` }} />
+            </div>
+            <div className="mp-rev-bar-label">
+              <span>Déjà versé : {formatMoney(totals.totalPaid)}</span>
+              <span>{paidShare} %</span>
+            </div>
+          </section>
+
+          <div className="mp-rev-tiles">
+            <div className="mp-rev-tile">
+              <span className="mp-rev-tile-ico">
+                <Wallet aria-hidden />
+              </span>
+              <small>Ce mois</small>
+              <b className={sizeClass(formatMoney(totals.monthEarned))}>{formatMoney(totals.monthEarned)}</b>
+              {trend !== null ? (
+                <em className={trend >= 0 ? 'up' : 'down'}>
+                  {trend >= 0 ? <ArrowUpRight aria-hidden /> : <ArrowDownRight aria-hidden />}
+                  {Math.abs(Math.round(trend))} % vs mois dernier
+                </em>
+              ) : (
+                <em className="flat">Mois dernier : {formatMoney(totals.prevMonthEarned)}</em>
+              )}
+            </div>
+            <div className="mp-rev-tile">
+              <span className="mp-rev-tile-ico">
+                <Coins aria-hidden />
+              </span>
+              <small>Gains cumulés</small>
+              <b className={sizeClass(formatMoney(totals.totalEarned))}>{formatMoney(totals.totalEarned)}</b>
+              <em className="flat">
+                {nf(totals.completedSessions)} séance{totals.completedSessions > 1 ? 's' : ''} · {nf(totals.hoursCompleted)} h
+              </em>
+            </div>
           </div>
 
-          <div className="cx-grid-2">
-            <section className="cx-panel">
-              <PanelHead
-                icon={<CheckCircle2 aria-hidden />}
-                title="Séances effectuées récentes"
-                sub="Base de calcul de vos gains"
-              />
-              {!data?.recentSessions?.length ? (
+          <div className="mp-ag-seg" role="group" aria-label="Détail des revenus">
+            <button type="button" className={tab === 'sessions' ? 'is-on' : ''} aria-pressed={tab === 'sessions'} onClick={() => setTab('sessions')}>
+              Séances <b>{sessions.length}</b>
+            </button>
+            <button type="button" className={tab === 'payouts' ? 'is-on' : ''} aria-pressed={tab === 'payouts'} onClick={() => setTab('payouts')}>
+              Versements <b>{payouts.length}</b>
+            </button>
+          </div>
+
+          {tab === 'sessions' ? (
+            sessions.length === 0 ? (
+              <section className="cx-panel">
                 <Empty>Aucune séance terminée pour le moment.</Empty>
-              ) : (
-                <div className="cx-sess">
-                  {data.recentSessions.map((item) => (
-                    <SessionRow
-                      key={item.id}
-                      date={item.creneau?.date || isoDay(item.completedAt)}
-                      title={item.user?.fullName || 'Apprenant'}
-                      lines={[
-                        item.creneau
-                          ? `${item.creneau.startTime} – ${item.creneau.endTime} · ${item.heures} h`
-                          : `${formatDate(item.completedAt)} · ${item.heures} h`,
-                      ]}
-                      amount={formatMoney(item.priceFcfa)}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
-
+              </section>
+            ) : (
+              <div className="mp-ag">
+                {sessions.map((item) => {
+                  const day = item.creneau?.date || isoDay(item.completedAt)
+                  const parts = day ? dateParts(day) : null
+                  return (
+                    <article key={item.id} className="mp-ag-item">
+                      <div className="mp-ag-row">
+                        <span className="mp-ag-time">
+                          <b>{parts?.day ?? '—'}</b>
+                          <small>{parts?.month ?? ''}</small>
+                        </span>
+                        <span className="mp-ag-who">
+                          <b>{item.user?.fullName || 'Apprenant'}</b>
+                          <small>
+                            {item.creneau ? `${item.creneau.startTime} – ${item.creneau.endTime} · ` : ''}
+                            {item.heures} h
+                          </small>
+                        </span>
+                        <span className="mp-ag-side">
+                          <b>{formatMoney(item.priceFcfa)}</b>
+                        </span>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            )
+          ) : payouts.length === 0 ? (
             <section className="cx-panel">
-              <PanelHead
-                icon={<Banknote aria-hidden />}
-                title="Versements reçus"
-                sub="Enregistrés par l’administration"
-              />
-              {!data?.payouts?.length ? (
-                <Empty>Aucun versement enregistré.</Empty>
-              ) : (
-                <div className="cx-sess">
-                  {data.payouts.map((item) => (
-                    <SessionRow
-                      key={item.id}
-                      date={isoDay(item.paidAt)}
-                      tone="navy"
-                      title={formatMoney(item.amountFcfa)}
-                      lines={[
-                        `${formatDate(item.paidAt)}${item.periodLabel ? ` · ${item.periodLabel}` : ''}`,
-                        item.note || null,
-                      ]}
-                      chip={<span className="cx-chip-ok">Versé</span>}
-                    />
-                  ))}
-                </div>
-              )}
+              <Empty>Aucun versement enregistré.</Empty>
             </section>
-          </div>
+          ) : (
+            <div className="mp-ag">
+              {payouts.map((item) => {
+                const day = isoDay(item.paidAt)
+                const parts = day ? dateParts(day) : null
+                return (
+                  <article key={item.id} className="mp-ag-item mp-ag-paid">
+                    <div className="mp-ag-row">
+                      <span className="mp-ag-time">
+                        <b>{parts?.day ?? '—'}</b>
+                        <small>{parts?.month ?? ''}</small>
+                      </span>
+                      <span className="mp-ag-who">
+                        <b>{formatMoney(item.amountFcfa)}</b>
+                        <small>{[item.periodLabel, item.note].filter(Boolean).join(' · ') || formatDate(item.paidAt)}</small>
+                      </span>
+                      <span className="mp-ag-side">
+                        <em className="ok">Versé</em>
+                      </span>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          )}
         </>
       ) : null}
     </PageSection>

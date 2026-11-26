@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Info } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 /** Éléments du modèle visuel de l'espace admin (classes .cx-), réutilisés par toutes les pages moniteur. */
@@ -174,5 +175,10 @@ export function SessionRow({
 }
 
 export function Empty({ children }: { children: ReactNode }) {
-  return <p className="cx-empty">{children}</p>
+  return (
+    <p className="cx-empty">
+      <Info aria-hidden />
+      {children}
+    </p>
+  )
 }

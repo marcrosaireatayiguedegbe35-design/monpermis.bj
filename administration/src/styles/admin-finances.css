@@ -223,3 +223,29 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Répartition des revenus, règlements des moniteurs, avis */
+.cx-split-card{display:flex;flex-direction:column;gap:.35rem;padding:1.1rem 1.25rem}
+.cx-split-card small{color:#5b6b86;font-weight:600}
+.cx-split-big{font-size:1.65rem;line-height:1.1;font-weight:800;color:#0a1e3a}
+.cx-split-bar{display:flex;height:.7rem;border-radius:999px;overflow:hidden;background:#e6ebf1}
+.cx-split-bar i{display:block;height:100%}
+.cx-dot{display:inline-block;width:.65rem;height:.65rem;border-radius:50%;margin-right:.2rem}
+.cx-mini-table{width:100%;border-collapse:collapse;font-size:.92rem}
+.cx-mini-table td,.cx-mini-table th{padding:.55rem .4rem;border-bottom:1px solid #edf1f6;text-align:left}
+.cx-mini-table td:last-child,.cx-mini-table th:last-child{text-align:right}
+.cx-mini-table .cx-total td{font-weight:800;border-bottom:0;padding-top:.8rem}
+.cx-settle-list{display:flex;flex-direction:column;gap:.8rem;margin-top:.8rem}
+.cx-settle{padding:1rem 1.1rem;border:1px solid #e3e9f2;border-radius:16px;background:#fff}
+.cx-settle header{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start}
+.cx-settle header b{display:block;font-size:1.02rem}
+.cx-settle header small{color:#5b6b86}
+.cx-settle-amount{text-align:right}
+.cx-settle-amount b{font-size:1.25rem;color:#0f7b3e}
+.cx-settle-actions{display:flex;gap:.6rem;flex-wrap:wrap;margin:.8rem 0 .2rem}
+.cx-stars{display:inline-flex;gap:.1rem;color:#f5a623;font-size:1.05rem;letter-spacing:.02em}
+.cx-stars .off{color:#d4dbe5}
+.cx-review{padding:1rem 1.1rem;border:1px solid #e3e9f2;border-radius:16px;background:#fff;display:flex;flex-direction:column;gap:.5rem}
+.cx-review header{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:center}
+.cx-review-scores{display:flex;gap:1rem;flex-wrap:wrap;font-size:.86rem;color:#4d5f80}
+.cx-review p{margin:0;padding:.7rem .9rem;border-radius:12px;background:#f4f7fb;color:#0a1e3a}

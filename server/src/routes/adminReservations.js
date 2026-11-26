@@ -15,7 +15,11 @@ import {
   normalizeVehicleType,
   parseLocalDate,
 } from '../utils/localDate.js'
-import { creditHeuresEffectueesForCompletion } from '../utils/reservationLifecycle.js'
+import {
+  completionFieldsFor,
+  creditHeuresEffectueesForCompletion,
+  requestSessionReview,
+} from '../utils/reservationLifecycle.js'
 import { passwordPolicyError } from '../middleware/security.js'
 import { normalizeBeninPhone } from '../services/fedapay.js'
 import { sanitizePublicUrl, sanitizePublicUrlList } from '../utils/publicUrl.js'
@@ -666,6 +670,10 @@ router.patch('/reservations/:id', audit('update', 'reservation'), async (req, re
         // fait qu'enregistrer les heures effectuées. Réservations antérieures
         // (heuresDebitees=0, ancien flux) : comportement historique conservé.
         await creditHeuresEffectueesForCompletion(reservation)
+        // Part du moniteur et règlement du soir, comme pour une fin de séance automatique.
+        const creneau = await Creneau.findById(reservation.creneauId)
+        Object.assign(reservation, await completionFieldsFor(reservation, creneau))
+        void requestSessionReview(reservation, creneau)
       }
 
       reservation.status = req.body.status

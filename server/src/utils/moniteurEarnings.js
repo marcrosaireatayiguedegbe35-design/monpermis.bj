@@ -1,6 +1,7 @@
 import { MoniteurPayout } from '../models/MoniteurPayout.js'
 import { Reservation } from '../models/Reservation.js'
 import { computeCreneauHeures } from './creneauDuration.js'
+import { getPlatformFeePercent, splitSessionPrice } from './platformSettings.js'
 
 function monthBounds(ref = new Date()) {
   const year = ref.getFullYear()
@@ -15,8 +16,14 @@ function previousMonthBounds(ref = new Date()) {
   return monthBounds(d)
 }
 
-function sumPrice(items) {
-  return items.reduce((acc, item) => acc + (Number(item.priceFcfa) || 0), 0)
+/** Part du moniteur : figée à la fin de séance, sinon calculée avec la commission actuelle (anciennes séances). */
+function shareOf(item, feePercent) {
+  if (item.moniteurShareFcfa != null) return Number(item.moniteurShareFcfa) || 0
+  return splitSessionPrice(item.priceFcfa, feePercent).moniteurShareFcfa
+}
+
+function sumShare(items, feePercent) {
+  return items.reduce((acc, item) => acc + shareOf(item, feePercent), 0)
 }
 
 function sumHours(items) {
@@ -40,6 +47,7 @@ function inRange(dateValue, start, end) {
  * Gain = priceFcfa des séances completed.
  */
 export async function computeMoniteurEarnings(moniteurId) {
+  const feePercent = await getPlatformFeePercent()
   const [completed, confirmed, payouts] = await Promise.all([
     Reservation.find({ moniteurId, status: 'completed' })
       .populate('creneauId')
@@ -63,10 +71,10 @@ export async function computeMoniteurEarnings(moniteurId) {
     inRange(item.updatedAt || item.createdAt, previous.start, previous.end),
   )
 
-  const totalEarned = sumPrice(completed)
-  const monthEarned = sumPrice(completedThisMonth)
-  const prevMonthEarned = sumPrice(completedPrevMonth)
-  const pendingEarned = sumPrice(confirmed)
+  const totalEarned = sumShare(completed, feePercent)
+  const monthEarned = sumShare(completedThisMonth, feePercent)
+  const prevMonthEarned = sumShare(completedPrevMonth, feePercent)
+  const pendingEarned = sumShare(confirmed, feePercent)
   const totalPaid = payouts.reduce((acc, item) => acc + (Number(item.amountFcfa) || 0), 0)
   const outstanding = Math.max(0, totalEarned - totalPaid)
 
@@ -76,7 +84,7 @@ export async function computeMoniteurEarnings(moniteurId) {
     return {
       id: String(item._id),
       status: item.status,
-      priceFcfa: Number(item.priceFcfa) || 0,
+      priceFcfa: shareOf(item, feePercent),
       heures: creneau ? computeCreneauHeures(creneau) : Number(item.heuresDebitees) || 0,
       completedAt: item.updatedAt || item.createdAt,
       user: user

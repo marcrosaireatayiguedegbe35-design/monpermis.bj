@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { CalendarDays, CarFront, LayoutGrid, UserCog } from 'lucide-react'
+import { CalendarDays, CarFront, LayoutGrid, MessageSquareHeart, UserCog } from 'lucide-react'
 import { PageSection, type SectionTab } from './PageSection'
 
 /** Onglets de l'espace « Conduite » : même barre sur toutes les pages de la section. */
@@ -8,6 +8,7 @@ const TABS: readonly SectionTab[] = [
   { to: '/conduite/lecons', label: 'Leçons', icon: CarFront },
   { to: '/conduite/reservations', label: 'Réservations', icon: CalendarDays },
   { to: '/conduite/moniteurs', label: 'Moniteurs', icon: UserCog },
+  { to: '/conduite/avis', label: 'Avis', icon: MessageSquareHeart },
 ]
 
 export function ConduiteSection({

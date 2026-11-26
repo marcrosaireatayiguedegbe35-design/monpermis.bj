@@ -1,10 +1,11 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react'
-import { Camera, Car, ImagePlus, KeyRound, NotebookPen, Save, Trash2, UserRound } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Camera, History, ImagePlus, LogOut, Trash2 } from 'lucide-react'
 import { fetchProfile, updateProfile, uploadMoniteurPhoto, type MoniteurProfile } from '../api/portal'
 import { getMoniteurToken, isAuthError, useMoniteurAuth } from '../context/MoniteurAuthContext'
 import { resolveMediaUrl } from '../utils/mediaUrl'
 import { PageSection } from '../components/model/PageSection'
-import { formatMoney, Notice, PanelHead } from '../components/model/Kit'
+import { formatMoney, Notice } from '../components/model/Kit'
 
 type UploadTarget = 'portrait' | 'vehicle' | 'gallery'
 
@@ -18,22 +19,26 @@ function UploadButton({
   label,
   busy,
   onFile,
+  className = 'mp-pf-up',
 }: {
   label: string
   busy: boolean
   onFile: (file: File | null) => void
+  className?: string
 }) {
   return (
-    <label className="cx-btn cx-btn-sm cx-upload">
+    <label className={className}>
       <ImagePlus aria-hidden />
       {busy ? 'Import…' : label}
-      <input type="file" accept="image/*" onChange={(e) => onFile(e.target.files?.[0] ?? null)} disabled={busy} />
+      <input type="file" accept="image/*" hidden onChange={(e) => onFile(e.target.files?.[0] ?? null)} disabled={busy} />
     </label>
   )
 }
 
+type Tab = 'infos' | 'vehicle' | 'photos' | 'security'
+
 export function ProfilPage() {
-  const { moniteur } = useMoniteurAuth()
+  const { moniteur, signOut } = useMoniteurAuth()
   const [profile, setProfile] = useState<MoniteurProfile | null>(null)
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -54,6 +59,8 @@ export function ProfilPage() {
   const [uploading, setUploading] = useState<UploadTarget | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [tab, setTab] = useState<Tab>('infos')
+  const [savedSnap, setSavedSnap] = useState('')
 
   const applyProfile = (data: MoniteurProfile) => {
     setProfile(data)
@@ -69,6 +76,22 @@ export function ProfilPage() {
     setVehiclePhotoUrl(data.vehiclePhotoUrl || '')
     setPhotos(data.photos || [])
     setDefaultPriceFcfa(String(data.defaultPriceFcfa || 5000))
+    setSavedSnap(
+      JSON.stringify([
+        data.firstName === 'Nouveau' ? '' : data.firstName || '',
+        data.lastName === 'moniteur' && data.firstName === 'Nouveau' ? '' : data.lastName || '',
+        data.phone || '',
+        data.city || '',
+        data.bio || '',
+        data.vehicleBrand || '',
+        (data.vehicleTypes && data.vehicleTypes[0]) || 'voiture',
+        (data.specialties || []).join(', '),
+        data.photoUrl || '',
+        data.vehiclePhotoUrl || '',
+        data.photos || [],
+        String(data.defaultPriceFcfa || 5000),
+      ]),
+    )
   }
 
   const load = useCallback(async () => {
@@ -117,6 +140,7 @@ export function ProfilPage() {
       newPassword &&
       (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/\d/.test(newPassword))
     ) {
+      setSuccess(null)
       setError('Mot de passe : minimum 8 caractères, avec majuscule, minuscule et chiffre')
       return
     }
@@ -158,218 +182,207 @@ export function ProfilPage() {
   }
 
   const fullName = profile?.fullName || moniteur?.fullName || ''
-  const saveButton = (
-    <button type="submit" form="moniteur-profile" className="cx-btn cx-btn-fill" disabled={saving || Boolean(uploading) || !profile}>
-      <Save aria-hidden />
-      {saving ? 'Enregistrement…' : 'Enregistrer mon profil'}
-    </button>
-  )
+  const displayName = firstName || lastName ? `${firstName} ${lastName}`.trim() : fullName
+  const dirty =
+    Boolean(profile) &&
+    (JSON.stringify([firstName, lastName, phone, city, bio, vehicleBrand, vehicleType, specialties, photoUrl, vehiclePhotoUrl, photos, defaultPriceFcfa]) !== savedSnap ||
+      Boolean(newPassword))
+
+  // Complétude du profil : ce que les apprenants voient en priorité.
+  const checklist = [
+    { label: 'photo', done: Boolean(photoUrl) },
+    { label: 'nom', done: Boolean(firstName.trim() && lastName.trim()) },
+    { label: 'ville', done: Boolean(city.trim()) },
+    { label: 'présentation', done: bio.trim().length >= 20 },
+    { label: 'véhicule', done: Boolean(vehicleBrand.trim()) },
+    { label: 'photo du véhicule', done: Boolean(vehiclePhotoUrl) },
+  ]
+  const doneCount = checklist.filter((item) => item.done).length
+  const completion = Math.round((doneCount / checklist.length) * 100)
+  const missing = checklist.filter((item) => !item.done).map((item) => item.label)
+
+  const tabs: [Tab, string][] = [
+    ['infos', 'Infos'],
+    ['vehicle', 'Véhicule'],
+    ['photos', 'Photos'],
+    ['security', 'Sécurité'],
+  ]
 
   return (
-    <PageSection
-      kicker="Compte"
-      title="Mon profil public"
-      subtitle="Ce que les apprenants voient de vous dans l’application : photo, véhicule, ville et présentation."
-      actions={profile ? saveButton : undefined}
-    >
+    <PageSection kicker="Compte" title="Mon profil">
       <Notice error={error} success={success} />
       {loading ? <p className="cx-loading">Chargement…</p> : null}
 
       {!loading && profile ? (
-        <form id="moniteur-profile" className="cx-split" onSubmit={handleSubmit}>
-          <aside className="cx-panel cx-sticky cx-prof-card">
-            {photoUrl ? (
-              <img className="cx-prof-photo" src={resolveMediaUrl(photoUrl)} alt={`Portrait de ${fullName}`} />
-            ) : (
-              <span className="cx-prof-initials" aria-hidden="true">
-                {initialsOf(fullName)}
-              </span>
-            )}
-            <h2>{fullName || 'Moniteur'}</h2>
-            <p>{city || 'Ville non renseignée'}</p>
-            <UploadButton
-              label={photoUrl ? 'Changer la photo' : 'Ajouter une photo'}
-              busy={uploading === 'portrait'}
-              onFile={(file) => void uploadTo(file, 'portrait')}
-            />
-            <div className="cx-prof-facts">
-              <div>
-                <span>Identifiant</span>
-                <b>{profile.phone || profile.email}</b>
+        <>
+          <section className="mp-pf-hero">
+            <div className="mp-pf-id">
+              <div className="mp-pf-avatar">
+                {photoUrl ? (
+                  <img src={resolveMediaUrl(photoUrl)} alt={`Portrait de ${fullName}`} />
+                ) : (
+                  <span aria-hidden="true">{initialsOf(displayName)}</span>
+                )}
+                <label className="mp-pf-cam" aria-label={photoUrl ? 'Changer la photo' : 'Ajouter une photo'}>
+                  <Camera aria-hidden />
+                  <input type="file" accept="image/*" hidden onChange={(e) => void uploadTo(e.target.files?.[0] ?? null, 'portrait')} disabled={uploading === 'portrait'} />
+                </label>
               </div>
-              <div>
-                <span>Tarif horaire</span>
-                <b>{formatMoney(Number(defaultPriceFcfa) || 0)}</b>
-              </div>
-              <div>
-                <span>Véhicule</span>
-                <b>{vehicleBrand || vehicleType || '—'}</b>
-              </div>
-              <div>
-                <span>Médias</span>
-                <b>
-                  {photos.length} photo{photos.length > 1 ? 's' : ''}
-                </b>
+              <div className="mp-pf-who">
+                <b>{displayName || 'Moniteur'}</b>
+                <small>{[city, vehicleBrand].filter(Boolean).join(' · ') || 'Complétez votre profil'}</small>
+                <span className="mp-pf-id-line">{profile.phone || profile.email} · {formatMoney(Number(defaultPriceFcfa) || 0)}/h</span>
               </div>
             </div>
-          </aside>
+            <div className="mp-pf-meter">
+              <div className="mp-pf-meter-top">
+                <span>Profil complet à</span>
+                <b>{completion} %</b>
+              </div>
+              <div className="mp-pf-bar" role="img" aria-label={`Profil complet à ${completion} %`}>
+                <i style={{ width: `${completion}%` }} />
+              </div>
+              <p>{missing.length ? `À ajouter : ${missing.join(', ')}.` : 'Votre profil est complet. Les apprenants vous voient en entier.'}</p>
+            </div>
+          </section>
 
-          <div className="cx-view">
-            <section className="cx-panel">
-              <PanelHead icon={<UserRound aria-hidden />} title="Informations" sub="Coordonnées et conditions de vos séances" />
-              <div className="cx-form-grid">
-                <label>
-                  Prénom
-                  <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Votre prénom" />
-                </label>
-                <label>
-                  Nom
-                  <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Votre nom" />
-                </label>
-                <label>
+          <div className="mp-pf-tabs" role="tablist" aria-label="Sections du profil">
+            {tabs.map(([key, label]) => (
+              <button key={key} type="button" role="tab" aria-selected={tab === key} className={tab === key ? 'is-on' : ''} onClick={() => setTab(key)}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <form id="mp-profile-form" className="mp-pf-form" onSubmit={handleSubmit}>
+            {tab === 'infos' ? (
+              <div className="mp-av-card">
+                <div className="mp-av-two">
+                  <label className="mp-av-field">
+                    Prénom
+                    <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Votre prénom" autoComplete="given-name" />
+                  </label>
+                  <label className="mp-av-field">
+                    Nom
+                    <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Votre nom" autoComplete="family-name" />
+                  </label>
+                </div>
+                <label className="mp-av-field">
                   Téléphone
-                  <input value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
                 </label>
-                <label>
+                <label className="mp-av-field">
                   Ville / zone
                   <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="ex. Cotonou, Calavi…" />
                 </label>
-                <label>
-                  Marque du véhicule
-                  <input
-                    value={vehicleBrand}
-                    onChange={(e) => setVehicleBrand(e.target.value)}
-                    placeholder="ex. Toyota Corolla"
-                  />
+                <label className="mp-av-field">
+                  Tarif horaire (FCFA)
+                  <input type="number" inputMode="numeric" min={0} step={500} value={defaultPriceFcfa} onChange={(e) => setDefaultPriceFcfa(e.target.value)} />
                 </label>
-                <label>
+                <label className="mp-av-field">
+                  Spécialités <em>(séparées par des virgules)</em>
+                  <input value={specialties} onChange={(e) => setSpecialties(e.target.value)} placeholder="conduite en ville, créneau…" />
+                </label>
+                <label className="mp-av-field">
+                  Présentation
+                  <textarea
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    rows={5}
+                    maxLength={2000}
+                    placeholder="Expérience, méthode, zones desservies…"
+                  />
+                  <span className="mp-pf-count">{bio.length} / 2000</span>
+                </label>
+              </div>
+            ) : null}
+
+            {tab === 'vehicle' ? (
+              <div className="mp-av-card">
+                <label className="mp-av-field">
+                  Marque et modèle
+                  <input value={vehicleBrand} onChange={(e) => setVehicleBrand(e.target.value)} placeholder="ex. Toyota Corolla" />
+                </label>
+                <label className="mp-av-field">
                   Type de véhicule
                   <input value={vehicleType} onChange={(e) => setVehicleType(e.target.value)} placeholder="voiture, moto…" />
                 </label>
-                <label>
-                  Spécialités (séparées par des virgules)
-                  <input
-                    value={specialties}
-                    onChange={(e) => setSpecialties(e.target.value)}
-                    placeholder="conduite en ville, créneau…"
-                  />
-                </label>
-                <label>
-                  Tarif horaire (FCFA)
-                  <input
-                    type="number"
-                    min={0}
-                    step={500}
-                    value={defaultPriceFcfa}
-                    onChange={(e) => setDefaultPriceFcfa(e.target.value)}
-                  />
-                </label>
-              </div>
-            </section>
-
-            <section className="cx-panel">
-              <PanelHead icon={<NotebookPen aria-hidden />} title="Présentation" sub="Quelques lignes pour rassurer les apprenants" />
-              <textarea
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                rows={5}
-                maxLength={2000}
-                aria-label="Présentation"
-                placeholder="Présentez-vous aux apprenants : expérience, méthode, zones desservies…"
-              />
-            </section>
-
-            <section className="cx-panel">
-              <PanelHead
-                icon={<Camera aria-hidden />}
-                title="Photos"
-                sub="Portrait, véhicule et galerie (12 photos maximum)"
-                extra={
-                  <div className="cx-page-actions">
-                    <UploadButton
-                      label="Photo du véhicule"
-                      busy={uploading === 'vehicle'}
-                      onFile={(file) => void uploadTo(file, 'vehicle')}
-                    />
-                    <UploadButton
-                      label="Ajouter à la galerie"
-                      busy={uploading === 'gallery'}
-                      onFile={(file) => void uploadTo(file, 'gallery')}
-                    />
-                  </div>
-                }
-              />
-              {!photoUrl && !vehiclePhotoUrl && photos.length === 0 ? (
-                <p className="cx-empty">Aucune photo pour le moment.</p>
-              ) : (
-                <div className="cx-media-grid">
-                  {photoUrl ? (
-                    <figure className="cx-media">
-                      <img src={resolveMediaUrl(photoUrl)} alt="Portrait" />
-                      <figcaption>Portrait</figcaption>
-                      <button type="button" aria-label="Retirer le portrait" onClick={() => setPhotoUrl('')}>
-                        <Trash2 aria-hidden />
-                      </button>
-                    </figure>
-                  ) : null}
-                  {vehiclePhotoUrl ? (
-                    <figure className="cx-media">
-                      <img src={resolveMediaUrl(vehiclePhotoUrl)} alt="Véhicule" />
-                      <figcaption>
-                        <Car aria-hidden style={{ width: '.8rem', height: '.8rem', verticalAlign: '-.1rem' }} /> Véhicule
-                      </figcaption>
-                      <button type="button" aria-label="Retirer la photo du véhicule" onClick={() => setVehiclePhotoUrl('')}>
-                        <Trash2 aria-hidden />
-                      </button>
-                    </figure>
-                  ) : null}
-                  {photos.map((url, index) => (
-                    <figure key={url} className="cx-media">
-                      <img src={resolveMediaUrl(url)} alt={`Galerie ${index + 1}`} />
-                      <button
-                        type="button"
-                        aria-label={`Retirer la photo ${index + 1}`}
-                        onClick={() => setPhotos((prev) => prev.filter((item) => item !== url))}
-                      >
-                        <Trash2 aria-hidden />
-                      </button>
-                    </figure>
-                  ))}
+                <div className="mp-pf-media-head">
+                  <b>Photo du véhicule</b>
+                  <UploadButton label={vehiclePhotoUrl ? 'Changer' : 'Ajouter'} busy={uploading === 'vehicle'} onFile={(file) => void uploadTo(file, 'vehicle')} />
                 </div>
-              )}
-            </section>
-
-            <section className="cx-panel">
-              <PanelHead
-                icon={<KeyRound aria-hidden />}
-                title="Changer le mot de passe"
-                sub="Laissez vide pour conserver le mot de passe actuel"
-              />
-              <div className="cx-form-grid">
-                <label>
-                  Mot de passe actuel
-                  <input
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    autoComplete="current-password"
-                  />
-                </label>
-                <label>
-                  Nouveau mot de passe
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    autoComplete="new-password"
-                    minLength={8}
-                  />
-                </label>
+                {vehiclePhotoUrl ? (
+                  <figure className="mp-pf-media mp-pf-media-wide">
+                    <img src={resolveMediaUrl(vehiclePhotoUrl)} alt="Véhicule" />
+                    <button type="button" aria-label="Retirer la photo du véhicule" onClick={() => setVehiclePhotoUrl('')}>
+                      <Trash2 aria-hidden />
+                    </button>
+                  </figure>
+                ) : (
+                  <p className="mp-pf-hint">Une photo de votre véhicule rassure les apprenants.</p>
+                )}
               </div>
-              <div className="cx-form-actions">{saveButton}</div>
-            </section>
+            ) : null}
+
+            {tab === 'photos' ? (
+              <div className="mp-av-card">
+                <div className="mp-pf-media-head">
+                  <b>Galerie ({photos.length} / 12)</b>
+                  <UploadButton label="Ajouter" busy={uploading === 'gallery'} onFile={(file) => void uploadTo(file, 'gallery')} />
+                </div>
+                {photos.length === 0 ? (
+                  <p className="mp-pf-hint">Aucune photo dans la galerie pour le moment.</p>
+                ) : (
+                  <div className="mp-pf-grid">
+                    {photos.map((url, index) => (
+                      <figure key={url} className="mp-pf-media">
+                        <img src={resolveMediaUrl(url)} alt={`Galerie ${index + 1}`} />
+                        <button type="button" aria-label={`Retirer la photo ${index + 1}`} onClick={() => setPhotos((prev) => prev.filter((item) => item !== url))}>
+                          <Trash2 aria-hidden />
+                        </button>
+                      </figure>
+                    ))}
+                  </div>
+                )}
+                <p className="mp-pf-hint">Le portrait se change avec l’icône appareil photo, en haut de la page.</p>
+              </div>
+            ) : null}
+
+            {tab === 'security' ? (
+              <div className="mp-av-card">
+                <h3>Changer le mot de passe</h3>
+                <label className="mp-av-field">
+                  Mot de passe actuel
+                  <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} autoComplete="current-password" />
+                </label>
+                <label className="mp-av-field">
+                  Nouveau mot de passe
+                  <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" minLength={8} />
+                </label>
+                <p className="mp-pf-hint">8 caractères minimum, avec une majuscule, une minuscule et un chiffre. Laissez vide pour le conserver.</p>
+              </div>
+            ) : null}
+          </form>
+
+          <div className="mp-pf-links">
+            <Link to="/historique" className="mp-pf-link">
+              <History aria-hidden />
+              Historique des séances
+            </Link>
+            <button type="button" className="mp-pf-link is-danger" onClick={signOut}>
+              <LogOut aria-hidden />
+              Se déconnecter
+            </button>
           </div>
-        </form>
+
+          {dirty ? (
+            <div className="mp-av-save">
+              <button type="submit" form="mp-profile-form" disabled={saving || Boolean(uploading)}>
+                {saving ? 'Enregistrement…' : 'Enregistrer mon profil'}
+              </button>
+            </div>
+          ) : null}
+        </>
       ) : null}
     </PageSection>
   )

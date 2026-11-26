@@ -11,6 +11,7 @@ import {
   CreditCard,
   Megaphone,
   MessageCircle,
+  Star,
   TriangleAlert,
   Wallet,
 } from 'lucide-react-native'
@@ -50,6 +51,7 @@ const iconFor: Record<string, ComponentType<IconProps>> = {
   subscription_expiring: TriangleAlert,
   payment_validated: CreditCard,
   reservation_confirmed: CalendarCheck,
+  session_review: Star,
   reservation_cancelled: TriangleAlert,
   announcement: Megaphone,
   general: Bell,
@@ -119,6 +121,13 @@ export function NotificationsScreen() {
       }
       navigation.navigate('Actualites')
       return
+    }
+    if (link.startsWith('avis/')) {
+      const reservationId = link.slice('avis/'.length)
+      if (reservationId) {
+        navigation.navigate('SessionReview', { reservationId })
+        return
+      }
     }
     if (link === 'actualites') {
       navigation.navigate('Actualites')

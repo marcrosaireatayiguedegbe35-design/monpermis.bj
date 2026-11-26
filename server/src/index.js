@@ -21,6 +21,7 @@ import { serveChapterImage } from './services/serveChapterImage.js'
 import { loadPublishedImageIndex } from './services/publishedImages.js'
 import adminConduiteRoutes from './routes/adminConduite.js'
 import adminReservationsRoutes from './routes/adminReservations.js'
+import adminConduiteFinanceRoutes from './routes/adminConduiteFinance.js'
 import adminUsersRoutes from './routes/adminUsers.js'
 import adminDashboardRoutes from './routes/adminDashboard.js'
 import contentRoutes from './routes/content.js'
@@ -296,6 +297,7 @@ app.use('/api/admin/revision', adminQuestionsRoutes)
 app.use('/api/admin/revision', adminPracticeExamsRoutes)
 app.use('/api/admin/conduite', adminConduiteRoutes)
 app.use('/api/admin/conduite', adminReservationsRoutes)
+app.use('/api/admin/conduite-finance', adminConduiteFinanceRoutes)
 app.use('/api/admin/users', adminUsersRoutes)
 app.use('/api/admin/dashboard', adminDashboardRoutes)
 app.use('/api/admin/access-requests', adminAccessRequestsRoutes)

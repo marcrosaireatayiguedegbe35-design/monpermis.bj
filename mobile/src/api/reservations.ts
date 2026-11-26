@@ -121,6 +121,37 @@ export function earliestBookableTime(date: string, now = new Date()) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
+export type PendingReview = {
+  reservationId: string
+  date: string
+  startTime: string
+  endTime: string
+  moniteurName: string
+  moniteurPhotoUrl: string
+}
+
+export type SessionReviewInput = {
+  rating: number
+  punctuality: number
+  pedagogy: number
+  vehicle: number
+  wouldRecommend: boolean
+  comment: string
+}
+
+/** Séances terminées sur lesquelles l'apprenant n'a pas encore donné son avis. */
+export function fetchPendingReviews() {
+  return request<{ reviews: PendingReview[] }>('/reservations/reviews/pending')
+}
+
+/** Avis confidentiel : il est transmis à l'administration, jamais au moniteur. */
+export function submitSessionReview(reservationId: string, input: SessionReviewInput) {
+  return request<{ ok: boolean }>(`/reservations/${reservationId}/review`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
 export function fetchDrivingDashboard() {
   return request<{ progress: DrivingProgress; upcoming: ReservationItem[] }>(
     '/reservations/dashboard',

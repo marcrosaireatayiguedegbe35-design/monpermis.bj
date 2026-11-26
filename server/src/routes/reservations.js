@@ -4,6 +4,7 @@ import { Moniteur } from '../models/Moniteur.js'
 import { Creneau } from '../models/Creneau.js'
 import { Reservation } from '../models/Reservation.js'
 import { Payment } from '../models/Payment.js'
+import { SessionReview } from '../models/SessionReview.js'
 import { User } from '../models/User.js'
 import { requireUserAuth } from '../middleware/userAuth.js'
 import {
@@ -1389,6 +1390,92 @@ router.post('/reminders/run', async (req, res) => {
   } catch (error) {
     console.error('Erreur rappels:', error)
     res.status(500).json({ success: false, error: 'Rappels impossibles' })
+  }
+})
+
+/** Séances terminées pour lesquelles l'apprenant n'a pas encore donné son avis. */
+router.get('/reviews/pending', ...withConduiteAccess, async (req, res) => {
+  try {
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    const items = await Reservation.find({
+      userId: req.user._id,
+      status: 'completed',
+      reviewedAt: null,
+      completedAt: { $gte: since },
+    })
+      .sort({ completedAt: -1 })
+      .limit(5)
+      .populate('creneauId')
+      .populate('moniteurId', 'firstName lastName photoUrl')
+    res.json({
+      success: true,
+      data: {
+        reviews: items.map((item) => ({
+          reservationId: String(item._id),
+          date: item.creneauId?.date || '',
+          startTime: item.creneauId?.startTime || '',
+          endTime: item.creneauId?.endTime || '',
+          moniteurName: item.moniteurId
+            ? `${item.moniteurId.firstName || ''} ${item.moniteurId.lastName || ''}`.trim()
+            : 'Moniteur',
+          moniteurPhotoUrl: item.moniteurId?.photoUrl || '',
+        })),
+      },
+    })
+  } catch (error) {
+    console.error('Erreur avis en attente:', error)
+    res.status(500).json({ success: false, error: 'Chargement impossible' })
+  }
+})
+
+/** Avis de l'apprenant sur une séance terminée : note, trois questions et commentaire (vu par l'administration seule). */
+router.post('/:id/review', ...withConduiteAccess, async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, error: 'Séance invalide' })
+    }
+    const reservation = await Reservation.findOne({ _id: req.params.id, userId: req.user._id })
+    if (!reservation) {
+      return res.status(404).json({ success: false, error: 'Séance introuvable' })
+    }
+    if (reservation.status !== 'completed') {
+      return res.status(400).json({ success: false, error: 'Vous pourrez donner votre avis une fois la séance terminée' })
+    }
+    const score = (value) => {
+      const n = Math.round(Number(value))
+      return Number.isFinite(n) && n >= 1 && n <= 5 ? n : null
+    }
+    const rating = score(req.body.rating)
+    const punctuality = score(req.body.punctuality)
+    const pedagogy = score(req.body.pedagogy)
+    const vehicle = score(req.body.vehicle)
+    if (!rating || !punctuality || !pedagogy || !vehicle) {
+      return res.status(400).json({ success: false, error: 'Merci de noter chaque critère de 1 à 5' })
+    }
+    const comment = String(req.body.comment || '').trim().slice(0, 1000)
+    try {
+      await SessionReview.create({
+        reservationId: reservation._id,
+        userId: req.user._id,
+        moniteurId: reservation.moniteurId,
+        rating,
+        punctuality,
+        pedagogy,
+        vehicle,
+        wouldRecommend: req.body.wouldRecommend !== false,
+        comment,
+      })
+    } catch (error) {
+      if (error?.code === 11000) {
+        return res.status(409).json({ success: false, error: 'Vous avez déjà donné votre avis sur cette séance' })
+      }
+      throw error
+    }
+    await Reservation.updateOne({ _id: reservation._id }, { $set: { reviewedAt: new Date() } })
+    res.status(201).json({ success: true, data: { ok: true } })
+  } catch (error) {
+    console.error('Erreur avis séance:', error)
+    res.status(500).json({ success: false, error: 'Enregistrement impossible' })
   }
 })
 

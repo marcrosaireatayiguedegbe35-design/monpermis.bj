@@ -10,6 +10,7 @@ import { RevisionChapitresPage } from './pages/code/RevisionChapitresPage'
 import { ConduiteHubPage } from './pages/conduite/ConduiteHubPage'
 import { LeconsConduitePage } from './pages/conduite/LeconsConduitePage'
 import { MoniteursPage } from './pages/conduite/MoniteursPage'
+import { AvisPage } from './pages/conduite/AvisPage'
 import { ReservationsPage } from './pages/conduite/ReservationsPage'
 import { AnnouncementsPage } from './pages/AnnouncementsPage'
 import { AdminsPage } from './pages/AdminsPage'
@@ -66,6 +67,7 @@ export default function App() {
           <Route path="/conduite/lecons" element={<LeconsConduitePage />} />
           <Route path="/conduite/reservations" element={<ReservationsPage />} />
           <Route path="/conduite/moniteurs" element={<MoniteursPage />} />
+          <Route path="/conduite/avis" element={<AvisPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Route>

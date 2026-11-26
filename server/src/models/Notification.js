@@ -6,6 +6,7 @@ export const NOTIFICATION_TYPES = [
   'subscription_expiring',
   'reservation_confirmed',
   'reservation_cancelled',
+  'session_review',
   'payment_validated',
   'access_validated',
   'access_rejected',

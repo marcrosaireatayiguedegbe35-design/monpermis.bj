@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Bell,
   GraduationCap,
+  Star,
   Info,
   Lock,
   User,
@@ -32,6 +33,8 @@ import Svg, { Circle } from 'react-native-svg'
 import {
   cancelReservation,
   fetchDrivingDashboard,
+  fetchPendingReviews,
+  type PendingReview,
   type DrivingProgress,
   type ReservationItem,
   ReservationError,
@@ -164,6 +167,7 @@ export function ConduiteScreen() {
   const [hoursQty, setHoursQty] = useState('1')
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [claimingFree, setClaimingFree] = useState(false)
+  const [pendingReviews, setPendingReviews] = useState<PendingReview[]>([])
   const { height: windowHeight } = useWindowDimensions()
   const insets = useSafeAreaInsets()
 
@@ -232,6 +236,10 @@ export function ConduiteScreen() {
   useFocusEffect(
     useCallback(() => {
       setStatusBarStyle('dark')
+      // Séances terminées à noter : la carte disparaît dès que l'avis est envoyé.
+      void fetchPendingReviews()
+        .then((data) => setPendingReviews(data.reviews))
+        .catch(() => undefined)
       return () => setStatusBarStyle('dark')
     }, []),
   )
@@ -372,7 +380,8 @@ export function ConduiteScreen() {
   // Tout tient sur un seul écran : la hauteur disponible est répartie entre les blocs.
   const GAP = 12
   const bodyHeight = Math.max(380, Math.round(windowHeight - insets.top - insets.bottom - 68 - 24))
-  const usable = Math.max(0, bodyHeight - GAP * 3)
+  const reviewH = pendingReviews.length > 0 ? 64 : 0
+  const usable = Math.max(0, bodyHeight - GAP * 3 - (reviewH ? reviewH + GAP : 0))
   const scale = Math.max(0.68, Math.min(1.15, bodyHeight / 560))
   const bannerH = Math.round(usable * 0.32)
   const progressH = Math.round(usable * 0.16)
@@ -419,6 +428,26 @@ export function ConduiteScreen() {
               </Text>
             )}
           </View>
+
+          {pendingReviews.length > 0 ? (
+            <Bouncy
+              scaleTo={0.98}
+              onPress={() => navigation.navigate('SessionReview', { reservationId: pendingReviews[0].reservationId })}
+            >
+              <View style={[styles.reviewCard, { height: reviewH }]}>
+                <View style={styles.reviewIcon}>
+                  <Star size={22} color="#F5A623" fill="#F5A623" />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.reviewTitle} numberOfLines={1}>Notez votre séance</Text>
+                  <Text style={styles.reviewSub} numberOfLines={1}>
+                    Avec {pendingReviews[0].moniteurName} · votre avis compte
+                  </Text>
+                </View>
+                <ChevronRight size={20} color="#0A1E55" />
+              </View>
+            </Bouncy>
+          ) : null}
 
           <View style={[styles.cardsRow, { height: cardsH }]}>
             {[
@@ -566,6 +595,10 @@ export function ConduiteScreen() {
 }
 
 const styles = StyleSheet.create({
+  reviewCard: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, borderRadius: 22, backgroundColor: '#FFF7E6', borderWidth: 1, borderColor: 'rgba(245,166,35,0.35)' },
+  reviewIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  reviewTitle: { fontFamily: fonts.bodyBold, fontSize: 14.5, color: '#0A1E55' },
+  reviewSub: { fontFamily: fonts.body, fontSize: 12.5, color: '#7A5A12', marginTop: 1 },
   body: { flex: 1, paddingHorizontal: 16, paddingTop: 2, paddingBottom: 12, gap: 12 },
   progressRow: {
     flexDirection: 'row',

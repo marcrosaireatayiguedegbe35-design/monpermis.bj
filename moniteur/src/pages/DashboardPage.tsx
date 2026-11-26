@@ -1,36 +1,34 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  ArrowRight,
-  CalendarCheck,
-  CalendarClock,
-  CalendarDays,
-  CheckCircle2,
-  Hourglass,
-  Lightbulb,
-  RefreshCw,
-  Sparkles,
-  Sun,
-  Wallet,
-} from 'lucide-react'
+import { CalendarCheck, CalendarClock, CheckCircle2, ChevronRight, Clock, Coins, Wallet } from 'lucide-react'
 import { fetchDashboard, type DashboardData, type ReservationItem } from '../api/portal'
-import { getMoniteurToken, isAuthError, useMoniteurAuth } from '../context/MoniteurAuthContext'
-import { Empty, formatMoney, Kpi, nf, Notice, PanelHead, SessionRow } from '../components/model/Kit'
+import { getMoniteurToken, isAuthError } from '../context/MoniteurAuthContext'
+import { formatMoney, nf, Notice } from '../components/model/Kit'
 
-function sessionLines(item: ReservationItem) {
-  return [
-    item.creneau ? `${item.creneau.startTime} – ${item.creneau.endTime}` : 'Créneau',
-    item.user?.phone || item.user?.email || null,
-  ]
+const MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.']
+
+function todayKey() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function monthTrend(month: number, prev: number) {
-  if (!prev) return null
-  return ((month - prev) / prev) * 100
+/** Grands montants en notation courte pour la petite carte : 1 250 000 → « 1,25 M ». */
+function compactAmount(value: number) {
+  const n = Math.abs(value)
+  if (n >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2).replace(/\.?0+$/, '').replace('.', ',')} Md`
+  if (n >= 1_000_000) return `${(value / 1_000_000).toFixed(2).replace(/\.?0+$/, '').replace('.', ',')} M`
+  return nf(value)
 }
 
+function dateBadge(date?: string) {
+  if (!date) return { top: '—', bottom: '' }
+  if (date === todayKey()) return { top: 'Auj.', bottom: '' }
+  const [, month, day] = date.split('-').map(Number)
+  return { top: String(day || ''), bottom: MONTHS[(month || 1) - 1] || '' }
+}
+
+/** Accueil moniteur : un point rapide sur l'activité, tenant sur un seul écran (sans défilement). */
 export function DashboardPage() {
-  const { moniteur } = useMoniteurAuth()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -54,212 +52,133 @@ export function DashboardPage() {
   }, [load])
 
   const stats = data?.stats
-  const earnings = data?.earnings
-  const insight = !stats
-    ? ''
-    : stats.weeklySlots === 0
-      ? 'Vous n’avez publié aucune plage horaire : les apprenants ne peuvent pas encore réserver avec vous.'
-      : stats.pending > 0
-        ? `${stats.pending} demande${stats.pending > 1 ? 's attendent' : ' attend'} votre réponse. Une réponse rapide rassure l’apprenant.`
-        : stats.outstanding > 0
-          ? `Il vous reste ${formatMoney(stats.outstanding)} à recevoir de l’auto-école.`
-          : 'Tout est à jour : aucune demande en attente et aucun montant dû.'
+
+  // Séances du jour d'abord, puis les prochaines (sans doublon).
+  const sessions: ReservationItem[] = []
+  const seen = new Set<string>()
+  for (const item of [...(data?.today ?? []), ...(data?.upcoming ?? [])]) {
+    const key = String(item.id)
+    if (seen.has(key)) continue
+    seen.add(key)
+    sessions.push(item)
+  }
+  const shown = sessions.slice(0, 4)
+  // Les grands montants réduisent leur taille d'écriture au lieu de dépasser la bannière.
+  const earnedLabel = formatMoney(data?.earnings?.totalEarned ?? 0)
+  const earnedSize = earnedLabel.length > 14 ? ' mp-xs' : earnedLabel.length > 11 ? ' mp-sm' : ''
 
   return (
-    <>
-      <header className="cx-page-header cx-welcome">
-        <div className="cx-wl-txt">
-          <small>BIENVENUE SUR VOTRE ESPACE</small>
-          <h1>Bonjour {moniteur?.firstName || ''}</h1>
-          <p>Vos séances, vos demandes et vos revenus en un coup d’œil.</p>
-        </div>
-        <div className="cx-wl-right">
-          <p className="cx-wl-slogan">
-            Chaque leçon compte,
-            <br />
-            chaque réussite aussi
-          </p>
-          <div className="cx-page-actions">
-            <Link to="/disponibilites" className="cx-refresh">
-              <CalendarDays aria-hidden />
-              Mes disponibilités
-            </Link>
-            <button type="button" className="cx-refresh" onClick={() => void load()} disabled={loading}>
-              <RefreshCw aria-hidden />
-              Actualiser
-            </button>
-          </div>
-        </div>
-      </header>
-
+    <div className="mp-dash">
       <Notice error={error} />
-      {loading && !data ? <p className="cx-loading">Chargement du tableau de bord…</p> : null}
+      {loading && !data ? <p className="mp-dash-loading">Chargement…</p> : null}
 
       {stats ? (
         <>
-          <div className="cx-kc-grid">
-            <Kpi
-              icon={<Hourglass aria-hidden />}
-              tone={stats.pending > 0 ? 'red' : 'gold'}
-              label="À confirmer"
-              value={nf(stats.pending)}
-              sub={stats.pending > 0 ? 'Demandes payées en attente' : 'Aucune demande en attente'}
-              to="/reservations"
-              alert={stats.pending > 0}
-            />
-            <Kpi
-              icon={<CalendarClock aria-hidden />}
-              tone="blue"
-              label="Séances à venir"
-              value={nf(stats.confirmedUpcoming)}
-              sub={`${nf(stats.weeklySlots)} plage${stats.weeklySlots > 1 ? 's' : ''} hebdo publiée${stats.weeklySlots > 1 ? 's' : ''}`}
-              to="/reservations"
-            />
-            <Kpi
-              icon={<CheckCircle2 aria-hidden />}
-              tone="green"
-              label="Séances effectuées"
-              value={nf(stats.completed)}
-              sub={`${nf(stats.hoursCompleted)} h de conduite`}
-              to="/historique"
-            />
-            <Kpi
-              icon={<Wallet aria-hidden />}
-              tone="sky"
-              label="Gains du mois"
-              value={nf(stats.monthEarned)}
-              unit="FCFA"
-              trend={earnings ? monthTrend(earnings.monthEarned, earnings.prevMonthEarned) : null}
-              vs="vs mois précédent"
-              sub={`Reste à recevoir : ${formatMoney(stats.outstanding)}`}
-              to="/revenus"
-            />
+          <section className="mp-hero">
+            <div className="mp-hero-copy">
+              <small>Votre compte</small>
+              <h1>en un coup d’œil !</h1>
+              <p>Voici un résumé de votre activité</p>
+              <Link to="/revenus" className={`mp-hero-pill${earnedSize}`}>
+                <span>
+                  <b>{earnedLabel}</b>
+                  <small>Gains cumulés</small>
+                </span>
+                <ChevronRight aria-hidden />
+              </Link>
+            </div>
+            <span className="mp-hero-ico">
+              <Wallet aria-hidden />
+            </span>
+          </section>
+
+          <div className="mp-kpis">
+            <Link to="/reservations" className={`mp-kpi${stats.pending > 0 ? ' mp-kpi-alert' : ''}`}>
+              <i>
+                <CalendarCheck aria-hidden />
+              </i>
+              <span>
+                <b>{nf(stats.pending)}</b>
+                <small>À confirmer</small>
+              </span>
+            </Link>
+            <Link to="/reservations" className="mp-kpi">
+              <i>
+                <CalendarClock aria-hidden />
+              </i>
+              <span>
+                <b>{nf(stats.confirmedUpcoming)}</b>
+                <small>Séances à venir</small>
+              </span>
+            </Link>
+            <Link to="/historique" className="mp-kpi">
+              <i>
+                <CheckCircle2 aria-hidden />
+              </i>
+              <span>
+                <b>{nf(stats.completed)}</b>
+                <small>Séances faites</small>
+              </span>
+            </Link>
+            <Link to="/revenus" className="mp-kpi">
+              <i>
+                <Wallet aria-hidden />
+              </i>
+              <span>
+                <b className={stats.monthEarned >= 100_000 ? 'mp-kpi-long' : stats.monthEarned >= 10_000 ? 'mp-kpi-md' : undefined}>
+                  {compactAmount(stats.monthEarned)}
+                </b>
+                <small>Gains du mois (F)</small>
+              </span>
+            </Link>
           </div>
 
-          <div className="cx-dash-row">
-            <div className="cx-dash-side">
-              <section className="cx-panel">
-                <PanelHead
-                  icon={<Sun aria-hidden />}
-                  title="Aujourd’hui"
-                  sub={new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                />
-                {data?.today?.length ? (
-                  <div className="cx-sess">
-                    {data.today.map((item) => (
-                      <SessionRow
-                        key={item.id}
-                        date={item.creneau?.date}
-                        title={item.user?.fullName || 'Apprenant'}
-                        lines={sessionLines(item)}
-                        amount={formatMoney(item.priceFcfa)}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <Empty>Aucune séance confirmée aujourd’hui.</Empty>
-                )}
-              </section>
+          <section className="mp-sessions">
+            <header>
+              <h2>Prochaines séances</h2>
+              <Link to="/reservations">
+                Voir tout <ChevronRight aria-hidden />
+              </Link>
+            </header>
+            {shown.length ? (
+              <ul>
+                {shown.map((item) => {
+                  const badge = dateBadge(item.creneau?.date)
+                  return (
+                    <li key={item.id}>
+                      <span className="mp-date">
+                        <b>{badge.top}</b>
+                        {badge.bottom ? <small>{badge.bottom}</small> : null}
+                      </span>
+                      <span className="mp-who">
+                        <b>{item.user?.fullName || 'Apprenant'}</b>
+                        <small>
+                          <Clock aria-hidden />
+                          {item.creneau ? `${item.creneau.startTime} – ${item.creneau.endTime}` : 'Créneau'}
+                        </small>
+                      </span>
+                      <span className="mp-amount">{formatMoney(item.priceFcfa)}</span>
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : (
+              <p className="mp-dash-empty">Aucune séance à venir.</p>
+            )}
+          </section>
 
-              <section className="cx-panel">
-                <PanelHead
-                  icon={<CalendarCheck aria-hidden />}
-                  title="Prochaines séances"
-                  sub="Séances confirmées à venir"
-                  extra={
-                    <Link to="/reservations" className="cx-link-all">
-                      Tout voir <ArrowRight aria-hidden />
-                    </Link>
-                  }
-                />
-                {data?.upcoming?.length ? (
-                  <div className="cx-sess">
-                    {data.upcoming.map((item) => (
-                      <SessionRow
-                        key={item.id}
-                        date={item.creneau?.date}
-                        tone="navy"
-                        title={item.user?.fullName || 'Apprenant'}
-                        lines={sessionLines(item)}
-                        amount={formatMoney(item.priceFcfa)}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <Empty>Aucune séance confirmée à venir.</Empty>
-                )}
-              </section>
-            </div>
-
-            <div className="cx-dash-side">
-              <section className="cx-panel">
-                <PanelHead
-                  icon={<Hourglass aria-hidden />}
-                  title="À confirmer"
-                  sub="Demandes payées par les apprenants"
-                  extra={
-                    <Link to="/reservations" className="cx-link-all">
-                      Traiter <ArrowRight aria-hidden />
-                    </Link>
-                  }
-                />
-                {data?.pending?.length ? (
-                  <div className="cx-sess">
-                    {data.pending.slice(0, 5).map((item) => (
-                      <SessionRow
-                        key={item.id}
-                        date={item.creneau?.date}
-                        tone="gold"
-                        title={item.user?.fullName || 'Apprenant'}
-                        lines={[item.creneau ? `${item.creneau.startTime} – ${item.creneau.endTime}` : 'Créneau']}
-                        chip={<span className="cx-chip-ok cx-chip-wait">En attente</span>}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <Empty>Aucune demande en attente.</Empty>
-                )}
-              </section>
-
-              {earnings ? (
-                <section className="cx-panel">
-                  <PanelHead icon={<Wallet aria-hidden />} title="Mes revenus" sub="Selon les séances effectuées" />
-                  <div className="cx-prof-facts">
-                    <div>
-                      <span>Gains cumulés</span>
-                      <b>{formatMoney(earnings.totalEarned)}</b>
-                    </div>
-                    <div>
-                      <span>Déjà versé</span>
-                      <b>{formatMoney(earnings.totalPaid)}</b>
-                    </div>
-                    <div>
-                      <span>Reste à recevoir</span>
-                      <b>{formatMoney(earnings.outstanding)}</b>
-                    </div>
-                  </div>
-                  <Link to="/revenus" className="cx-btn-primary">
-                    Voir le détail <ArrowRight aria-hidden />
-                  </Link>
-                </section>
-              ) : null}
-
-              <section className="cx-panel cx-retain">
-                <span className="cx-rt-ico">
-                  <Lightbulb aria-hidden />
-                </span>
-                <div>
-                  <b>À retenir</b>
-                  <p>{insight}</p>
-                </div>
-                <span className="cx-rt-tr">
-                  <Sparkles aria-hidden />
-                </span>
-              </section>
-            </div>
-          </div>
+          <Link to="/revenus" className="mp-dash-money">
+            <Coins aria-hidden />
+            <span>
+              <small>Reste à recevoir</small>
+              <b>{formatMoney(stats.outstanding)}</b>
+            </span>
+            <i>
+              <ChevronRight aria-hidden />
+            </i>
+          </Link>
         </>
       ) : null}
-    </>
+    </div>
   )
 }

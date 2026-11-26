@@ -54,6 +54,19 @@ const reservationSchema = new mongoose.Schema(
       enum: ['', 'learner', 'admin', 'moniteur'],
       default: '',
     },
+    /** Fin de séance : calculée à la complétion, jamais modifiée ensuite. */
+    completedAt: { type: Date, default: null },
+    platformFeePercent: { type: Number, default: null },
+    platformFeeFcfa: { type: Number, default: null },
+    moniteurShareFcfa: { type: Number, default: null },
+    /** none = pas encore terminée · due = à régler au moniteur · settled = réglée. */
+    settlementStatus: { type: String, enum: ['none', 'due', 'settled'], default: 'none', index: true },
+    settlementDueAt: { type: Date, default: null },
+    settledAt: { type: Date, default: null },
+    payoutId: { type: mongoose.Schema.Types.ObjectId, ref: 'MoniteurPayout', default: null },
+    /** Invitation à donner son avis (notification envoyée à l'apprenant). */
+    reviewRequestedAt: { type: Date, default: null },
+    reviewedAt: { type: Date, default: null },
   },
   { timestamps: true },
 )

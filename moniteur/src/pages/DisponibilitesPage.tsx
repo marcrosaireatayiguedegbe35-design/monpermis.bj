@@ -1,5 +1,5 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
-import { CalendarDays, CalendarPlus, CalendarX2, ListChecks, Pencil, Plus, Save, Trash2 } from 'lucide-react'
+import { ChevronDown, Copy, Pencil, Plus, Trash2 } from 'lucide-react'
 import {
   createCreneau,
   deleteCreneau,
@@ -12,7 +12,7 @@ import {
 } from '../api/portal'
 import { getMoniteurToken, isAuthError } from '../context/MoniteurAuthContext'
 import { PageSection } from '../components/model/PageSection'
-import { dateParts, Empty, formatMoney, Notice, PanelHead, SessionRow } from '../components/model/Kit'
+import { Empty, formatMoney, Notice } from '../components/model/Kit'
 
 const WEEK_DAYS = [
   { dayOfWeek: 1, label: 'Lundi' },
@@ -69,13 +69,20 @@ function todayLocal() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
-function slotStatusChip(item: CreneauItem) {
-  if (item.status === 'bloque') return <span className="cx-chip cx-red">Bloqué</span>
-  if (item.reservationStatus === 'pending_moniteur') return <span className="cx-chip cx-amber">À confirmer</span>
-  return <span className="cx-chip cx-green">Réservé</span>
+function shortDate(date: string) {
+  const d = new Date(`${date}T12:00:00`)
+  if (Number.isNaN(d.getTime())) return date
+  return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
-function RangeInput({
+function summaryOf(day: EditDayHours) {
+  if (!day.enabled) return 'Fermé'
+  const parts = [`${day.morning.start} – ${day.morning.end}`]
+  if (day.afternoonEnabled) parts.push(`${day.afternoon.start} – ${day.afternoon.end}`)
+  return parts.join('  ·  ')
+}
+
+function Range({
   label,
   value,
   onChange,
@@ -85,25 +92,16 @@ function RangeInput({
   onChange: (next: TimeInterval) => void
 }) {
   return (
-    <span className="cx-range">
+    <div className="mp-av-range">
       <span>{label}</span>
-      <input
-        type="time"
-        value={value.start}
-        aria-label={`${label} — début`}
-        onChange={(e) => onChange({ ...value, start: e.target.value })}
-      />
-      <i>→</i>
-      <input
-        type="time"
-        value={value.end}
-        aria-label={`${label} — fin`}
-        onChange={(e) => onChange({ ...value, end: e.target.value })}
-      />
-    </span>
+      <input type="time" value={value.start} aria-label={`${label} — début`} onChange={(e) => onChange({ ...value, start: e.target.value })} />
+      <i aria-hidden="true">→</i>
+      <input type="time" value={value.end} aria-label={`${label} — fin`} onChange={(e) => onChange({ ...value, end: e.target.value })} />
+    </div>
   )
 }
 
+type Tab = 'week' | 'oneoff' | 'booked'
 export function DisponibilitesPage() {
   const [items, setItems] = useState<CreneauItem[]>([])
   const [dayHours, setDayHours] = useState<EditDayHours[]>(() => toEditDayHours([]))
@@ -116,6 +114,10 @@ export function DisponibilitesPage() {
   const [startTime, setStartTime] = useState('08:00')
   const [endTime, setEndTime] = useState('09:00')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [tab, setTab] = useState<Tab>('week')
+  const [openDay, setOpenDay] = useState<number | null>(null)
+  const [openSlot, setOpenSlot] = useState<string | null>(null)
+  const [savedHours, setSavedHours] = useState('')
 
   const load = useCallback(async () => {
     const token = getMoniteurToken()
@@ -128,7 +130,9 @@ export function DisponibilitesPage() {
         fetchAvailability(token),
       ])
       setItems(creneauxData.creneaux)
-      setDayHours(toEditDayHours(availability.weeklyAvailability))
+      const loaded = toEditDayHours(availability.weeklyAvailability)
+      setDayHours(loaded)
+      setSavedHours(JSON.stringify(loaded))
     } catch (err) {
       setError(isAuthError(err) ? err.message : 'Chargement impossible')
     } finally {
@@ -143,6 +147,7 @@ export function DisponibilitesPage() {
   const editable = useMemo(() => items.filter((item) => item.editable), [items])
   const reserved = useMemo(() => items.filter((item) => !item.editable), [items])
   const activeDays = dayHours.filter((day) => day.enabled).length
+  const dirty = savedHours !== '' && JSON.stringify(dayHours) !== savedHours
 
   const resetForm = () => {
     setEditingId(null)
@@ -171,7 +176,9 @@ export function DisponibilitesPage() {
     setSuccess(null)
     try {
       const data = await saveAvailability(token, fromEditDayHours(dayHours))
-      setDayHours(toEditDayHours(data.weeklyAvailability))
+      const next = toEditDayHours(data.weeklyAvailability)
+      setDayHours(next)
+      setSavedHours(JSON.stringify(next))
       setSuccess('Disponibilités hebdomadaires enregistrées. Elles apparaissent dans l’app apprenant.')
     } catch (err) {
       setError(isAuthError(err) ? err.message : 'Enregistrement impossible')
@@ -205,6 +212,7 @@ export function DisponibilitesPage() {
   }
 
   const startEdit = (item: CreneauItem) => {
+    setTab('oneoff')
     setEditingId(item.id)
     setDate(item.date)
     setStartTime(item.startTime)
@@ -232,164 +240,212 @@ export function DisponibilitesPage() {
     setDayHours((prev) => prev.map((day) => (day.dayOfWeek === dayOfWeek ? { ...day, ...patch } : day)))
   }
 
+  const copyToAll = (source: EditDayHours) => {
+    setDayHours((prev) =>
+      prev.map((day) =>
+        day.enabled
+          ? { ...day, morning: { ...source.morning }, afternoonEnabled: source.afternoonEnabled, afternoon: { ...source.afternoon } }
+          : day,
+      ),
+    )
+    setSuccess('Horaires appliqués à tous les jours ouverts. Pensez à enregistrer.')
+  }
+
   return (
-    <PageSection
-      kicker="Disponibilités"
-      title="Mes horaires"
-      subtitle="Les apprenants réservent uniquement dans vos plages hebdomadaires, hors créneaux déjà pris."
-    >
+    <PageSection kicker="Disponibilités" title="Mes horaires">
       <Notice error={error} success={success} />
 
-      <form className="cx-panel" onSubmit={handleWeeklySave}>
-        <PanelHead
-          icon={<CalendarDays aria-hidden />}
-          title="Disponibilité hebdomadaire"
-          sub={`${activeDays} jour${activeDays > 1 ? 's' : ''} ouvert${activeDays > 1 ? 's' : ''} à la réservation`}
-          extra={
-            <button type="submit" className="cx-btn cx-btn-fill" disabled={savingWeekly || loading}>
-              <Save aria-hidden />
-              {savingWeekly ? 'Enregistrement…' : 'Enregistrer'}
-            </button>
-          }
-        />
-        {loading ? <p className="cx-loading">Chargement…</p> : null}
-        <div className="cx-week">
+      <div className="mp-ag-seg" role="group" aria-label="Type de disponibilités">
+        <button type="button" className={tab === 'week' ? 'is-on' : ''} aria-pressed={tab === 'week'} onClick={() => setTab('week')}>
+          Semaine <b>{activeDays}</b>
+        </button>
+        <button type="button" className={tab === 'oneoff' ? 'is-on' : ''} aria-pressed={tab === 'oneoff'} onClick={() => setTab('oneoff')}>
+          Ponctuels <b>{editable.length}</b>
+        </button>
+        <button type="button" className={tab === 'booked' ? 'is-on' : ''} aria-pressed={tab === 'booked'} onClick={() => setTab('booked')}>
+          Réservés <b>{reserved.length}</b>
+        </button>
+      </div>
+
+      {loading && items.length === 0 ? <p className="cx-loading">Chargement…</p> : null}
+
+      {tab === 'week' ? (
+        <form id="mp-week-form" className="mp-av" onSubmit={handleWeeklySave}>
+          <p className="mp-av-intro">
+            {activeDays} jour{activeDays > 1 ? 's' : ''} ouvert{activeDays > 1 ? 's' : ''} à la réservation. Touchez un jour pour régler ses horaires.
+          </p>
           {dayHours.map((day) => {
             const label = WEEK_DAYS.find((d) => d.dayOfWeek === day.dayOfWeek)?.label || ''
+            const open = openDay === day.dayOfWeek && day.enabled
             return (
-              <div key={day.dayOfWeek} className="cx-week-row">
-                <label className="cx-switch cx-week-day">
-                  <input
-                    type="checkbox"
-                    checked={day.enabled}
-                    onChange={(e) => updateDay(day.dayOfWeek, { enabled: e.target.checked })}
-                  />
-                  <i aria-hidden="true" />
-                  {label}
-                </label>
-                {day.enabled ? (
-                  <div className="cx-week-slots">
-                    <RangeInput
-                      label="Matin"
-                      value={day.morning}
-                      onChange={(morning) => updateDay(day.dayOfWeek, { morning })}
+              <section key={day.dayOfWeek} className={`mp-av-day${day.enabled ? ' is-on' : ''}${open ? ' is-open' : ''}`}>
+                <div className="mp-av-head">
+                  <button
+                    type="button"
+                    className="mp-av-title"
+                    aria-expanded={open}
+                    disabled={!day.enabled}
+                    onClick={() => setOpenDay(open ? null : day.dayOfWeek)}
+                  >
+                    <b>{label}</b>
+                    <small>{summaryOf(day)}</small>
+                    {day.enabled ? <ChevronDown aria-hidden /> : null}
+                  </button>
+                  <label className="mp-switch" aria-label={`${label} ouvert`}>
+                    <input
+                      type="checkbox"
+                      checked={day.enabled}
+                      onChange={(e) => {
+                        updateDay(day.dayOfWeek, { enabled: e.target.checked })
+                        setOpenDay(e.target.checked ? day.dayOfWeek : null)
+                      }}
                     />
-                    <label className="cx-switch">
-                      <input
-                        type="checkbox"
-                        checked={day.afternoonEnabled}
-                        onChange={(e) => updateDay(day.dayOfWeek, { afternoonEnabled: e.target.checked })}
-                      />
-                      <i aria-hidden="true" />
-                      Après-midi
-                    </label>
-                    {day.afternoonEnabled ? (
-                      <RangeInput
-                        label="Après-midi"
-                        value={day.afternoon}
-                        onChange={(afternoon) => updateDay(day.dayOfWeek, { afternoon })}
-                      />
-                    ) : null}
+                    <span aria-hidden="true" />
+                  </label>
+                </div>
+                {open ? (
+                  <div className="mp-av-body">
+                    <Range label="Matin" value={day.morning} onChange={(morning) => updateDay(day.dayOfWeek, { morning })} />
+                    <div className="mp-av-pm">
+                      <label className="mp-av-pmtoggle">
+                        <input
+                          type="checkbox"
+                          checked={day.afternoonEnabled}
+                          onChange={(e) => updateDay(day.dayOfWeek, { afternoonEnabled: e.target.checked })}
+                        />
+                        Ajouter l’après-midi
+                      </label>
+                      {day.afternoonEnabled ? (
+                        <Range label="Après-midi" value={day.afternoon} onChange={(afternoon) => updateDay(day.dayOfWeek, { afternoon })} />
+                      ) : null}
+                    </div>
+                    <button type="button" className="mp-av-copy" onClick={() => copyToAll(day)}>
+                      <Copy aria-hidden />
+                      Appliquer à tous les jours ouverts
+                    </button>
                   </div>
-                ) : (
-                  <span className="cx-week-off">Fermé</span>
-                )}
-              </div>
+                ) : null}
+              </section>
             )
           })}
-        </div>
-      </form>
+        </form>
+      ) : null}
 
-      <div className="cx-grid-2">
-        <form className="cx-panel" onSubmit={handleSubmit}>
-          <PanelHead
-            icon={<CalendarPlus aria-hidden />}
-            title={editingId ? 'Modifier un créneau ponctuel' : 'Créneau ponctuel'}
-            sub="Facultatif : les plages hebdomadaires suffisent en général."
-          />
-          <div className="cx-form-grid cx-cols-3">
-            <label>
+      {tab === 'oneoff' ? (
+        <>
+          <form className="mp-av-card" onSubmit={handleSubmit}>
+            <h3>{editingId ? 'Modifier le créneau' : 'Nouveau créneau ponctuel'}</h3>
+            <label className="mp-av-field">
               Date
               <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
             </label>
-            <label>
-              Début
-              <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
-            </label>
-            <label>
-              Fin
-              <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
-            </label>
-          </div>
-          <div className="cx-form-actions">
-            <button type="submit" className="cx-btn cx-btn-fill" disabled={saving}>
-              <Plus aria-hidden />
-              {saving ? 'Enregistrement…' : editingId ? 'Enregistrer' : 'Publier le créneau'}
-            </button>
-            {editingId ? (
-              <button type="button" className="cx-btn" onClick={resetForm}>
-                Annuler
+            <div className="mp-av-two">
+              <label className="mp-av-field">
+                Début
+                <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
+              </label>
+              <label className="mp-av-field">
+                Fin
+                <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
+              </label>
+            </div>
+            <div className="mp-av-actions">
+              {editingId ? (
+                <button type="button" className="mp-av-ghost" onClick={resetForm}>
+                  Annuler
+                </button>
+              ) : null}
+              <button type="submit" className="mp-av-primary" disabled={saving}>
+                <Plus aria-hidden />
+                {saving ? 'Enregistrement…' : editingId ? 'Enregistrer' : 'Publier le créneau'}
               </button>
-            ) : null}
-          </div>
-        </form>
+            </div>
+          </form>
 
-        <section className="cx-panel">
-          <PanelHead
-            icon={<ListChecks aria-hidden />}
-            title={`Créneaux libres (${editable.length})`}
-            sub="Créneaux ponctuels publiés, encore réservables"
-          />
-          {!loading && editable.length === 0 ? <Empty>Aucun créneau ponctuel libre.</Empty> : null}
-          <div className="cx-sess">
-            {editable.map((item) => (
-              <SessionRow
-                key={item.id}
-                date={item.date}
-                title={`${item.startTime} – ${item.endTime}`}
-                lines={[dateParts(item.date).long, formatMoney(item.priceFcfa)]}
-                actions={
-                  <>
-                    <button type="button" className="cx-btn cx-btn-sm" onClick={() => startEdit(item)}>
-                      <Pencil aria-hidden />
-                      Modifier
-                    </button>
-                    <button
-                      type="button"
-                      className="cx-btn cx-btn-danger cx-btn-sm"
-                      onClick={() => void handleDelete(item)}
-                    >
-                      <Trash2 aria-hidden />
-                      Supprimer
-                    </button>
-                  </>
-                }
-              />
-            ))}
+          {!loading && editable.length === 0 ? (
+            <section className="cx-panel">
+              <Empty>Aucun créneau ponctuel libre. Les plages de la semaine suffisent en général.</Empty>
+            </section>
+          ) : null}
+          <div className="mp-ag">
+            {editable.map((item) => {
+              const open = openSlot === item.id
+              return (
+                <article key={item.id} className={`mp-ag-item${open ? ' is-open' : ''}`}>
+                  <button type="button" className="mp-ag-row" aria-expanded={open} onClick={() => setOpenSlot(open ? null : item.id)}>
+                    <span className="mp-ag-time">
+                      <b>{item.startTime}</b>
+                      <small>{item.endTime}</small>
+                    </span>
+                    <span className="mp-ag-who">
+                      <b>{shortDate(item.date)}</b>
+                      <small>{formatMoney(item.priceFcfa)}</small>
+                    </span>
+                    <span className="mp-ag-side">
+                      <em className="ok">Libre</em>
+                    </span>
+                    <ChevronDown className="mp-ag-chev" aria-hidden />
+                  </button>
+                  {open ? (
+                    <div className="mp-ag-actions">
+                      <button type="button" className="mp-ag-refuse" onClick={() => void handleDelete(item)}>
+                        <Trash2 aria-hidden />
+                        Supprimer
+                      </button>
+                      <button type="button" className="mp-av-edit" onClick={() => startEdit(item)}>
+                        <Pencil aria-hidden />
+                        Modifier
+                      </button>
+                    </div>
+                  ) : null}
+                </article>
+              )
+            })}
           </div>
-        </section>
-      </div>
+        </>
+      ) : null}
 
-      {reserved.length > 0 ? (
-        <section className="cx-panel">
-          <PanelHead
-            icon={<CalendarX2 aria-hidden />}
-            title={`Créneaux réservés ou bloqués (${reserved.length})`}
-            sub="Non modifiables : une réservation y est rattachée"
-          />
-          <div className="cx-sess">
+      {tab === 'booked' ? (
+        <>
+          {!loading && reserved.length === 0 ? (
+            <section className="cx-panel">
+              <Empty>Aucun créneau réservé ou bloqué pour le moment.</Empty>
+            </section>
+          ) : null}
+          <div className="mp-ag">
             {reserved.map((item) => (
-              <SessionRow
-                key={item.id}
-                date={item.date}
-                tone="grey"
-                title={`${item.startTime} – ${item.endTime}`}
-                lines={[dateParts(item.date).long]}
-                chip={slotStatusChip(item)}
-              />
+              <article key={item.id} className="mp-ag-item is-booked">
+                <div className="mp-ag-row">
+                  <span className="mp-ag-time">
+                    <b>{item.startTime}</b>
+                    <small>{item.endTime}</small>
+                  </span>
+                  <span className="mp-ag-who">
+                    <b>{shortDate(item.date)}</b>
+                    <small>Séance liée</small>
+                  </span>
+                  <span className="mp-ag-side">
+                    {item.status === 'bloque' ? (
+                      <em className="blocked">Bloqué</em>
+                    ) : item.reservationStatus === 'pending_moniteur' ? (
+                      <em className="wait">À confirmer</em>
+                    ) : (
+                      <em className="ok">Réservé</em>
+                    )}
+                  </span>
+                </div>
+              </article>
             ))}
           </div>
-        </section>
+        </>
+      ) : null}
+
+      {tab === 'week' && dirty ? (
+        <div className="mp-av-save">
+          <button type="submit" form="mp-week-form" disabled={savingWeekly || loading}>
+            {savingWeekly ? 'Enregistrement…' : 'Enregistrer les modifications'}
+          </button>
+        </div>
       ) : null}
     </PageSection>
   )
