@@ -97,8 +97,6 @@ function Range({
 
 type Tab = 'agenda' | 'week'
 
-const DAY_ABBR = ['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM']
-
 function parseLocal(value: string) {
   const [y, m, d] = value.split('-').map(Number)
   return new Date(y, (m || 1) - 1, d || 1)
@@ -108,17 +106,26 @@ function fmtLocal(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
-function addDays(value: string, days: number) {
+/** Cases du calendrier du mois de `value` (lundi en premier) : null = case vide. */
+function monthCells(value: string): (string | null)[] {
   const date = parseLocal(value)
-  date.setDate(date.getDate() + days)
-  return fmtLocal(date)
+  const y = date.getFullYear()
+  const m = date.getMonth()
+  const offset = (new Date(y, m, 1).getDay() + 6) % 7
+  const count = new Date(y, m + 1, 0).getDate()
+  const cells: (string | null)[] = Array(offset).fill(null)
+  for (let d = 1; d <= count; d += 1) cells.push(fmtLocal(new Date(y, m, d)))
+  while (cells.length % 7 !== 0) cells.push(null)
+  return cells
 }
 
-/** Les 7 jours (lundi → dimanche) de la semaine qui contient `value`. */
-function weekOf(value: string) {
+/** Même jour du mois suivant (ou précédent), ramené au dernier jour si le mois est plus court. */
+function shiftMonth(value: string, delta: number) {
   const date = parseLocal(value)
-  const shift = (date.getDay() + 6) % 7
-  return Array.from({ length: 7 }, (_, i) => addDays(value, i - shift))
+  const target = new Date(date.getFullYear(), date.getMonth() + delta, 1)
+  const last = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate()
+  target.setDate(Math.min(date.getDate(), last))
+  return fmtLocal(target)
 }
 
 export function DisponibilitesPage() {
@@ -164,7 +171,7 @@ export function DisponibilitesPage() {
     void load()
   }, [load])
 
-  const weekDays = useMemo(() => weekOf(selected), [selected])
+  const cells = useMemo(() => monthCells(selected), [selected])
   const datesWithItems = useMemo(() => new Set(items.map((item) => item.date)), [items])
   const dayItems = useMemo(
     () => items.filter((item) => item.date === selected).sort((a, b) => a.startTime.localeCompare(b.startTime)),
@@ -178,6 +185,7 @@ export function DisponibilitesPage() {
     return parts.join('  ·  ')
   }, [dayHours, selected])
   const monthLabel = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(parseLocal(selected))
+  const dayLabel = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(parseLocal(selected))
   const activeDays = dayHours.filter((day) => day.enabled).length
   const dirty = savedHours !== '' && JSON.stringify(dayHours) !== savedHours
 
@@ -385,34 +393,39 @@ export function DisponibilitesPage() {
           <div className="mp-wk-head">
             <b>{monthLabel}</b>
             <span>
-              <button type="button" aria-label="Semaine précédente" onClick={() => setSelected(addDays(selected, -7))}>
+              <button type="button" aria-label="Mois précédent" onClick={() => setSelected(shiftMonth(selected, -1))}>
                 <ChevronLeft aria-hidden />
               </button>
-              <button type="button" aria-label="Semaine suivante" onClick={() => setSelected(addDays(selected, 7))}>
+              <button type="button" aria-label="Mois suivant" onClick={() => setSelected(shiftMonth(selected, 1))}>
                 <ChevronRight aria-hidden />
               </button>
             </span>
           </div>
-          <div className="mp-wk-strip" role="tablist" aria-label="Jours de la semaine">
-            {weekDays.map((day) => {
-              const on = day === selected
-              const d = parseLocal(day)
-              return (
+          <div className="mp-mo" role="grid" aria-label="Calendrier du mois">
+            {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((letter, index) => (
+              <small key={`h${index}`} className="mp-mo-h">
+                {letter}
+              </small>
+            ))}
+            {cells.map((day, index) =>
+              day ? (
                 <button
                   key={day}
                   type="button"
-                  role="tab"
-                  aria-selected={on}
-                  className={`mp-wk-day${on ? ' is-on' : ''}${day === todayLocal() ? ' is-today' : ''}`}
+                  aria-label={day}
+                  aria-pressed={day === selected}
+                  className={`mp-mo-d${day === selected ? ' is-on' : ''}${day === todayLocal() ? ' is-today' : ''}`}
                   onClick={() => setSelected(day)}
                 >
-                  <small>{DAY_ABBR[d.getDay()]}</small>
-                  <b>{d.getDate()}</b>
+                  <b>{parseLocal(day).getDate()}</b>
                   <i className={datesWithItems.has(day) ? 'has' : ''} aria-hidden="true" />
                 </button>
-              )
-            })}
+              ) : (
+                <span key={`e${index}`} aria-hidden="true" />
+              ),
+            )}
           </div>
+          <h3 className="mp-mo-title">{dayLabel}</h3>
 
           <p className="mp-wk-usual">
             <Clock3 aria-hidden />
@@ -456,15 +469,15 @@ export function DisponibilitesPage() {
             })}
           </div>
 
+          <button type="button" className="mp-wk-fab" onClick={openNew}>
+            <Plus aria-hidden />
+            Ajouter un créneau
+          </button>
+
           <button type="button" className="mp-wk-hours" onClick={() => setTab('week')}>
             <Clock3 aria-hidden />
             Modifier mes horaires de la semaine
             <ChevronRight aria-hidden />
-          </button>
-
-          <button type="button" className="mp-wk-fab" onClick={openNew}>
-            <Plus aria-hidden />
-            Créneau
           </button>
 
           {sheetOpen ? (
