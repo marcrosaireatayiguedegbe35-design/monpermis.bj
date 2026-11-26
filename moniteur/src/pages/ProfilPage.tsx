@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Camera, History, ImagePlus, LogOut, Trash2 } from 'lucide-react'
+import { Camera, Car, ChevronRight, Clock3, History, ImagePlus, Images, Lock, LogOut, Trash2, UserRound } from 'lucide-react'
 import { fetchDashboard, fetchProfile, updateProfile, uploadMoniteurPhoto, type DashboardData, type MoniteurProfile } from '../api/portal'
 import { getMoniteurToken, isAuthError, useMoniteurAuth } from '../context/MoniteurAuthContext'
 import { resolveMediaUrl } from '../utils/mediaUrl'
@@ -59,7 +59,7 @@ export function ProfilPage() {
   const [uploading, setUploading] = useState<UploadTarget | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const [tab, setTab] = useState<Tab>('infos')
+  const [tab, setTab] = useState<Tab | null>(null)
   const [savedSnap, setSavedSnap] = useState('')
   const [stats, setStats] = useState<DashboardData['stats'] | null>(null)
 
@@ -201,13 +201,6 @@ export function ProfilPage() {
   const completion = Math.round((doneCount / checklist.length) * 100)
   const missing = checklist.filter((item) => !item.done).map((item) => item.label)
 
-  const tabs: [Tab, string][] = [
-    ['infos', 'Infos'],
-    ['vehicle', 'Véhicule'],
-    ['photos', 'Photos'],
-    ['security', 'Sécurité'],
-  ]
-
   return (
     <PageSection kicker="Compte" title="Mon profil">
       <Notice error={error} success={success} />
@@ -232,24 +225,11 @@ export function ProfilPage() {
               <span className="mp-pf-badge">{[city, vehicleBrand].filter(Boolean).join(' · ') || 'Complétez votre profil'}</span>
             </div>
 
-            <div className="mp-pf-stats">
-              <div>
-                <b>{`${(Number(defaultPriceFcfa) || 0).toLocaleString('fr-FR')} F`}</b>
-                <small>Tarif / h</small>
-              </div>
-              <div>
-                <b>{stats ? stats.completed : '–'}</b>
-                <small>Séances</small>
-              </div>
-              <div>
-                <b>{stats ? `${stats.hoursCompleted} h` : '–'}</b>
-                <small>Conduites</small>
-              </div>
-              <div>
-                <b>{photos.length}</b>
-                <small>Photos</small>
-              </div>
+            <div className="mp-pf-chips">
+              <span>{stats ? `${stats.completed} séance${stats.completed > 1 ? 's' : ''}` : '– séances'}</span>
+              <span>{`${(Number(defaultPriceFcfa) || 0).toLocaleString('fr-FR')} F / h`}</span>
             </div>
+
 
             <div className="mp-pf-meter">
               <div className="mp-pf-meter-top">
@@ -263,15 +243,13 @@ export function ProfilPage() {
             </div>
           </section>
 
-          <div className="mp-pf-tabs" role="tablist" aria-label="Sections du profil">
-            {tabs.map(([key, label]) => (
-              <button key={key} type="button" role="tab" aria-selected={tab === key} className={tab === key ? 'is-on' : ''} onClick={() => setTab(key)}>
-                {label}
-              </button>
-            ))}
-          </div>
-
           <form id="mp-profile-form" className="mp-pf-form" onSubmit={handleSubmit}>
+            <div className="mp-pf-rows">
+              <button type="button" className={`mp-pf-row${tab === 'infos' ? ' is-open' : ''}`} aria-expanded={tab === 'infos'} onClick={() => setTab(tab === 'infos' ? null : 'infos')}>
+                <span className="mp-pf-row-ico"><UserRound aria-hidden /></span>
+                <span className="mp-pf-row-txt"><b>Mes informations</b><small>Nom, téléphone, ville, présentation</small></span>
+                <ChevronRight className="mp-pf-row-chev" aria-hidden />
+              </button>
             {tab === 'infos' ? (
               <div className="mp-av-card">
                 <div className="mp-av-two">
@@ -316,7 +294,11 @@ export function ProfilPage() {
                 </label>
               </div>
             ) : null}
-
+              <button type="button" className={`mp-pf-row${tab === 'vehicle' ? ' is-open' : ''}`} aria-expanded={tab === 'vehicle'} onClick={() => setTab(tab === 'vehicle' ? null : 'vehicle')}>
+                <span className="mp-pf-row-ico"><Car aria-hidden /></span>
+                <span className="mp-pf-row-txt"><b>Mon véhicule</b><small>{vehicleBrand || 'À renseigner'}</small></span>
+                <ChevronRight className="mp-pf-row-chev" aria-hidden />
+              </button>
             {tab === 'vehicle' ? (
               <div className="mp-av-card">
                 <label className="mp-av-field">
@@ -343,7 +325,11 @@ export function ProfilPage() {
                 )}
               </div>
             ) : null}
-
+              <button type="button" className={`mp-pf-row${tab === 'photos' ? ' is-open' : ''}`} aria-expanded={tab === 'photos'} onClick={() => setTab(tab === 'photos' ? null : 'photos')}>
+                <span className="mp-pf-row-ico"><Images aria-hidden /></span>
+                <span className="mp-pf-row-txt"><b>Mes photos</b><small>{photos.length} photo{photos.length > 1 ? 's' : ''} dans la galerie</small></span>
+                <ChevronRight className="mp-pf-row-chev" aria-hidden />
+              </button>
             {tab === 'photos' ? (
               <div className="mp-av-card">
                 <div className="mp-pf-media-head">
@@ -367,7 +353,16 @@ export function ProfilPage() {
                 <p className="mp-pf-hint">Le portrait se change avec l’icône appareil photo, en haut de la page.</p>
               </div>
             ) : null}
-
+              <Link to="/disponibilites" className="mp-pf-row">
+                <span className="mp-pf-row-ico"><Clock3 aria-hidden /></span>
+                <span className="mp-pf-row-txt"><b>Mes horaires</b><small>Horaires habituels de la semaine</small></span>
+                <ChevronRight className="mp-pf-row-chev" aria-hidden />
+              </Link>
+              <button type="button" className={`mp-pf-row${tab === 'security' ? ' is-open' : ''}`} aria-expanded={tab === 'security'} onClick={() => setTab(tab === 'security' ? null : 'security')}>
+                <span className="mp-pf-row-ico"><Lock aria-hidden /></span>
+                <span className="mp-pf-row-txt"><b>Mot de passe</b><small>Modifier mon mot de passe</small></span>
+                <ChevronRight className="mp-pf-row-chev" aria-hidden />
+              </button>
             {tab === 'security' ? (
               <div className="mp-av-card">
                 <h3>Changer le mot de passe</h3>
@@ -382,7 +377,9 @@ export function ProfilPage() {
                 <p className="mp-pf-hint">8 caractères minimum, avec une majuscule, une minuscule et un chiffre. Laissez vide pour le conserver.</p>
               </div>
             ) : null}
+            </div>
           </form>
+
 
           <div className="mp-pf-links">
             <Link to="/historique" className="mp-pf-link">

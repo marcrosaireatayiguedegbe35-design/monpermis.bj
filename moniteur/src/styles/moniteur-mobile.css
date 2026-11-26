@@ -586,3 +586,51 @@ html,body{background:#f1f4f2}
 .mp-ses-actions .is-accept{border:0;background:#0B7F47;color:#fff}
 .mp-ses-actions .is-refuse{border:1.5px solid #D5D5D5;background:#fff;color:#111}
 .mp-ses-actions button:disabled{opacity:.6}
+
+
+/* ---------- Revenus (maquette verte) ---------- */
+.mp-rv-hero{display:flex;flex-direction:column;gap:4px;padding:20px;border-radius:18px;background:#0B7F47;color:#fff}
+.mp-rv-hero>small{font-size:13px;opacity:.85;font-weight:500}
+.mp-rv-hero>b{font:700 38px/1.1 var(--mp-display);letter-spacing:-1px}
+.mp-rv-hero>em{display:inline-flex;align-items:center;gap:4px;font-style:normal;font-size:13px;font-weight:600;opacity:.95}
+.mp-rv-hero>em svg{width:16px;height:16px}
+.mp-rv-split{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.mp-rv-split div{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.16)}
+.mp-rv-split small{font-size:12px;opacity:.85}
+.mp-rv-split b{font:700 16px var(--mp-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mp-rv-bar{height:7px;margin-top:12px;border-radius:99px;background:rgba(255,255,255,.25);overflow:hidden}
+.mp-rv-bar i{display:block;height:100%;border-radius:99px;background:#fff}
+.mp-rv-note{margin:0;font-size:13px;color:#595959;text-align:center}
+.mp-rv-list{display:flex;flex-direction:column}
+.mp-rv-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #EEE}
+.mp-rv-avatar{flex:none;width:42px;height:42px;border-radius:50%;background:#EAF6EF;color:#0B7F47;font-weight:700;font-size:13px;display:grid;place-items:center}
+.mp-rv-avatar.is-paid{font-size:16px}
+.mp-rv-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mp-rv-info b{font:700 15px var(--mp-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mp-rv-info small{font-size:12.5px;color:#595959;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mp-rv-amount{flex:none;font-weight:700;color:#0B7F47;font-size:14.5px}
+.mp-rv-amount.is-paid{font-size:12px;background:#EAF6EF;padding:5px 10px;border-radius:999px}
+
+/* ---------- Profil (maquette verte) ---------- */
+.mp-pf-chips{display:flex;justify-content:center;gap:8px;margin-top:4px}
+.mp-pf-chips span{padding:6px 12px;border-radius:999px;background:#EAF6EF;color:#0B7F47;font-size:13px;font-weight:700}
+.mp-pf-rows{display:flex;flex-direction:column;border-top:1px solid #E6E6E6}
+.mp-pf-row{display:flex;align-items:center;gap:14px;width:100%;padding:15px 0;border:0;border-bottom:1px solid #EEE;background:none;color:#111;text-align:left;text-decoration:none;font-family:var(--mp-body);cursor:pointer}
+.mp-pf-row-ico{flex:none;width:40px;height:40px;border-radius:12px;background:#EAF6EF;color:#0B7F47;display:grid;place-items:center}
+.mp-pf-row-ico svg{width:21px;height:21px}
+.mp-pf-row-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.mp-pf-row-txt b{font:700 15.5px var(--mp-body)}
+.mp-pf-row-txt small{font-size:13px;color:#595959;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mp-pf-row-chev{flex:none;width:20px;height:20px;color:#767676;transition:transform .15s}
+.mp-pf-row.is-open .mp-pf-row-chev{transform:rotate(90deg)}
+.mp-pf-rows .mp-av-card{margin:10px 0 6px}
+
+/* Profil : en-tête vert uni, bouton photo vert, jauge verte */
+.mp-pf-hero{border:1px solid #E6E6E6;box-shadow:none}
+.mp-pf-cover{background:#0B7F47!important;padding-bottom:50px}
+.mp-pf-cam{background:#0B7F47!important;border-color:#fff!important}
+.mp-pf-meter,.mp-pf-meter{background:#EAF6EF!important}
+.mp-pf-bar{background:#C9E3D3}
+.mp-pf-chips{margin-top:-18px;position:relative}
+.mp-pf-chips span{background:#fff;border:1px solid #CFE6D8;box-shadow:0 2px 8px rgba(11,127,71,.12)}
+.mp-pf-hero .mp-pf-chips{padding-bottom:12px}
