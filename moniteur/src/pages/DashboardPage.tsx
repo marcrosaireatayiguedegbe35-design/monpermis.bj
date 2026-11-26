@@ -100,7 +100,7 @@ export function DashboardPage() {
 
       {stats ? (
         <>
-          <section className="mp-next">
+          <section className={`mp-next${next ? '' : ' is-empty'}`}>
             {next ? (
               <>
                 <div className="mp-next-top">
@@ -129,19 +129,22 @@ export function DashboardPage() {
               </>
             ) : (
               <>
-                <div className="mp-next-top">
-                  <small>Prochaine séance</small>
+                <div className="mp-empty-row">
+                  <span className="mp-empty-ico" aria-hidden="true">
+                    <CalendarDays />
+                  </span>
+                  <span className="mp-empty-txt">
+                    <small>Prochaine séance</small>
+                    <b>Aucune séance à venir</b>
+                  </span>
                 </div>
-                <b className="mp-next-time mp-next-none">Aucune séance à venir</b>
-                <p className="mp-next-who">
+                <p className="mp-empty-help">
                   {stats.weeklySlots === 0 ? 'Publiez vos horaires pour recevoir des réservations.' : 'Les nouvelles réservations apparaîtront ici.'}
                 </p>
-                <div className="mp-next-actions">
-                  <Link to="/disponibilites" className="mp-next-btn is-solid">
-                    <CalendarDays aria-hidden />
-                    Mes disponibilités
-                  </Link>
-                </div>
+                <Link to="/disponibilites" className="mp-empty-btn">
+                  Mes disponibilités
+                  <ChevronRight aria-hidden />
+                </Link>
               </>
             )}
           </section>
