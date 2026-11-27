@@ -594,16 +594,16 @@ export function ReservationFlowScreen() {
               {busy ? <ActivityIndicator color={RES.green} /> : null}
               <View style={styles.pCard}>
                 <View style={styles.pHead}>
-                  {profile.vehiclePhotoUrl || profile.photoUrl ? (
+                  {profile.photoUrl || profile.vehiclePhotoUrl ? (
                     <View style={styles.pPhotoSmall}>
                       <Image
-                        source={{ uri: optimizedImageUrl(resolveMediaUrl(profile.vehiclePhotoUrl || profile.photoUrl || ''), 500) }}
+                        source={{ uri: optimizedImageUrl(resolveMediaUrl(profile.photoUrl || profile.vehiclePhotoUrl || ''), 500) }}
                         style={StyleSheet.absoluteFill}
                         resizeMode="cover"
                       />
-                      {profile.vehiclePhotoUrl && profile.photoUrl ? (
+                      {profile.photoUrl && profile.vehiclePhotoUrl ? (
                         <Image
-                          source={{ uri: optimizedImageUrl(resolveMediaUrl(profile.photoUrl), 200) }}
+                          source={{ uri: optimizedImageUrl(resolveMediaUrl(profile.vehiclePhotoUrl), 200) }}
                           style={styles.pAvatar}
                           resizeMode="cover"
                         />
@@ -1187,7 +1187,7 @@ const styles = StyleSheet.create({
   tabText: { fontFamily: fonts.bodyBold, fontSize: 14, color: '#0B1F3A' },
   tabTextOn: { color: '#FFFFFF' },
   pPhotoSmall: { width: 96, height: 120, borderRadius: 18, overflow: 'hidden' },
-  pAvatar: { position: 'absolute', bottom: 6, right: 6, width: 40, height: 40, borderRadius: 8, borderWidth: 2, borderColor: '#FFFFFF' },
+  pAvatar: { position: 'absolute', bottom: 6, right: 6, width: 52, height: 40, borderRadius: 8, borderWidth: 2, borderColor: '#FFFFFF' },
   pFactsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: '#F1F5F2' },
   pChipText: { fontFamily: fonts.bodyBold, fontSize: 13, color: '#0B1F3A' },
