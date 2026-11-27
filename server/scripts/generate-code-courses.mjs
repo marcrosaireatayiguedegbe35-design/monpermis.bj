@@ -140,15 +140,108 @@ function toHtml(raw, dropSentences = []) {
   return out.join('')
 }
 
+/**
+ * Panneaux à afficher dans les cours (catalogue server/content/code-panneaux).
+ * after : texte exact d'un paragraphe après lequel le bloc est inséré ; absent = à la fin du cours.
+ * Chaque groupe porte un titre (facultatif) et la liste des panneaux : [catégorie, code, légende].
+ */
+const SIGNS = {
+  3: [
+    { after: /Clignotant\.?$/, groups: [{ items: [['ab', 'AB1', 'Priorité à droite']] }] },
+    { after: /Passage du train\.?$/, groups: [{ items: [['ab', 'AB4', 'STOP'], ['ab', 'AB3a', 'Cédez le passage']] }] },
+    { after: /Feu vert\.?$/, groups: [{ items: [['ab', 'AB6', 'Route prioritaire'], ['ab', 'AB2', 'Intersection avec route à grande circulation']] }] },
+  ],
+  4: [
+    {
+      after: /indication donnée par les panneaux/,
+      groups: [
+        { title: 'Panneaux de priorité', items: [['ab', 'AB1', 'Priorité à droite'], ['ab', 'AB3a', 'Cédez le passage'], ['ab', 'AB4', 'STOP'], ['ab', 'AB6', 'Route prioritaire']] },
+      ],
+    },
+  ],
+  5: [{ after: /Les pistes et bandes cyclables/, groups: [{ items: [['b', 'B40', 'Piste ou bande cyclable obligatoire']] }] }],
+  6: [
+    {
+      after: /Ils sont placés à 50 mètres/,
+      groups: [{ title: 'Panneaux de danger', items: [['a', 'A1a', 'Virage à droite'], ['a', 'A2a', 'Cassis ou dos-d\'âne'], ['a', 'A4', 'Chaussée glissante'], ['a', 'A13b', 'Passage pour piétons'], ['a', 'A18', 'Descente dangereuse']] }],
+    },
+    {
+      after: /traits rouges\.?$/,
+      groups: [
+        { title: 'Interdiction', items: [['b', 'B1', 'Sens interdit'], ['b', 'B3', 'Dépassement interdit'], ['b', 'B18c', 'Vitesse limitée']] },
+        { title: 'Fin d\'interdiction', items: [['b', 'B50c', 'Fin de toutes les interdictions'], ['b', 'B50d', 'Fin de limitation de vitesse'], ['b', 'B54', 'Fin d\'interdiction de dépasser']] },
+        { title: 'Obligation', items: [['b', 'B31', 'Direction obligatoire'], ['b', 'B40', 'Piste cyclable obligatoire'], ['b', 'B43', 'Vitesse minimale obligatoire']] },
+        { title: 'Arrêt et stationnement', items: [['b', 'B6d', 'Stationnement interdit'], ['b', 'B9h', 'Arrêt et stationnement interdits']] },
+      ],
+    },
+    {
+      after: /Ce sont les panneaux ayant la forme carrée/,
+      groups: [{ title: 'Panneaux d\'indication', items: [['c', 'C1a', 'Parking'], ['c', 'C8', 'Arrêt d\'autobus'], ['c', 'C13a', 'Sens unique'], ['c', 'C13b', 'Impasse']] }],
+    },
+    {
+      after: /Ce sont les panneaux de formes diverses/,
+      groups: [{ title: 'Intersections et priorités', items: [['ab', 'AB1', 'Priorité à droite'], ['ab', 'AB3a', 'Cédez le passage'], ['ab', 'AB4', 'STOP'], ['ab', 'AB6', 'Route prioritaire']] }],
+    },
+  ],
+  7: [
+    {
+      groups: [
+        {
+          title: 'Les balises',
+          items: [['j', 'J1', 'Balise de virage'], ['j', 'J3', 'Balise de virage à tête rouge'], ['j', 'J5', 'Chevrons de virage dangereux'], ['j', 'J4', 'Balise d\'intersection'], ['j', 'J7', 'Délinéateur'], ['j', 'J6', 'Tête d\'îlot directionnel'], ['j', 'J10', 'Manche à air']],
+        },
+      ],
+    },
+  ],
+  15: [{ groups: [{ title: 'Le panneau qui interdit le dépassement', items: [['b', 'B3', 'Dépassement interdit'], ['b', 'B54', 'Fin d\'interdiction de dépasser']] }] }],
+  17: [{ groups: [{ title: 'Les panneaux qui interdisent l\'arrêt et le stationnement', items: [['b', 'B6d', 'Stationnement interdit'], ['b', 'B9h', 'Arrêt et stationnement interdits']] }] }],
+}
+
+/** Insère les blocs de panneaux dans le HTML d'un cours (numéro de chapitre = clé de SIGNS). */
+function withSigns(html, chapterOrder, title) {
+  const blocks = SIGNS[chapterOrder]
+  // Un seul cours par chapitre reçoit les panneaux (le premier : le cours principal du chapitre).
+  if (!blocks || signsDone.has(chapterOrder)) return html
+  signsDone.add(chapterOrder)
+  let out = html
+  for (const block of blocks) {
+    const groups = block.groups.map((group) => ({
+      title: group.title || '',
+      items: group.items.map(([cat, code, label]) => {
+        const rel = `${cat}/${code}.png`
+        if (!fs.existsSync(path.join(here, '../content/code-panneaux', rel))) {
+          throw new Error(`Panneau introuvable : ${rel} (cours ${title})`)
+        }
+        return { code, label, image: `/content/code-panneaux/${rel}` }
+      }),
+    }))
+    const token = `<p>{{signs:${JSON.stringify(groups)}}}</p>`
+    if (!block.after) {
+      out += token
+      continue
+    }
+    const paragraphs = out.match(/<(p|h2|h3)[^>]*>.*?<\/\1>|<ul>.*?<\/ul>/g) || []
+    const hit = paragraphs.find((chunk) => {
+      const text = chunk.replace(/<[^>]+>/g, '')
+      return block.after instanceof RegExp ? block.after.test(text) : text.trim() === block.after
+    })
+    if (!hit) throw new Error(`Ancre introuvable dans « ${title} » : ${block.after}`)
+    out = out.replace(hit, hit + token)
+  }
+  return out
+}
+const signsDone = new Set()
+
 const CHAPTER_COUNT = 20
 const result = NOTIONS.map((notion, index) => ({
   key: `${String(notion.chapterOrder).padStart(2, '0')}-${index + 1}`,
   chapterOrder: notion.chapterOrder,
   title: notion.title,
   video: notion.video,
-  html: toHtml(
-    notion.files.map(readSource).join('\n\n'),
-    notion.dropSentences || [],
+  html: withSigns(
+    toHtml(notion.files.map(readSource).join('\n\n'), notion.dropSentences || []),
+    notion.chapterOrder,
+    notion.title,
   ),
 }))
 
