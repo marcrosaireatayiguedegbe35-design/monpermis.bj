@@ -37,6 +37,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -194,7 +195,8 @@ export function ReservationFlowScreen() {
   const [mmOpen, setMmOpen] = useState(false)
   const [bioExpanded, setBioExpanded] = useState(false)
   const [galleryAll, setGalleryAll] = useState(false)
-  const [pagerHeight, setPagerHeight] = useState(0)
+  const { height: windowHeight } = useWindowDimensions()
+  const pagerHeight = Math.max(380, Math.round(windowHeight * 0.56))
   const [profileTab, setProfileTab] = useState<'about' | 'photos'>('about')
   const [slotPeriod, setSlotPeriod] = useState<'morning' | 'afternoon' | 'evening'>('morning')
   const [vehicleImageIndex, setVehicleImageIndex] = useState(0)
@@ -526,12 +528,11 @@ export function ReservationFlowScreen() {
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           {step === 'moniteur' ? (
-            <View
+            <ScrollView
               style={{ flex: 1 }}
-              onLayout={(e) => {
-                setPagerWidth(Math.round(e.nativeEvent.layout.width))
-                setPagerHeight(Math.round(e.nativeEvent.layout.height))
-              }}
+              contentContainerStyle={{ gap: 12, paddingBottom: 12 }}
+              showsVerticalScrollIndicator={false}
+              onLayout={(e) => setPagerWidth(Math.round(e.nativeEvent.layout.width))}
             >
               {busy ? <ActivityIndicator color={RES.green} style={{ marginVertical: 24 }} /> : null}
               {!busy && moniteurs.length === 0 ? (
@@ -627,7 +628,45 @@ export function ReservationFlowScreen() {
                   })}
                 </ScrollView>
               ) : null}
-            </View>
+
+              {moniteurs.length > 0 ? (() => {
+                const current = moniteurs[Math.min(moniteurIndex, moniteurs.length - 1)]
+                return (
+                  <View style={styles.pCard}>
+                    <Text style={styles.pSectionTitle}>À savoir</Text>
+                    <View style={[styles.pFactsRow, { marginTop: 10 }]}>
+                      <View style={styles.pChip}>
+                        <MapPin size={15} color="#0B1F3A" />
+                        <Text style={styles.pChipText}>{current.city || 'Ville non renseignée'}</Text>
+                      </View>
+                      <View style={styles.pChip}>
+                        <Car size={15} color="#0B1F3A" />
+                        <Text style={styles.pChipText}>{current.vehicleBrand || 'Véhicule'}</Text>
+                      </View>
+                    </View>
+                    <View style={{ gap: 8, marginTop: 12 }}>
+                      <View style={styles.recapRow}>
+                        <Text style={styles.recapLabel}>Solo · 30 min</Text>
+                        <Text style={styles.recapValue}>3 000 FCFA</Text>
+                      </View>
+                      <View style={styles.recapRow}>
+                        <Text style={styles.recapLabel}>Solo · 1 heure</Text>
+                        <Text style={styles.recapValue}>6 000 FCFA</Text>
+                      </View>
+                      {current.acceptsGroup ? (
+                        <View style={styles.recapRow}>
+                          <Text style={styles.recapLabel}>Groupe · 2 h, 4 élèves</Text>
+                          <Text style={styles.recapValue}>{groupPriceFcfa.toLocaleString('fr-FR')} F / élève</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text style={[styles.recapHint, { marginTop: 10 }]}>
+                      Les séances se réservent à partir de demain.
+                    </Text>
+                  </View>
+                )
+              })() : null}
+            </ScrollView>
           ) : null}
 
           {step === 'profile' && profile ? (
