@@ -132,7 +132,7 @@ function toHtml(raw, dropSentences = []) {
     } else {
       flushList()
       const strong = /^(nota bene|remarques?)\b/i.test(p)
-      out.push(strong ? `<p><strong>${escapeHtml(p)}</strong></p>` : `<p>${escapeHtml(p)}</p>`)
+      out.push(strong ? `<p class="note">${escapeHtml(p)}</p>` : `<p>${escapeHtml(p)}</p>`)
       afterColon = /:\s*$/.test(p)
     }
   }

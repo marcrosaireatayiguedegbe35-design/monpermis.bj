@@ -19,6 +19,7 @@ import {
 } from '../../api/revision'
 import { EmptyState } from '../../components/EmptyState'
 import { LegalFooter } from '../../components/LegalFooter'
+import { CourseText } from '../../components/CourseText'
 import { MediaContent } from '../../components/MediaContent'
 import { RES, ReserveButton, ReserveHeader, ReserveOutlineButton } from '../../components/ReserveFrame'
 import { ScreenLoader } from '../../components/ScreenLoader'
@@ -214,12 +215,16 @@ export function CourseDetailScreen() {
 
           {!progressLoading
             ? course.modules.map((module) => (
-                <View key={module.id} style={styles.contentCard}>
+                <View key={module.id} style={styles.moduleBlock}>
                   <MediaContent
                     videoUrl={module.mediaType === 'image' ? '' : module.videoUrl}
                     imageUrl={module.mediaType === 'video' ? '' : module.imageUrl}
-                    text={module.text}
                   />
+                  {module.text ? (
+                    <View style={styles.textCard}>
+                      <CourseText html={module.text} />
+                    </View>
+                  ) : null}
                 </View>
               ))
             : null}
@@ -280,9 +285,12 @@ const styles = StyleSheet.create({
     backgroundColor: RES.green,
   },
   donePillText: { fontFamily: fonts.bodyBold, fontSize: 13, color: '#FFFFFF' },
-  contentCard: {
-    padding: 14,
-    borderRadius: 26,
+  moduleBlock: { gap: 16 },
+  textCard: {
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 6,
+    borderRadius: 28,
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
     borderColor: RES.line,
