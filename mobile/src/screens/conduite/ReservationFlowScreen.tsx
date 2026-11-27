@@ -589,7 +589,9 @@ export function ReservationFlowScreen() {
                                 <Text style={[styles.mTileValue, { color: dark.green }]} numberOfLines={1}>
                                   {(moniteur.defaultPriceFcfa || 5000).toLocaleString('fr-FR')} F / h
                                 </Text>
-                                <Text style={styles.mTileLabel}>Tarif horaire</Text>
+                                <Text style={styles.mTileLabel} numberOfLines={1}>
+                                  Solo · Groupe {groupPriceFcfa.toLocaleString('fr-FR')} F / h
+                                </Text>
                               </View>
                             </View>
                           </View>
@@ -646,6 +648,30 @@ export function ReservationFlowScreen() {
                 ))}
               </View>
 
+              <View style={styles.hoursRow}>
+                {([
+                  { id: 'solo', label: 'Solo', price: profile.defaultPriceFcfa || 5000, note: 'Créneau pour vous seul' },
+                  { id: 'group', label: 'En groupe', price: groupPriceFcfa, note: `Jusqu’à 7 élèves` },
+                ] as const).map((opt) => {
+                  const active = bookingMode === opt.id
+                  return (
+                    <Bouncy key={opt.id} scaleTo={0.97} style={{ flex: 1 }} onPress={() => setBookingMode(opt.id)}>
+                      <View
+                        style={[styles.hoursPill, { height: 72 }, active && styles.hoursPillOn]}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: active }}
+                        accessibilityLabel={`Mode ${opt.label}`}
+                      >
+                        <Text style={[styles.hoursPillText, { fontSize: 16 }, active && styles.hoursPillTextOn]}>
+                          {opt.label} · {opt.price.toLocaleString('fr-FR')} F/h
+                        </Text>
+                        <Text style={[styles.dSub, active && { color: '#FFFFFF' }]}>{opt.note}</Text>
+                      </View>
+                    </Bouncy>
+                  )
+                })}
+              </View>
+
               <View style={[styles.pCard, { flex: 1 }]}>
                 {profileTab === 'about' ? (
                   <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
@@ -664,7 +690,11 @@ export function ReservationFlowScreen() {
                       </View>
                       <View style={styles.pChip}>
                         <Wallet size={15} color="#0A1E55" />
-                        <Text style={styles.pChipText}>{(profile.defaultPriceFcfa || 5000).toLocaleString('fr-FR')} F / h</Text>
+                        <Text style={styles.pChipText}>Solo {(profile.defaultPriceFcfa || 5000).toLocaleString('fr-FR')} F / h</Text>
+                      </View>
+                      <View style={styles.pChip}>
+                        <Wallet size={15} color="#0A1E55" />
+                        <Text style={styles.pChipText}>Groupe {groupPriceFcfa.toLocaleString('fr-FR')} F / h</Text>
                       </View>
                     </View>
                   </ScrollView>
