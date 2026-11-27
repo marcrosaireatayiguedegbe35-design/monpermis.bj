@@ -119,9 +119,19 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
     },
     {
       code: "A14",
-      definition: "Autres dangers. La nature du danger pouvant ou non être précisée par un panonceau A15a1 Passage d'animaux domestiques A15a2 Passage d'animaux domestiques",
+      definition: "Autres dangers. La nature du danger pouvant ou non être précisée par un panonceau",
       image: "/content/code-panneaux/a/A14.png",
       audio: "/content/code-panneaux/audio/A14.mp3",
+    },
+    {
+      code: "A15a1",
+      definition: "Passage d'animaux domestiques",
+      image: "/content/code-panneaux/a/A15a1.png",
+    },
+    {
+      code: "A15a2",
+      definition: "Passage d'animaux domestiques",
+      image: "/content/code-panneaux/a/A15a2.png",
     },
     {
       code: "A15b",
@@ -170,18 +180,6 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
       definition: "Débouché de cyclistes venant de droite ou de gauche",
       image: "/content/code-panneaux/a/A21.png",
       audio: "/content/code-panneaux/audio/A21.mp3",
-    },
-    {
-      code: "A23",
-      definition: "Traversée d'une aire de danger aérien",
-      image: "/content/code-panneaux/a/A23.png",
-      audio: "/content/code-panneaux/audio/A23.mp3",
-    },
-    {
-      code: "A24",
-      definition: "Vent latéral",
-      image: "/content/code-panneaux/a/A24.png",
-      audio: "/content/code-panneaux/audio/A24.mp3",
     }
     ],
   },
@@ -251,7 +249,7 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
     id: "b",
     label: "Interdiction et obligation",
     codePrefix: "B",
-    count: 71,
+    count: 70,
     signs: [
     {
       code: "B0",
@@ -315,9 +313,59 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
     },
     {
       code: "B5c",
-      definition: "Arrêt au poste de péage B6a1 Stationnement interdit B6a2 Stationnement interdit du 1er au 15 du mois B6a3 Stationnement interdit du 16 à la fin du mois B6a3 Stationnement interdit du 16 à la fin du mois B6b1 Entrée d'une zone à stationnement interdit B6b2 Entrée d'une zone à stationnement unilatéral à alternance semi - mensuelle B6b3 Entrée d'une zone à stationnement de durée limitée avec contrôle par disque B6b3-ancien Entrée d'une zone à stationnement de durée limitée fixée à 1 h 30, avec contrôle par disque B6b4 Entrée d'une zone à stationnement payant B6b5 Entrée d'une zone à stationnement unilatéral à alternance semi-mensuelle et à durée limitée, avec contrôle par disque. B6b5-ancien Entrée d'une zone à stationnement unilatéral à alternance semi-mensuelle et à durée limitée fixée à 1 h 30, avec contrôle par disque",
+      definition: "Arrêt au poste de péage",
       image: "/content/code-panneaux/b/B5c.png",
       audio: "/content/code-panneaux/audio/B5c.mp3",
+    },
+    {
+      code: "B6a1",
+      definition: "Stationnement interdit",
+      image: "/content/code-panneaux/b/B6a1.png",
+    },
+    {
+      code: "B6a2",
+      definition: "Stationnement interdit du 1er au 15 du mois",
+      image: "/content/code-panneaux/b/B6a2.png",
+    },
+    {
+      code: "B6a3",
+      definition: "Stationnement interdit du 16 à la fin du mois",
+      image: "/content/code-panneaux/b/B6a3.png",
+    },
+    {
+      code: "B6b1",
+      definition: "Entrée d'une zone à stationnement interdit",
+      image: "/content/code-panneaux/b/B6b1.png",
+    },
+    {
+      code: "B6b2",
+      definition: "Entrée d'une zone à stationnement unilatéral à alternance semi - mensuelle",
+      image: "/content/code-panneaux/b/B6b2.png",
+    },
+    {
+      code: "B6b3",
+      definition: "Entrée d'une zone à stationnement de durée limitée avec contrôle par disque",
+      image: "/content/code-panneaux/b/B6b3.png",
+    },
+    {
+      code: "B6b3-ancien",
+      definition: "Entrée d'une zone à stationnement de durée limitée fixée à 1 h 30, avec contrôle par disque",
+      image: "/content/code-panneaux/b/B6b3-ancien.png",
+    },
+    {
+      code: "B6b4",
+      definition: "Entrée d'une zone à stationnement payant",
+      image: "/content/code-panneaux/b/B6b4.png",
+    },
+    {
+      code: "B6b5",
+      definition: "Entrée d'une zone à stationnement unilatéral à alternance semi-mensuelle et à durée limitée, avec contrôle par disque",
+      image: "/content/code-panneaux/b/B6b5.png",
+    },
+    {
+      code: "B6b5-ancien",
+      definition: "Entrée d'une zone à stationnement unilatéral à alternance semi-mensuelle et à durée limitée fixée à 1 h 30, avec contrôle par disque",
+      image: "/content/code-panneaux/b/B6b5-ancien.png",
     },
     {
       code: "B6d",
@@ -368,36 +416,6 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
       audio: "/content/code-panneaux/audio/B9d.mp3",
     },
     {
-      code: "B9e",
-      definition: "Accès interdit aux voitures à bras à l'exclusion de celles visées à l'article R.412-34 du code la de route",
-      image: "/content/code-panneaux/b/B9e.png",
-      audio: "/content/code-panneaux/audio/B9e.mp3",
-    },
-    {
-      code: "B9f",
-      definition: "Accès interdit aux véhicules de transport en commun de personnes",
-      image: "/content/code-panneaux/b/B9f.png",
-      audio: "/content/code-panneaux/audio/B9f.mp3",
-    },
-    {
-      code: "B9g",
-      definition: "Accès interdit aux cyclomoteurs",
-      image: "/content/code-panneaux/b/B9g.png",
-      audio: "/content/code-panneaux/audio/B9g.mp3",
-    },
-    {
-      code: "B9h",
-      definition: "Accès interdit aux motocyclettes et motocyclettes légères, au sens de l’article R.311-1 du code de la route",
-      image: "/content/code-panneaux/b/B9h.png",
-      audio: "/content/code-panneaux/audio/B9h.mp3",
-    },
-    {
-      code: "B9i",
-      definition: "Accès interdit aux véhicules tractant une caravane ou une remorque de plus de 250 kg, tel que le poids total roulant autorisé, véhicule et caravane ou remorque, ne dépasse pas 3,5 t",
-      image: "/content/code-panneaux/b/B9i.png",
-      audio: "/content/code-panneaux/audio/B9i.mp3",
-    },
-    {
       code: "B10a",
       definition: "Accès interdit aux véhicules, véhicules articulés, trains doubles ou ensemble de véhicules dont la longueur est supérieure au nombre indiqué",
       image: "/content/code-panneaux/b/B10a.png",
@@ -432,6 +450,31 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
       definition: "Limitation de vitesse. Ce panneau notifie l'interdiction de dépasser la vitesse indiquée",
       image: "/content/code-panneaux/b/B14.png",
       audio: "/content/code-panneaux/audio/B14.mp3",
+    },
+    {
+      code: "B14-30",
+      definition: "Limitation de vitesse à 30 km/h",
+      image: "/content/code-panneaux/b/B14-30.png",
+    },
+    {
+      code: "B14-70",
+      definition: "Limitation de vitesse à 70 km/h",
+      image: "/content/code-panneaux/b/B14-70.png",
+    },
+    {
+      code: "B14-90",
+      definition: "Limitation de vitesse à 90 km/h",
+      image: "/content/code-panneaux/b/B14-90.png",
+    },
+    {
+      code: "B14-110",
+      definition: "Limitation de vitesse à 110 km/h",
+      image: "/content/code-panneaux/b/B14-110.png",
+    },
+    {
+      code: "B14-130",
+      definition: "Limitation de vitesse à 130 km/h",
+      image: "/content/code-panneaux/b/B14-130.png",
     },
     {
       code: "B15",
@@ -471,15 +514,34 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
     },
     {
       code: "B19",
-      definition: "Autres interdictions dont la nature est indiquée par une inscription sur le panneau B21-1 Obligation de tourner à droite avant le panneau. B21-2 Obligation de tourner à gauche avant le panneau. B21a1 Contournement obligatoire par la droite B21a2 Contournement obligatoire par la gauche",
+      definition: "Autres interdictions dont la nature est indiquée par une inscription sur le panneau",
       image: "/content/code-panneaux/b/B19.png",
       audio: "/content/code-panneaux/audio/B19.mp3",
     },
     {
-      code: "B21b",
-      definition: "Direction obligatoire à la prochaine intersection : tout dro B21c1 Direction obligatoire à la prochaine intersection : à droite B21c2 Direction obligatoire à la prochaine intersection : à gauche B21d1 Directions obligatoires à la prochaine intersection : tout droit ou à droite B21d2 Directions obligatoires à la prochaine intersection : tout droit ou à gauche",
-      image: "/content/code-panneaux/b/B21b.png",
-      audio: "/content/code-panneaux/audio/B21b.mp3",
+      code: "B21-2",
+      definition: "Obligation de tourner à gauche avant le panneau",
+      image: "/content/code-panneaux/b/B21-2.png",
+    },
+    {
+      code: "B21c1",
+      definition: "Direction obligatoire à la prochaine intersection : à droite",
+      image: "/content/code-panneaux/b/B21c1.png",
+    },
+    {
+      code: "B21c2",
+      definition: "Direction obligatoire à la prochaine intersection : à gauche",
+      image: "/content/code-panneaux/b/B21c2.png",
+    },
+    {
+      code: "B21d1",
+      definition: "Directions obligatoires à la prochaine intersection : tout droit ou à droite",
+      image: "/content/code-panneaux/b/B21d1.png",
+    },
+    {
+      code: "B21d2",
+      definition: "Directions obligatoires à la prochaine intersection : tout droit ou à gauche",
+      image: "/content/code-panneaux/b/B21d2.png",
     },
     {
       code: "B21e",
@@ -554,6 +616,26 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
       audio: "/content/code-panneaux/audio/B33.mp3",
     },
     {
+      code: "B33-50",
+      definition: "Fin de limitation de vitesse à 50 km/h",
+      image: "/content/code-panneaux/b/B33-50.png",
+    },
+    {
+      code: "B33-30",
+      definition: "Fin de limitation de vitesse à 30 km/h",
+      image: "/content/code-panneaux/b/B33-30.png",
+    },
+    {
+      code: "B33-90",
+      definition: "Fin de limitation de vitesse à 90 km/h",
+      image: "/content/code-panneaux/b/B33-90.png",
+    },
+    {
+      code: "B33-110",
+      definition: "Fin de limitation de vitesse à 110 km/h",
+      image: "/content/code-panneaux/b/B33-110.png",
+    },
+    {
       code: "B34",
       definition: "Fin d'interdiction de dépasser notifiée par le panneau B3",
       image: "/content/code-panneaux/b/B34.png",
@@ -564,120 +646,6 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
       definition: "Fin d'interdiction de dépasser notifiée par le panneau B3a",
       image: "/content/code-panneaux/b/B34a.png",
       audio: "/content/code-panneaux/audio/B34a.mp3",
-    },
-    {
-      code: "B35",
-      definition: "Fin d'interdiction de l'usage de l'avertisseur sonore",
-      image: "/content/code-panneaux/b/B35.png",
-      audio: "/content/code-panneaux/audio/B35.mp3",
-    },
-    {
-      code: "B39",
-      definition: "Fin d'interdiction dont la nature est indiquée sur le panneau",
-      image: "/content/code-panneaux/b/B39.png",
-      audio: "/content/code-panneaux/audio/B39.mp3",
-    },
-    {
-      code: "B40",
-      definition: "Fin de piste ou bande obligatoire pour cycle",
-      image: "/content/code-panneaux/b/B40.png",
-      audio: "/content/code-panneaux/audio/B40.mp3",
-    },
-    {
-      code: "B41",
-      definition: "Fin de chemin obligatoire pour piétons",
-      image: "/content/code-panneaux/b/B41.png",
-      audio: "/content/code-panneaux/audio/B41.mp3",
-    },
-    {
-      code: "B42",
-      definition: "Fin de chemin obligatoire pour cavaliers",
-      image: "/content/code-panneaux/b/B42.png",
-      audio: "/content/code-panneaux/audio/B42.mp3",
-    },
-    {
-      code: "B43",
-      definition: "Fin de vitesse minimale obligatoire",
-      image: "/content/code-panneaux/b/B43.png",
-      audio: "/content/code-panneaux/audio/B43.mp3",
-    },
-    {
-      code: "B44",
-      definition: "Fin d'obligation de l'usage des chaînes à neige",
-      image: "/content/code-panneaux/b/B44.png",
-      audio: "/content/code-panneaux/audio/B44.mp3",
-    },
-    {
-      code: "B45",
-      definition: "Fin de voie réservée aux véhicules des services réguliers de transport en commun",
-      image: "/content/code-panneaux/b/B45.png",
-      audio: "/content/code-panneaux/audio/B45.mp3",
-    },
-    {
-      code: "B49",
-      definition: "Fin d'obligation dont la nature est mentionnée par une inscription sur le panneau",
-      image: "/content/code-panneaux/b/B49.png",
-      audio: "/content/code-panneaux/audio/B49.mp3",
-    },
-    {
-      code: "B50a",
-      definition: "Sortie de zone à stationnement interdit",
-      image: "/content/code-panneaux/b/B50a.png",
-      audio: "/content/code-panneaux/audio/B50a.mp3",
-    },
-    {
-      code: "B50b",
-      definition: "Sortie de zone à stationnement unilatéral à alternance semi- mensuelle",
-      image: "/content/code-panneaux/b/B50b.png",
-      audio: "/content/code-panneaux/audio/B50b.mp3",
-    },
-    {
-      code: "B50c",
-      definition: "Sortie de zone à stationnement de durée limitée, avec contrôle par disque B50c-ancien Sortie de zone à stationnement de durée limitée fixée à 1 h 30, avec contrôle par disque",
-      image: "/content/code-panneaux/b/B50c.png",
-      audio: "/content/code-panneaux/audio/B50c.mp3",
-    },
-    {
-      code: "B50d",
-      definition: "Sortie de zone à stationnement payant",
-      image: "/content/code-panneaux/b/B50d.png",
-      audio: "/content/code-panneaux/audio/B50d.mp3",
-    },
-    {
-      code: "B50e",
-      definition: "Sortie de zone à stationnement unilatéral à alternance semi- mensuelle et à durée limitée, avec contrôle par disque B50e-ancien Sortie de zone à stationnement unilatéral à alternance semi- mensuelle et à durée limitée fixée à 1 h 30, avec contrôle par disque",
-      image: "/content/code-panneaux/b/B50e.png",
-      audio: "/content/code-panneaux/audio/B50e.mp3",
-    },
-    {
-      code: "B51",
-      definition: "Sortie d'une zone à vitesse limitée à 30 km/h",
-      image: "/content/code-panneaux/b/B51.png",
-      audio: "/content/code-panneaux/audio/B51.mp3",
-    },
-    {
-      code: "B52",
-      definition: "Entrée d'une zone de rencontre",
-      image: "/content/code-panneaux/b/B52.png",
-      audio: "/content/code-panneaux/audio/B52.mp3",
-    },
-    {
-      code: "B53",
-      definition: "Sortie d'une zone de rencontre",
-      image: "/content/code-panneaux/b/B53.png",
-      audio: "/content/code-panneaux/audio/B53.mp3",
-    },
-    {
-      code: "B54",
-      definition: "Entrée d'aire piétonne",
-      image: "/content/code-panneaux/b/B54.png",
-      audio: "/content/code-panneaux/audio/B54.mp3",
-    },
-    {
-      code: "B55",
-      definition: "Sortie d'aire piétonne",
-      image: "/content/code-panneaux/b/B55.png",
-      audio: "/content/code-panneaux/audio/B55.mp3",
     }
     ],
   },
@@ -695,9 +663,14 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
     },
     {
       code: "C1b",
-      definition: "Lieu aménagé pour le stationnement gratuit à durée limitée avec contrôle par disque C1b-ancien Lieu aménagé pour le stationnement gratuit à durée limitée fixée à 1 h 30 avec contrôle par un dispositif approprié",
+      definition: "Lieu aménagé pour le stationnement gratuit à durée limitée avec contrôle par disque",
       image: "/content/code-panneaux/c/C1b.png",
       audio: "/content/code-panneaux/audio/C1b.mp3",
+    },
+    {
+      code: "C1b-ancien",
+      definition: "Lieu aménagé pour le stationnement gratuit à durée limitée fixée à 1 h 30 avec contrôle par un dispositif approprié",
+      image: "/content/code-panneaux/c/C1b-ancien.png",
     },
     {
       code: "C1c",
@@ -962,12 +935,6 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
       definition: "Début d’une section d’autoroute. Ce signal annonce le début de l’application des règles particulières de circulation sur autoroute",
       image: "/content/code-panneaux/c/C207.png",
       audio: "/content/code-panneaux/audio/C207.mp3",
-    },
-    {
-      code: "C208",
-      definition: "Fin d’une section d'autoroute. Ce signal annonce la fin de l’application des règles particulières de circulation sur autoroute",
-      image: "/content/code-panneaux/c/C208.png",
-      audio: "/content/code-panneaux/audio/C208.mp3",
     }
     ],
   },
@@ -1885,39 +1852,36 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
     signs: [
     {
       code: "G1",
-      definition: "Signalisation de position, d'une part, des passages à niveau à une voie sans barrières ni demi- barrières et non munis de signalisation automatique et, d'autre part, des aires de danger aérien où les mouvements d'avions à basse altitude constituent un danger pour la circulation routière. Dans ce dernier cas le panneau est complété par un dispositif lumineux d'interruption de la circulation (deux feux rouges clignotants alternativement et placés à la même hauteur) G1bis Signalisation de position des passages à niveau à une voie munis d'une signalisation automatique lumineuse et sonore sans barrière ni demi- barrière. Les signaux G1bis et G1b bis sont composés respectivement d'un panneau G1 ou G1b complété par un signal sonore et un feu clignotant dont le fonctionnement annonce l'arrivée des trains",
+      definition: "Signalisation de position, d'une part, des passages à niveau à une voie sans barrières ni demi- barrières et non munis de signalisation automatique et, d'autre part, des aires de danger aérien où les mouvements d'avions à basse altitude constituent un danger pour la circulation routière. Dans ce dernier cas le panneau est complété par un dispositif lumineux d'interruption de la circulation (deux feux rouges clignotants alternativement et placés à la même hauteur)",
       image: "/content/code-panneaux/g/G1.png",
       audio: "/content/code-panneaux/audio/G1.mp3",
     },
     {
+      code: "G1bis",
+      definition: "Signalisation de position des passages à niveau à une voie munis d'une signalisation automatique lumineuse et sonore sans barrière ni demi- barrière. Les signaux G1bis et G1b bis sont composés respectivement d'un panneau G1 ou G1b complété par un signal sonore et un feu clignotant dont le fonctionnement annonce l'arrivée des trains",
+      image: "/content/code-panneaux/g/G1bis.png",
+    },
+    {
       code: "G1a",
-      definition: "Signalisation de position des passages à niveau à plusieurs voies sans barrière ni demi- barrière et non munis de signalisation automatique G1a_bis Signalisation de position des passages à niveau à plusieurs voies munies d'une signalisation automatique lumineuse et sonore sans barrière ni demi- barrière. Les signaux G1a bis et G1c bis sont composés respectivement d'un panneau G1a ou G1c complété par un signal sonore et un feu rouge clignotant dont le fonctionnement annonce l'arrivée des trains",
+      definition: "Signalisation de position des passages à niveau à plusieurs voies sans barrière ni demi- barrière et non munis de signalisation automatique",
       image: "/content/code-panneaux/g/G1a.png",
       audio: "/content/code-panneaux/audio/G1a.mp3",
     },
     {
+      code: "G1a_bis",
+      definition: "Signalisation de position des passages à niveau à plusieurs voies munies d'une signalisation automatique lumineuse et sonore sans barrière ni demi- barrière. Les signaux G1a bis et G1c bis sont composés respectivement d'un panneau G1a ou G1c complété par un signal sonore et un feu rouge clignotant dont le fonctionnement annonce l'arrivée des trains",
+      image: "/content/code-panneaux/g/G1a_bis.png",
+    },
+    {
       code: "G1b",
-      definition: "Signalisation de position, d'une part, des passages à niveau à une voie sans barrières ni demi- barrières et non munis de signalisation automatique et, d'autre part, des aires de danger aérien où les mouvements d'avions à basse altitude constituent un danger pour la circulation routière. Dans ce dernier cas le panneau est complété par un dispositif lumineux d'interruption de la circulation (deux feux rouges clignotants alternativement et placés à la même hauteur) G1b_bis Signalisation de position des passages à niveau à une voie munis d'une signalisation automatique lumineuse et sonore sans barrière ni demi- barrière. Les signaux G1bis et G1b bis sont composés respectivement d'un panneau G1 ou G1b complété par un signal sonore et un feu clignotant dont le fonctionnement annonce l'arrivée des trains",
+      definition: "Signalisation de position, d'une part, des passages à niveau à une voie sans barrières ni demi- barrières et non munis de signalisation automatique et, d'autre part, des aires de danger aérien où les mouvements d'avions à basse altitude constituent un danger pour la circulation routière. Dans ce dernier cas le panneau est complété par un dispositif lumineux d'interruption de la circulation (deux feux rouges clignotants alternativement et placés à la même hauteur)",
       image: "/content/code-panneaux/g/G1b.png",
       audio: "/content/code-panneaux/audio/G1b.mp3",
     },
     {
-      code: "G1c",
-      definition: "Signalisation de position des passages à niveau à plusieurs voies sans barrière ni demi- barrière et non munis de signalisation automatique G1c_bis Signalisation de position des passages à niveau à plusieurs voies munies d'une signalisation automatique lumineuse et sonore sans barrière ni demi- barrière. Les signaux G1a bis et G1c bis sont composés respectivement d'un panneau G1a ou G1c complété par un signal sonore et un feu rouge clignotant dont le fonctionnement annonce l'arrivée des trains",
-      image: "/content/code-panneaux/g/G1c.png",
-      audio: "/content/code-panneaux/audio/G1c.mp3",
-    },
-    {
-      code: "G2",
-      definition: "Signalisation automatique avec un feu rouge clignotant et munie de demi-barrières à fonctionnement automatique interceptant la partie droite de la chaussée. Le fonctionnement du feu rouge clignotant annonce l'arrivée des trains et précède de peu la fermeture des demi- barrières",
-      image: "/content/code-panneaux/g/G2.png",
-      audio: "/content/code-panneaux/audio/G2.mp3",
-    },
-    {
-      code: "G3",
-      definition: "Portique.Signalisation des passages à niveau avec voies électrifiées lorsque la hauteur des fils de contact est inférieure à 6 mètres",
-      image: "/content/code-panneaux/g/G3.png",
-      audio: "/content/code-panneaux/audio/G3.mp3",
+      code: "G1b_bis",
+      definition: "Signalisation de position des passages à niveau à une voie munis d'une signalisation automatique lumineuse et sonore sans barrière ni demi- barrière. Les signaux G1bis et G1b bis sont composés respectivement d'un panneau G1 ou G1b complété par un signal sonore et un feu clignotant dont le fonctionnement annonce l'arrivée des trains",
+      image: "/content/code-panneaux/g/G1b_bis.png",
     }
     ],
   },
@@ -2117,9 +2081,54 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
     },
     {
       code: "ID15a",
-      definition: "Parc naturel régional : il s'agit d'un idéogramme type qui reçoit dans l'ovale marron l'emblème du parc naturel régional à signaler ID15a1 Parc naturel régional de L'Armorique ID15a2 Parc naturel régional des Ballons des Vosges ID15a3 Parc naturel régional de la Brenne ID15a4 Parc naturel régional de la Brièr ID15a5 Parc naturel régional des Boucles de la Seine Normande ID15a6 Parc naturel régional de Camargue ID15a7 Parc naturel régional de la Chartreuse ID15a8 Parc naturel régional de la Cors ID15a9 Parc naturel régional de la Forê d'Orient ID15a10 Parc naturel régional des Grands Causses ID15a11 Parc naturel régional de la Haute-Vallée de Chevreuse ID15a12 Parc naturel régional du Haut- Jura ID15a13 Parc naturel régional du Haut- Languedoc ID15a14 Parc naturel régional des Landes de Gascogne ID15a15 Parc naturel régional du Livradois-Forez ID15a16 Parc naturel régional de Lorraine ID15a17 Parc naturel régional du Luberon ID15a18 Parc naturel régional des Marais du Cotentin et du Bessin ID15a20 Parc naturel régional de la Martinique ID15a21 Parc naturel régional de la Montagne de Reims ID15a22 Parc naturel régional du Morvan ID15a23 Parc naturel régional de l'Avesnois ID15a24 Parc naturel régional de Normandie-Maine ID15a25 Parc naturel régional du Pilat ID15a26 Parc naturel régional du Queyras ID15a27 Parc naturel régional du Vercors ID15a28 Parc naturel régional du Vexin Français ID15a29 Parc naturel régional des Volcans d'Auvergne ID15a30 Parc naturel régional des Vosges du Nord ID15a31 Parc naturel régional du Massif des Bauges ID15a32 Parc naturel régional Loire - Anjou - Touraine ID15a33 Parc naturel régional du Verdon ID15a34 Parc naturel régional du Perche ID15a35 Parc naturel régional du Périgord-Limousin ID15a36 Parc naturel régional de Scarpe- Escaut ID15a37 Parc naturel régional du Gâtinais français ID15a38 Parc naturel régional des Causses du Quercy ID15a39 Parc naturel régional des Monts d'Ardèche ID15a40 Parc naturel régional de la Guyane ID15a41 Parc naturel régional des Caps et Marais d'Opale",
+      definition: "Parc naturel régional : il s'agit d'un idéogramme type qui reçoit dans l'ovale marron l'emblème du parc naturel régional à signaler",
       image: "/content/code-panneaux/id/ID15a.png",
       audio: "/content/code-panneaux/audio/ID15a.mp3",
+    },
+    {
+      code: "ID15a1",
+      definition: "Parc naturel régional de L'Armorique",
+      image: "/content/code-panneaux/id/ID15a1.png",
+    },
+    {
+      code: "ID15a2",
+      definition: "Parc naturel régional des Ballons des Vosges",
+      image: "/content/code-panneaux/id/ID15a2.png",
+    },
+    {
+      code: "ID15a3",
+      definition: "Parc naturel régional de la Brenne",
+      image: "/content/code-panneaux/id/ID15a3.png",
+    },
+    {
+      code: "ID15a4",
+      definition: "Parc naturel régional de la Brièr",
+      image: "/content/code-panneaux/id/ID15a4.png",
+    },
+    {
+      code: "ID15a5",
+      definition: "Parc naturel régional des Boucles de la Seine Normande",
+      image: "/content/code-panneaux/id/ID15a5.png",
+    },
+    {
+      code: "ID15a6",
+      definition: "Parc naturel régional de Camargue",
+      image: "/content/code-panneaux/id/ID15a6.png",
+    },
+    {
+      code: "ID15a7",
+      definition: "Parc naturel régional de la Chartreuse",
+      image: "/content/code-panneaux/id/ID15a7.png",
+    },
+    {
+      code: "ID15a8",
+      definition: "Parc naturel régional de la Cors",
+      image: "/content/code-panneaux/id/ID15a8.png",
+    },
+    {
+      code: "ID15a9",
+      definition: "Parc naturel régional de la Forê d'Orient ID15a10 Parc naturel régional des Grands Causses ID15a11 Parc naturel régional de la Haute-Vallée de Chevreuse ID15a12 Parc naturel régional du Haut- Jura ID15a13 Parc naturel régional du Haut- Languedoc ID15a14 Parc naturel régional des Landes de Gascogne ID15a15 Parc naturel régional du Livradois-Forez ID15a16 Parc naturel régional de Lorraine ID15a17 Parc naturel régional du Luberon ID15a18 Parc naturel régional des Marais du Cotentin et du Bessin ID15a20 Parc naturel régional de la Martinique ID15a21 Parc naturel régional de la Montagne de Reims ID15a22 Parc naturel régional du Morvan ID15a23 Parc naturel régional de l'Avesnois ID15a24 Parc naturel régional de Normandie-Maine ID15a25 Parc naturel régional du Pilat ID15a26 Parc naturel régional du Queyras ID15a27 Parc naturel régional du Vercors ID15a28 Parc naturel régional du Vexin Français ID15a29 Parc naturel régional des Volcans d'Auvergne ID15a30 Parc naturel régional des Vosges du Nord ID15a31 Parc naturel régional du Massif des Bauges ID15a32 Parc naturel régional Loire - Anjou - Touraine ID15a33 Parc naturel régional du Verdon ID15a34 Parc naturel régional du Perche ID15a35 Parc naturel régional du Périgord-Limousin ID15a36 Parc naturel régional de Scarpe- Escaut ID15a37 Parc naturel régional du Gâtinais français ID15a38 Parc naturel régional des Causses du Quercy ID15a39 Parc naturel régional des Monts d'Ardèche ID15a40 Parc naturel régional de la Guyane ID15a41 Parc naturel régional des Caps et Marais d'Opale",
+      image: "/content/code-panneaux/id/ID15a9.png",
     },
     {
       code: "ID15b",
@@ -2258,60 +2267,6 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
       definition: "Restaurant",
       image: "/content/code-panneaux/id/ID26a.png",
       audio: "/content/code-panneaux/audio/ID26a.mp3",
-    },
-    {
-      code: "ID26b",
-      definition: "Débit de boissons ou établissement proposant des collations sommaires",
-      image: "/content/code-panneaux/id/ID26b.png",
-      audio: "/content/code-panneaux/audio/ID26b.mp3",
-    },
-    {
-      code: "ID27",
-      definition: "Maison de pays",
-      image: "/content/code-panneaux/id/ID27.png",
-      audio: "/content/code-panneaux/audio/ID27.mp3",
-    },
-    {
-      code: "ID28",
-      definition: "Village étape, utilisable pour les villages ayant reçu le label \"village étape\" décerné par le ministère chargé des routes",
-      image: "/content/code-panneaux/id/ID28.png",
-      audio: "/content/code-panneaux/audio/ID28.mp3",
-    },
-    {
-      code: "ID29",
-      definition: "Point d’eau potable",
-      image: "/content/code-panneaux/id/ID29.png",
-      audio: "/content/code-panneaux/audio/ID29.mp3",
-    },
-    {
-      code: "ID30",
-      definition: "Autocaravane",
-      image: "/content/code-panneaux/id/ID30.png",
-      audio: "/content/code-panneaux/audio/ID30.mp3",
-    },
-    {
-      code: "ID31",
-      definition: "Toilettes",
-      image: "/content/code-panneaux/id/ID31.png",
-      audio: "/content/code-panneaux/audio/ID31.mp3",
-    },
-    {
-      code: "ID32",
-      definition: "Distributeur automatique de billets de banque",
-      image: "/content/code-panneaux/id/ID32.png",
-      audio: "/content/code-panneaux/audio/ID32.mp3",
-    },
-    {
-      code: "ID33a",
-      definition: "Produits du terroir",
-      image: "/content/code-panneaux/id/ID33a.png",
-      audio: "/content/code-panneaux/audio/ID33a.mp3",
-    },
-    {
-      code: "ID33b",
-      definition: "Produits vinicoles Logotype Exemple de logotype : Hautes- Pyrénées Logotype Exemple de logotype : Haute- Loire Logotype Exemple de logotype : La Manche Logotype Exemple de logotype : Alpes de Haute-Provence Logotype Exemple de logotype : Charente- Maritime Logotype Exemple de logotype : Bretagne Logotype Exemple de logotype : Région Centre Logotype Exemple de logotype : Haute- Normandie Logotype Exemple de logotype : Pays de la Loire",
-      image: "/content/code-panneaux/id/ID33b.png",
-      audio: "/content/code-panneaux/audio/ID33b.mp3",
     }
     ],
   },
@@ -2323,9 +2278,14 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
     signs: [
     {
       code: "J1",
-      definition: "Balisage des virages J1bis Balisage des virages sur routes fréquemment enneigées",
+      definition: "Balisage des virages",
       image: "/content/code-panneaux/j/J1.png",
       audio: "/content/code-panneaux/audio/J1.mp3",
+    },
+    {
+      code: "J1bis",
+      definition: "Balisage des virages sur routes fréquemment enneigées",
+      image: "/content/code-panneaux/j/J1bis.png",
     },
     {
       code: "J3",
@@ -2386,12 +2346,6 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
       definition: "Balises de musoir, signalant la divergence des voies",
       image: "/content/code-panneaux/j/J14a.png",
       audio: "/content/code-panneaux/audio/J14a.mp3",
-    },
-    {
-      code: "J14b",
-      definition: "Balises de musoir, signalant la divergence des voies",
-      image: "/content/code-panneaux/j/J14b.png",
-      audio: "/content/code-panneaux/audio/J14b.mp3",
     }
     ],
   },
@@ -2451,9 +2405,19 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
     },
     {
       code: "M4c",
-      definition: "Désigne les motocyclettes et motocyclettes légères, au sens de l’article R.311-1 du code de la route M4d1 Désigne les cycles M4d2 Désigne les cyclomoteurs",
+      definition: "Désigne les motocyclettes et motocyclettes légères, au sens de l’article R.311-1 du code de la route",
       image: "/content/code-panneaux/m/M4c.png",
       audio: "/content/code-panneaux/audio/M4c.mp3",
+    },
+    {
+      code: "M4d1",
+      definition: "Désigne les cycles",
+      image: "/content/code-panneaux/m/M4d1.png",
+    },
+    {
+      code: "M4d2",
+      definition: "Désigne les cyclomoteurs",
+      image: "/content/code-panneaux/m/M4d2.png",
     },
     {
       code: "M4e",
@@ -2715,51 +2679,35 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
     },
     {
       code: "M9f",
-      definition: "Indique que l'emplacement d'arrêt d'urgence est doté d'un poste d'appel d'urgence et d'un moyen de lutte contre l'incendie M9j1 Indique le risque de heurt de véhicules lents M9j2 Indique le risque de heurt de véhicules lents M9v1 Indique que la prescription donnée par le panneau associé ne s'applique pas aux cyclistes M9v2 Indique que la prescription donnée par le panneau associé ne s'applique pas aux cyclistes",
+      definition: "Indique que l'emplacement d'arrêt d'urgence est doté d'un poste d'appel d'urgence et d'un moyen de lutte contre l'incendie",
       image: "/content/code-panneaux/m/M9f.png",
       audio: "/content/code-panneaux/audio/M9f.mp3",
+    },
+    {
+      code: "M9j1",
+      definition: "Indique le risque de heurt de véhicules lents",
+      image: "/content/code-panneaux/m/M9j1.png",
+    },
+    {
+      code: "M9j2",
+      definition: "Indique le risque de heurt de véhicules lents",
+      image: "/content/code-panneaux/m/M9j2.png",
+    },
+    {
+      code: "M9v1",
+      definition: "Indique que la prescription donnée par le panneau associé ne s'applique pas aux cyclistes",
+      image: "/content/code-panneaux/m/M9v1.png",
+    },
+    {
+      code: "M9v2",
+      definition: "Indique que la prescription donnée par le panneau associé ne s'applique pas aux cyclistes",
+      image: "/content/code-panneaux/m/M9v2.png",
     },
     {
       code: "M9z",
       definition: "Indications diverses par inscriptions",
       image: "/content/code-panneaux/m/M9z.png",
       audio: "/content/code-panneaux/audio/M9z.mp3",
-    },
-    {
-      code: "M10a",
-      definition: "Panonceau indiquant le numéro d'une route ou d’une autoroute",
-      image: "/content/code-panneaux/m/M10a.png",
-      audio: "/content/code-panneaux/audio/M10a.mp3",
-    },
-    {
-      code: "M10b",
-      definition: "Panonceau indiquant le numéro d'un échangeur",
-      image: "/content/code-panneaux/m/M10b.png",
-      audio: "/content/code-panneaux/audio/M10b.mp3",
-    },
-    {
-      code: "M10c",
-      definition: "Indique l'accès à une rocade",
-      image: "/content/code-panneaux/m/M10c.png",
-      audio: "/content/code-panneaux/audio/M10c.mp3",
-    },
-    {
-      code: "M10z",
-      definition: "Panonceau indiquant le nom propre d'un site ou de certains services",
-      image: "/content/code-panneaux/m/M10z.png",
-      audio: "/content/code-panneaux/audio/M10z.mp3",
-    },
-    {
-      code: "M11a",
-      definition: "Signale les dérogations aux prescriptions qui s'appliquent à une route à accès réglementé",
-      image: "/content/code-panneaux/m/M11a.png",
-      audio: "/content/code-panneaux/audio/M11a.mp3",
-    },
-    {
-      code: "M11b",
-      definition: "Panonceau signalant des dérogations ou des prescriptions",
-      image: "/content/code-panneaux/m/M11b.png",
-      audio: "/content/code-panneaux/audio/M11b.mp3",
     }
     ],
   },
@@ -2985,15 +2933,30 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
     },
     {
       code: "AK31",
-      definition: "Accident Fanion K1 Signalisation d'un obstacle temporaire de faible importance",
+      definition: "Accident Fanion",
       image: "/content/code-panneaux/temporaire/AK31.png",
       audio: "/content/code-panneaux/audio/AK31.mp3",
     },
     {
+      code: "K1",
+      definition: "Signalisation d'un obstacle temporaire de faible importance",
+      image: "/content/code-panneaux/temporaire/K1.png",
+    },
+    {
       code: "K2",
-      definition: "Barrages.Signalisation de position de travaux ou de tout autre obstacle de caractère temporaire Dispositif conique K5a Signalisation de position des limites d'obstacles temporaires ou de chantier Piquet K5b Signalisation de position des limites d'obstacles temporaires ou de chantier",
+      definition: "Barrages.Signalisation de position de travaux ou de tout autre obstacle de caractère temporaire Dispositif conique",
       image: "/content/code-panneaux/temporaire/K2.png",
       audio: "/content/code-panneaux/audio/K2.mp3",
+    },
+    {
+      code: "K5a",
+      definition: "Signalisation de position des limites d'obstacles temporaires ou de chantier Piquet",
+      image: "/content/code-panneaux/temporaire/K5a.png",
+    },
+    {
+      code: "K5b",
+      definition: "Signalisation de position des limites d'obstacles temporaires ou de chantier",
+      image: "/content/code-panneaux/temporaire/K5b.png",
     },
     {
       code: "K5c",
@@ -3015,9 +2978,14 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
     },
     {
       code: "K10",
-      definition: "Signal servant à régler manuellement la circulation Ruban K14 Signal de délimitation de chantier ou signal de fermeture d'un passage à niveau",
+      definition: "Signal servant à régler manuellement la circulation Ruban",
       image: "/content/code-panneaux/temporaire/K10.png",
       audio: "/content/code-panneaux/audio/K10.mp3",
+    },
+    {
+      code: "K14",
+      definition: "Signal de délimitation de chantier ou signal de fermeture d'un passage à niveau",
+      image: "/content/code-panneaux/temporaire/K14.png",
     },
     {
       code: "K15",
@@ -3144,30 +3112,6 @@ export const PANNEAUX_CATEGORIES: PanneauCategory[] = [
       definition: "Rampe lumineuse. Elle renforce la signalisation de position d'un véhicule d'intervention ou de travaux avec indication du côté par lequel il faut le contourner",
       image: "/content/code-panneaux/temporaire/KR41.png",
       audio: "/content/code-panneaux/audio/KR41.mp3",
-    },
-    {
-      code: "KR42",
-      definition: "Flèche lumineuse. Elle indique le côté vers lequel il faut se déporter",
-      image: "/content/code-panneaux/temporaire/KR42.png",
-      audio: "/content/code-panneaux/audio/KR42.mp3",
-    },
-    {
-      code: "KR43",
-      definition: "Flèche lumineuse. Elle signifie l'obligation de se déporter vers la voie adjacente indiquée",
-      image: "/content/code-panneaux/temporaire/KR43.png",
-      audio: "/content/code-panneaux/audio/KR43.mp3",
-    },
-    {
-      code: "KR44",
-      definition: "Signal lumineux. Signal mobile de position d'un rétrécissement temporaire de chaussée",
-      image: "/content/code-panneaux/temporaire/KR44.png",
-      audio: "/content/code-panneaux/audio/KR44.mp3",
-    },
-    {
-      code: "KXC50",
-      definition: "Signal lumineux. Message littéral utilisé pour péciser ou compléter une information délivrée par un signal ou pour délivrer une information lorsque on ne dispose pas du ou des signaux adéquats",
-      image: "/content/code-panneaux/temporaire/KXC50.png",
-      audio: "/content/code-panneaux/audio/KXC50.mp3",
     }
     ],
   },

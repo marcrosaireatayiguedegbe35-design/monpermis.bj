@@ -159,24 +159,24 @@ const SIGNS = {
       ],
     },
   ],
-  5: [{ after: /Les pistes et bandes cyclables/, groups: [{ items: [['b', 'B40', 'Piste ou bande cyclable obligatoire']] }] }],
+  5: [{ after: /Les pistes et bandes cyclables/, groups: [{ items: [['b', 'B22a', 'Piste ou bande cyclable obligatoire']] }] }],
   6: [
     {
       after: /Ils sont placés à 50 mètres/,
-      groups: [{ title: 'Panneaux de danger', items: [['a', 'A1a', 'Virage à droite'], ['a', 'A2a', 'Cassis ou dos-d\'âne'], ['a', 'A4', 'Chaussée glissante'], ['a', 'A13b', 'Passage pour piétons'], ['a', 'A18', 'Descente dangereuse']] }],
+      groups: [{ title: 'Panneaux de danger', items: [['a', 'A1a', 'Virage à droite'], ['a', 'A2a', 'Cassis ou dos-d\'âne'], ['a', 'A4', 'Chaussée glissante'], ['a', 'A13b', 'Passage pour piétons'], ['a', 'A16', 'Descente dangereuse']] }],
     },
     {
       after: /traits rouges\.?$/,
       groups: [
-        { title: 'Interdiction', items: [['b', 'B1', 'Sens interdit'], ['b', 'B3', 'Dépassement interdit'], ['b', 'B18c', 'Vitesse limitée']] },
-        { title: 'Fin d\'interdiction', items: [['b', 'B50c', 'Fin de toutes les interdictions'], ['b', 'B50d', 'Fin de limitation de vitesse'], ['b', 'B54', 'Fin d\'interdiction de dépasser']] },
-        { title: 'Obligation', items: [['b', 'B31', 'Direction obligatoire'], ['b', 'B40', 'Piste cyclable obligatoire'], ['b', 'B43', 'Vitesse minimale obligatoire']] },
-        { title: 'Arrêt et stationnement', items: [['b', 'B6d', 'Stationnement interdit'], ['b', 'B9h', 'Arrêt et stationnement interdits']] },
+        { title: 'Interdiction', items: [['b', 'B1', 'Sens interdit'], ['b', 'B3', 'Dépassement interdit'], ['b', 'B14', 'Vitesse limitée']] },
+        { title: 'Fin d\'interdiction', items: [['b', 'B31', 'Fin de toutes les interdictions'], ['b', 'B33', 'Fin de limitation de vitesse'], ['b', 'B34', 'Fin d\'interdiction de dépasser']] },
+        { title: 'Obligation', items: [['b', 'B21c1', 'Direction obligatoire'], ['b', 'B22a', 'Piste cyclable obligatoire'], ['b', 'B25', 'Vitesse minimale obligatoire']] },
+        { title: 'Arrêt et stationnement', items: [['b', 'B6a1', 'Stationnement interdit'], ['b', 'B6d', 'Arrêt et stationnement interdits']] },
       ],
     },
     {
       after: /Ce sont les panneaux ayant la forme carrée/,
-      groups: [{ title: 'Panneaux d\'indication', items: [['c', 'C1a', 'Parking'], ['c', 'C8', 'Arrêt d\'autobus'], ['c', 'C13a', 'Sens unique'], ['c', 'C13b', 'Impasse']] }],
+      groups: [{ title: 'Panneaux d\'indication', items: [['c', 'C1a', 'Parking'], ['c', 'C6', 'Arrêt d\'autobus'], ['c', 'C12', 'Sens unique'], ['c', 'C13a', 'Impasse']] }],
     },
     {
       after: /Ce sont les panneaux de formes diverses/,
@@ -188,13 +188,13 @@ const SIGNS = {
       groups: [
         {
           title: 'Les balises',
-          items: [['j', 'J1', 'Balise de virage'], ['j', 'J3', 'Balise de virage à tête rouge'], ['j', 'J5', 'Chevrons de virage dangereux'], ['j', 'J4', 'Balise d\'intersection'], ['j', 'J7', 'Délinéateur'], ['j', 'J6', 'Tête d\'îlot directionnel'], ['j', 'J10', 'Manche à air']],
+          items: [['j', 'J1', 'Balise de virage'], ['j', 'J1bis', 'Balise de virage à tête rouge'], ['j', 'J4', 'Chevrons de virage dangereux'], ['j', 'J3', 'Balise d\'intersection'], ['j', 'J6', 'Délinéateur'], ['j', 'J5', 'Tête d\'îlot directionnel'], ['j', 'J7', 'Manche à air']],
         },
       ],
     },
   ],
-  15: [{ groups: [{ title: 'Le panneau qui interdit le dépassement', items: [['b', 'B3', 'Dépassement interdit'], ['b', 'B54', 'Fin d\'interdiction de dépasser']] }] }],
-  17: [{ groups: [{ title: 'Les panneaux qui interdisent l\'arrêt et le stationnement', items: [['b', 'B6d', 'Stationnement interdit'], ['b', 'B9h', 'Arrêt et stationnement interdits']] }] }],
+  15: [{ groups: [{ title: 'Le panneau qui interdit le dépassement', items: [['b', 'B3', 'Dépassement interdit'], ['b', 'B34', 'Fin d\'interdiction de dépasser']] }] }],
+  17: [{ groups: [{ title: 'Les panneaux qui interdisent l\'arrêt et le stationnement', items: [['b', 'B6a1', 'Stationnement interdit'], ['b', 'B6d', 'Arrêt et stationnement interdits']] }] }],
 }
 
 /** Insère les blocs de panneaux dans le HTML d'un cours (numéro de chapitre = clé de SIGNS). */
