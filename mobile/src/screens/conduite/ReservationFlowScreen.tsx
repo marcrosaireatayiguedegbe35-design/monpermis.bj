@@ -520,85 +520,54 @@ export function ReservationFlowScreen() {
                     const photo = moniteur.photoUrl || moniteur.vehiclePhotoUrl
                     return (
                       <View key={moniteur.id} style={{ width: pagerWidth, height: pagerHeight, padding: 2 }}>
-                        <View style={styles.mCard}>
-                          <View style={styles.mPhotoWrap}>
-                            {photo ? (
-                              <Image
-                                source={{ uri: optimizedImageUrl(resolveMediaUrl(photo)) }}
-                                style={styles.mPhoto}
-                                resizeMode="cover"
-                              />
-                            ) : (
-                              <View style={[styles.mPhoto, styles.mNoPhoto]}>
-                                <Text style={styles.mInitial}>{moniteur.fullName.slice(0, 1).toUpperCase()}</Text>
-                              </View>
-                            )}
-                            <View style={styles.mVerified}>
-                              <Check size={13} color="#FFFFFF" strokeWidth={3} />
-                              <Text style={styles.mVerifiedText}>Vérifié</Text>
+                        <View style={styles.tCard}>
+                          {photo ? (
+                            <Image
+                              source={{ uri: optimizedImageUrl(resolveMediaUrl(photo)) }}
+                              style={StyleSheet.absoluteFill}
+                              resizeMode="cover"
+                            />
+                          ) : (
+                            <View style={[StyleSheet.absoluteFill, styles.mNoPhoto]}>
+                              <Text style={styles.mInitial}>{moniteur.fullName.slice(0, 1).toUpperCase()}</Text>
                             </View>
-                            {position > 0 ? (
-                              <Pressable
-                                style={[styles.mArrow, { left: 10 }]}
-                                hitSlop={10}
-                                accessibilityLabel="Moniteur précédent"
-                                onPress={() => {
-                                  pagerRef.current?.scrollTo({ x: (position - 1) * pagerWidth, animated: true })
-                                  setMoniteurIndex(position - 1)
-                                }}
-                              >
-                                <ChevronLeft size={22} color="#0B1F3A" />
-                              </Pressable>
-                            ) : null}
-                            {position < moniteurs.length - 1 ? (
-                              <Pressable
-                                style={[styles.mArrow, { right: 10 }]}
-                                hitSlop={10}
-                                accessibilityLabel="Moniteur suivant"
-                                onPress={() => {
-                                  pagerRef.current?.scrollTo({ x: (position + 1) * pagerWidth, animated: true })
-                                  setMoniteurIndex(position + 1)
-                                }}
-                              >
-                                <ChevronRight size={22} color="#0B1F3A" />
-                              </Pressable>
-                            ) : null}
-                            {moniteurs.length > 1 ? (
-                              <View style={styles.mDots}>
-                                {moniteurs.slice(0, 6).map((m, i) => (
-                                  <View key={m.id} style={[styles.mDot, i === position && styles.mDotOn]} />
-                                ))}
+                          )}
+                          <View style={styles.tBars}>
+                            {moniteurs.slice(0, 8).map((m, i) => (
+                              <View key={m.id} style={[styles.tBar, i === position && styles.tBarOn]} />
+                            ))}
+                          </View>
+                          <View style={styles.tVerified}>
+                            <Check size={13} color="#FFFFFF" strokeWidth={3} />
+                            <Text style={styles.mVerifiedText}>Vérifié</Text>
+                          </View>
+                          <LinearGradient
+                            colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.94)', '#FFFFFF']}
+                            locations={[0, 0.45, 1]}
+                            style={styles.tShade}
+                          >
+                            <Text style={styles.tName} numberOfLines={2}>{moniteur.fullName}</Text>
+                            <View style={styles.tRow}>
+                              <User size={16} color={RES.muted} />
+                              <Text style={styles.tRole} numberOfLines={1}>
+                                Moniteur de conduite{moniteur.city ? ` · ${moniteur.city}` : ''}
+                              </Text>
+                            </View>
+                            <View style={styles.tChips}>
+                              <View style={styles.tChip}>
+                                <Car size={15} color={RES.ink} />
+                                <Text style={styles.tChipText} numberOfLines={1}>{moniteur.vehicleBrand || 'Véhicule'}</Text>
                               </View>
-                            ) : null}
-                          </View>
-
-                          <Text style={styles.mName} numberOfLines={1}>{moniteur.fullName}</Text>
-                          <View style={styles.mRole}>
-                            <User size={15} color="#2563EB" />
-                            <Text style={styles.mRoleText} numberOfLines={1}>
-                              Moniteur de conduite{moniteur.city ? ` · ${moniteur.city}` : ''}
-                            </Text>
-                          </View>
-                          <View style={styles.mTiles}>
-                            <View style={[styles.mTile, { backgroundColor: '#F1F5F2' }]}>
-                              <Car size={26} color="#0B1F3A" />
-                              <View style={{ flexShrink: 1 }}>
-                                <Text style={styles.mTileValue} numberOfLines={1}>{moniteur.vehicleBrand || 'Véhicule'}</Text>
-                                <Text style={styles.mTileLabel}>Véhicule</Text>
+                              <View style={[styles.tChip, { backgroundColor: RES.soft }]}>
+                                <Wallet size={15} color={RES.green} />
+                                <Text style={[styles.tChipText, { color: RES.green }]}>Solo 5 000 F/h</Text>
+                              </View>
+                              <View style={[styles.tChip, { backgroundColor: RES.soft }]}>
+                                <Users size={15} color={RES.green} />
+                                <Text style={[styles.tChipText, { color: RES.green }]}>Groupe {groupPriceFcfa.toLocaleString('fr-FR')} F/h</Text>
                               </View>
                             </View>
-                            <View style={[styles.mTile, { backgroundColor: '#EAF8EF' }]}>
-                              <Wallet size={26} color={RES.green} />
-                              <View style={{ flexShrink: 1 }}>
-                                <Text style={[styles.mTileValue, { color: RES.green }]} numberOfLines={1}>
-                                  5 000 F / h
-                                </Text>
-                                <Text style={styles.mTileLabel} numberOfLines={1}>
-                                  Groupe {groupPriceFcfa.toLocaleString('fr-FR')} F/h
-                                </Text>
-                              </View>
-                            </View>
-                          </View>
+                          </LinearGradient>
                         </View>
                       </View>
                     )
@@ -609,7 +578,7 @@ export function ReservationFlowScreen() {
           ) : null}
 
           {step === 'profile' && profile ? (
-            <View style={{ flex: 1, gap: 12 }}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 12, paddingBottom: 12 }} showsVerticalScrollIndicator={false}>
               {busy ? <ActivityIndicator color={RES.green} /> : null}
               <View style={styles.pCard}>
                 <View style={styles.pHead}>
@@ -654,9 +623,9 @@ export function ReservationFlowScreen() {
 
               <ModeCards mode={bookingMode} soloPrice={5000} groupPrice={groupPriceFcfa} onChange={setBookingMode} />
 
-              <View style={[styles.pCard, { flex: 1 }]}>
+              <View style={styles.pCard}>
                 {profileTab === 'about' ? (
-                  <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                  <View style={{ gap: 10 }}>
                     <Text style={styles.pBio}>
                       {profile.bio?.trim() || 'Ce moniteur n’a pas encore ajouté de présentation.'}
                     </Text>
@@ -679,7 +648,7 @@ export function ReservationFlowScreen() {
                         <Text style={styles.pChipText}>Groupe {groupPriceFcfa.toLocaleString('fr-FR')} F / h</Text>
                       </View>
                     </View>
-                  </ScrollView>
+                  </View>
                 ) : null}
 
                 {profileTab === 'photos' ? (
@@ -689,7 +658,7 @@ export function ReservationFlowScreen() {
                     )
                     if (gallery.length === 0) return <Text style={styles.pBio}>Pas encore de photos.</Text>
                     return (
-                      <ScrollView showsVerticalScrollIndicator={false}>
+                      <View>
                         <View style={styles.pGalleryGrid}>
                           {gallery.map((uri) => (
                             <Image
@@ -700,13 +669,13 @@ export function ReservationFlowScreen() {
                             />
                           ))}
                         </View>
-                      </ScrollView>
+                      </View>
                     )
                   })()
                 ) : null}
 
               </View>
-            </View>
+            </ScrollView>
           ) : null}
 
           {step === 'duration' ? (() => {
@@ -899,26 +868,63 @@ export function ReservationFlowScreen() {
 
         {(step === 'moniteur' && moniteurs.length > 0) || (step === 'profile' && profile) || step === 'duration' || (step === 'slots' && daysWithSlots.length > 0) ? (
           <View style={styles.bottomBar}>
+            {step === 'moniteur' ? (
+              <View style={styles.tActions}>
+                <Pressable
+                  style={styles.tSmall}
+                  accessibilityLabel="Moniteur précédent"
+                  onPress={() => {
+                    const to = Math.max(0, moniteurIndex - 1)
+                    pagerRef.current?.scrollTo({ x: to * pagerWidth, animated: true })
+                    setMoniteurIndex(to)
+                  }}
+                >
+                  <ChevronLeft size={24} color={RES.ink} />
+                </Pressable>
+                <Pressable
+                  style={styles.tBig}
+                  accessibilityLabel="Passer, moniteur suivant"
+                  onPress={() => {
+                    const to = Math.min(moniteurs.length - 1, moniteurIndex + 1)
+                    pagerRef.current?.scrollTo({ x: to * pagerWidth, animated: true })
+                    setMoniteurIndex(to)
+                  }}
+                >
+                  <X size={32} color="#E5484D" strokeWidth={2.6} />
+                </Pressable>
+                <Pressable
+                  style={[styles.tBig, styles.tBigOk]}
+                  accessibilityLabel="Choisir ce moniteur"
+                  onPress={() => {
+                    const chosen = moniteurs[Math.min(moniteurIndex, moniteurs.length - 1)]
+                    if (chosen) void loadProfile(chosen.id)
+                  }}
+                >
+                  <Check size={34} color="#FFFFFF" strokeWidth={3} />
+                </Pressable>
+                <Pressable
+                  style={styles.tSmall}
+                  accessibilityLabel="Moniteur suivant"
+                  onPress={() => {
+                    const to = Math.min(moniteurs.length - 1, moniteurIndex + 1)
+                    pagerRef.current?.scrollTo({ x: to * pagerWidth, animated: true })
+                    setMoniteurIndex(to)
+                  }}
+                >
+                  <ChevronRight size={24} color={RES.ink} />
+                </Pressable>
+              </View>
+            ) : (
             <ReserveButton
               disabled={busy || (step === 'slots' && !(selectedStart && selectedEnd))}
-              label={
-                step === 'moniteur'
-                  ? 'Sélectionner ce moniteur'
-                  : step === 'slots'
-                    ? busy
-                      ? 'Un instant…'
-                      : 'Confirmer le créneau'
-                    : 'Continuer'
-              }
+              label={step === 'slots' ? (busy ? 'Un instant…' : 'Confirmer le créneau') : 'Continuer'}
               onPress={() => {
-                if (step === 'moniteur') {
-                  const chosen = moniteurs[Math.min(moniteurIndex, moniteurs.length - 1)]
-                  if (chosen) void loadProfile(chosen.id)
-                } else if (step === 'profile') setStep('duration')
+                if (step === 'profile') setStep('duration')
                 else if (step === 'duration') setStep('slots')
                 else void onContinue()
               }}
             />
+            )}
           </View>
         ) : null}
 
@@ -1022,6 +1028,22 @@ function ModeCards({
 }
 
 const styles = StyleSheet.create({
+  tCard: { flex: 1, borderRadius: 30, overflow: 'hidden', backgroundColor: '#EAF6EF', borderWidth: 1, borderColor: RES.line, ...shadows.md },
+  tBars: { position: 'absolute', top: 10, left: 12, right: 12, flexDirection: 'row', gap: 5 },
+  tBar: { flex: 1, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.65)' },
+  tBarOn: { backgroundColor: '#FFFFFF' },
+  tVerified: { position: 'absolute', top: 26, right: 14, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: RES.green },
+  tShade: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 18, paddingTop: 90, paddingBottom: 18, gap: 8 },
+  tName: { fontFamily: fonts.displayExtraBold, fontSize: 34, lineHeight: 38, color: RES.ink, letterSpacing: -0.8 },
+  tRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tRole: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 16, color: RES.muted },
+  tChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  tChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: '#F1F5F2', maxWidth: '100%' },
+  tChipText: { fontFamily: fonts.bodyBold, fontSize: 13.5, color: RES.ink },
+  tActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14, paddingVertical: 4 },
+  tSmall: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: RES.line, ...shadows.sm },
+  tBig: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: RES.line, ...shadows.md },
+  tBigOk: { backgroundColor: RES.green, borderColor: RES.green },
   modeRow: { flexDirection: 'row', gap: 12 },
   modeCard: { padding: 14, gap: 4, borderRadius: 26, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: RES.line, ...shadows.sm },
   modeCardOn: { borderColor: RES.green, backgroundColor: '#F5FBF7' },
