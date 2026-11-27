@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { RefreshCw, Search } from 'lucide-react'
 import { fetchAdmins, fetchAuditLogs, type AdminAccount, type AuditLogEntry } from '../api/admins'
 import { DirectionSection } from '../components/model/DirectionSection'
+import { PhonePage, PhoneSearch } from '../components/phone/PhoneKit'
+import { useIsPhone } from './MobileHome'
 import { getAdminToken, isAuthError } from '../context/AdminAuthContext'
 import { EmptyState, SkeletonBlock } from '../ui'
 import { actionLabel, formatAuditDate, resourceLabel, summarizeMetadata } from '../utils/auditLabels'
@@ -24,6 +26,7 @@ export function AuditLogPage() {
   const [to, setTo] = useState('')
   const [search, setSearch] = useState('')
   const [q, setQ] = useState('')
+  const isPhone = useIsPhone()
 
   // La recherche texte n'interroge le serveur qu'après une courte pause de frappe.
   useEffect(() => {
@@ -85,6 +88,71 @@ export function AuditLogPage() {
     setTo('')
     setSearch('')
     setQ('')
+  }
+
+  if (isPhone) {
+    return (
+      <PhonePage title="Journal">
+        {error ? <p className="cx-note cx-note-err" role="alert">{error}</p> : null}
+        <PhoneSearch id="audit-search-m" value={search} onChange={setSearch} placeholder="Opération, nom…" />
+        <div className="ap-selects">
+          <select value={adminId} onChange={(e) => setAdminId(e.target.value)} aria-label="Administrateur">
+            <option value="">Tous les admins</option>
+            {admins.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.fullName}
+              </option>
+            ))}
+          </select>
+          <select value={action} onChange={(e) => setAction(e.target.value)} aria-label="Action">
+            <option value="">Toutes les actions</option>
+            {actions.map((item) => (
+              <option key={item} value={item}>
+                {actionLabel(item)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <p className="ap-count">
+          {total} opération{total > 1 ? 's' : ''}
+          {hasFilters ? (
+            <>
+              {' · '}
+              <button type="button" className="ap-link" onClick={reset}>
+                Réinitialiser
+              </button>
+            </>
+          ) : null}
+        </p>
+        <div className="ap-list">
+          {loading && logs.length === 0 ? (
+            <p className="ap-empty">Chargement…</p>
+          ) : logs.length === 0 ? (
+            <p className="ap-empty">Aucune opération pour ces critères.</p>
+          ) : (
+            logs.map((entry) => {
+              const details = summarizeMetadata(entry.metadata)
+              return (
+                <div key={entry.id} className="ap-row ap-row-tall">
+                  <span className="ap-row-t">
+                    <b className="ap-wrap">{actionLabel(entry.action)} · {resourceLabel(entry.resource)}</b>
+                    <small>{entry.adminName} · {formatAuditDate(entry.createdAt)}</small>
+                    {details !== '—' && details ? <small className="ap-wrap">{details}</small> : null}
+                  </span>
+                </div>
+              )
+            })
+          )}
+        </div>
+        {pages > 1 ? (
+          <div className="ap-pager">
+            <button type="button" disabled={page <= 1 || loading} onClick={() => void load(page - 1)}>Précédent</button>
+            <span>{page} / {pages}</span>
+            <button type="button" disabled={page >= pages || loading} onClick={() => void load(page + 1)}>Suivant</button>
+          </div>
+        ) : null}
+      </PhonePage>
+    )
   }
 
   return (

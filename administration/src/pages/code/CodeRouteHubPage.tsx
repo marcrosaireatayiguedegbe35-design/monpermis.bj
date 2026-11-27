@@ -13,6 +13,8 @@ import {
   Radar,
 } from 'lucide-react'
 import { CodeSection } from '../../components/model/CodeSection'
+import { PhoneHub } from '../../components/phone/PhoneKit'
+import { useIsPhone } from '../MobileHome'
 import { nf } from '../../components/model/ModelCharts'
 import { fetchStandaloneCourses } from '../../api/courses'
 import { fetchDashboardSummary, type DashboardSummary } from '../../api/dashboard'
@@ -38,6 +40,7 @@ const EMPTY: Overview = {
 
 export function CodeRouteHubPage() {
   const [data, setData] = useState<Overview>(EMPTY)
+  const isPhone = useIsPhone()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -183,6 +186,23 @@ export function CodeRouteHubPage() {
       ],
     },
   ]
+
+  if (isPhone) {
+    return (
+      <PhoneHub
+        title="Code de la route"
+        error={error}
+        allDone="Tout est à jour : chapitres, notions et examens sont publiés."
+        todo={todo}
+        tiles={spaces.map((sp) => ({
+          to: sp.to,
+          icon: sp.icon,
+          title: sp.title,
+          sub: loading ? '…' : sp.stats.map((st) => `${st.v} ${st.l}`).join(' · '),
+        }))}
+      />
+    )
+  }
 
   return (
     <CodeSection

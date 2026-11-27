@@ -34,6 +34,8 @@ import { PageSection } from '../../components/model/PageSection'
 import { nf } from '../../components/model/ModelCharts'
 import { getAdminToken, isAuthError } from '../../context/AdminAuthContext'
 import { Drawer, EmptyState, SkeletonBlock } from '../../ui'
+import { PhonePage, PhoneSeg } from '../../components/phone/PhoneKit'
+import { useIsPhone } from '../MobileHome'
 
 const EVENT_LABELS: Record<string, string> = {
   app_open: 'Ouverture de l’app',
@@ -125,6 +127,7 @@ type Tab = 'exams' | 'events' | 'learners'
 export function LearnerTrackingPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [tab, setTab] = useState<Tab>('exams')
+  const isPhone = useIsPhone()
 
   const [stats, setStats] = useState<Awaited<ReturnType<typeof fetchTrackStats>> | null>(null)
   const [statsLoading, setStatsLoading] = useState(true)
@@ -350,6 +353,283 @@ export function LearnerTrackingPage() {
     ) : (
       <span className="cx-chip cx-blue">En cours</span>
     )
+
+  const detailDrawer = (
+      <Drawer
+        wide
+        open={Boolean(selectedAttempt)}
+        onClose={() => setSelectedAttempt(null)}
+        title={selectedAttempt ? `Examen blanc n° ${selectedAttempt.examNumber} — ${learnerName(selectedAttempt)}` : ''}
+        subtitle={selectedAttempt ? `Commencé le ${formatDateTime(selectedAttempt.startAt)}` : undefined}
+      >
+        {selectedAttempt ? (
+          <div>
+            <AttemptVerdict attempt={selectedAttempt} />
+
+            <div className="cx-xr-summary">
+              <div className="cx-xr-stat">
+                <span>Répondues</span>
+                <strong>
+                  {selectedAttempt.answered}/{selectedAttempt.questionCount}
+                </strong>
+              </div>
+              <div className="cx-xr-stat">
+                <span>Bonnes</span>
+                <strong>{selectedAttempt.correct}</strong>
+              </div>
+              <div className="cx-xr-stat">
+                <span>Fausses / zappées</span>
+                <strong>
+                  {selectedAttempt.wrong - selectedAttempt.skipped} / {selectedAttempt.skipped}
+                </strong>
+              </div>
+              <div className="cx-xr-stat">
+                <span>Durée</span>
+                <strong>{formatDuration(selectedAttempt.durationSeconds)}</strong>
+              </div>
+            </div>
+
+            <div className="cx-tl-meta">
+              <span className="cx-chip">Dernière action : {formatDateTime(selectedAttempt.lastAt)}</span>
+              {selectedAttempt.completedAt ? (
+                <span className="cx-chip">Terminé le : {formatDateTime(selectedAttempt.completedAt)}</span>
+              ) : null}
+              {selectedAttempt.quits > 0 ? (
+                <span className="cx-chip cx-red">A quitté l’examen {selectedAttempt.quits} fois</span>
+              ) : null}
+              <span className="cx-chip">
+                Seuil de réussite : {selectedAttempt.passScore}/{selectedAttempt.total}
+              </span>
+            </div>
+
+            <h3 className="cx-xr-section">Questions et réponses</h3>
+            {timelineLoading && !detailQuestions ? (
+              <SkeletonBlock rows={4} />
+            ) : detailError ? (
+              <p className="cx-note cx-note-err">{detailError}</p>
+            ) : detailQuestions && detailQuestions.length > 0 ? (
+              <>
+                <div className="cx-xr-filter" role="group" aria-label="Filtrer les questions">
+                  {(
+                    [
+                      ['all', 'Toutes'],
+                      ['wrong', 'Fausses'],
+                      ['correct', 'Bonnes'],
+                      ['skipped', 'Zappées'],
+                      ['unanswered', 'Non répondues'],
+                    ] as [QuestionFilter, string][]
+                  ).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`cx-btn cx-btn-sm${questionFilter === key ? ' cx-btn-fill' : ''}`}
+                      onClick={() => setQuestionFilter(key)}
+                      disabled={key !== 'all' && questionCounts[key] === 0}
+                    >
+                      {label} ({questionCounts[key]})
+                    </button>
+                  ))}
+                </div>
+                <ol className="cx-xr-list">
+                  {visibleQuestions.map((q) => (
+                    <QuestionReview key={q.questionId} question={q} />
+                  ))}
+                </ol>
+              </>
+            ) : (
+              <EmptyState title="Aucune question" description="Les questions de cet examen n’ont pas pu être chargées." />
+            )}
+
+            <h3 className="cx-xr-section">Chronologie</h3>
+            {timelineLoading && !timeline ? (
+              <SkeletonBlock rows={4} />
+            ) : timelineError ? (
+              <p className="cx-note cx-note-err">{timelineError}</p>
+            ) : timeline && timeline.length > 0 ? (
+              <ol className="cx-tl">
+                {timeline.map((ev, i) => {
+                  const delta = timelineDeltas[i - 1] ?? 0
+                  const longPause = delta > 120_000
+                  return (
+                    <li key={ev.id}>
+                      <span className="cx-tl-time">{formatTime(ev.createdAt)}</span>
+                      <span className="cx-tl-dot" />
+                      <div className="cx-tl-body">
+                        <span className={`cx-evt${EXAM_GROUP_EVENTS.has(ev.event) ? ' cx-exam' : ''}`} style={{ alignSelf: 'flex-start' }}>
+                          {eventLabel(ev.event)}
+                        </span>
+                        <span>
+                          <EventDetail event={ev} />
+                          {i > 0 ? (
+                            <>
+                              {' '}
+                              · <CalendarDays className="cx-ico-inline" aria-hidden /> après {formatDelta(delta)}
+                            </>
+                          ) : null}
+                        </span>
+                        {longPause ? <span className="cx-tl-pause">Pause de plus de 2 minutes</span> : null}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ol>
+            ) : (
+              <EmptyState
+                title="Chronologie vide"
+                description="Aucun événement détaillé (application sans traçage ou examen ancien)."
+              />
+            )}
+          </div>
+        ) : null}
+      </Drawer>
+  )
+
+  if (isPhone) {
+    const pag = tab === 'exams' ? examsPagination : tab === 'events' ? eventsPagination : learnersPage
+    return (
+      <PhonePage
+        title="Activité"
+        action={
+          <button type="button" className="ap-add" onClick={() => void loadData()} aria-label="Actualiser">
+            <RefreshCw aria-hidden />
+          </button>
+        }
+      >
+        {stats ? (
+          <div className="ap-kpis">
+            <div><b>{nf(stats.today.activeLearners)}</b><small>actifs aujourd’hui</small></div>
+            <div><b>{nf(stats.today.events)}</b><small>actions</small></div>
+            <div><b>{passRate}</b><small>réussite</small></div>
+          </div>
+        ) : null}
+        <PhoneSeg
+          value={tab}
+          onChange={setTab}
+          options={[
+            { id: 'exams', label: 'Examens' },
+            { id: 'events', label: 'Événements' },
+            { id: 'learners', label: 'Apprenants' },
+          ]}
+        />
+        {tab === 'learners' ? (
+          <form
+            className="ap-search"
+            onSubmit={(e) => {
+              e.preventDefault()
+              applyFilters()
+            }}
+          >
+            <Search aria-hidden />
+            <input type="search" placeholder="Nom, téléphone, e-mail" value={learnerSearch} onChange={(e) => setLearnerSearch(e.target.value)} aria-label="Rechercher un apprenant" />
+          </form>
+        ) : (
+          <div className="ap-selects">
+            <select value={learnerFilter} onChange={(e) => setLearnerFilter(e.target.value)} aria-label="Apprenant">
+              <option value="">Tous les apprenants</option>
+              {learners.map((l) => (
+                <option key={l.userId} value={l.userId}>
+                  {learnerName(l)}
+                </option>
+              ))}
+            </select>
+            {tab === 'exams' ? (
+              <select
+                value={outcomeFilter}
+                onChange={(e) => {
+                  setOutcomeFilter(e.target.value as ExamAttemptOutcome | '')
+                  setPage(1)
+                }}
+                aria-label="Statut"
+              >
+                <option value="">Tous les statuts</option>
+                <option value="completed">Terminé</option>
+                <option value="stopped">Arrêté</option>
+                <option value="in_progress">En cours</option>
+              </select>
+            ) : (
+              <select value={eventFilter} onChange={(e) => setEventFilter(e.target.value)} aria-label="Événement">
+                <option value="">Tous les événements</option>
+                {Object.entries(EVENT_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
+        {error ? <p className="cx-note cx-note-err" role="alert">{error}</p> : null}
+        <div className="ap-list">
+          {loading ? (
+            <p className="ap-empty">Chargement…</p>
+          ) : tab === 'exams' ? (
+            exams.length === 0 ? (
+              <p className="ap-empty">Aucun examen blanc pour le moment.</p>
+            ) : (
+              exams.map((e) => (
+                <button key={e.attemptId} type="button" className="ap-row ap-row-tall" onClick={() => openAttempt(e)}>
+                  <span className="ap-row-t">
+                    <b>{learnerName(e)}</b>
+                    <small>Sujet {e.examNumber} · {formatDateTime(e.startAt)}</small>
+                    <small>{e.answered}/{e.questionCount} questions · {e.correct} bonnes · {formatDuration(e.durationSeconds)}</small>
+                  </span>
+                  <span className="ap-stack">
+                    <b className="ap-amt">{e.correct}/{e.total}</b>
+                    <span className={`ap-tag${e.outcome === 'completed' ? (e.passed ? '' : ' is-red') : ' is-warn'}`}>
+                      {e.outcome === 'completed' ? (e.passed ? 'Réussi' : 'Raté') : e.outcome === 'stopped' ? 'Arrêté' : 'En cours'}
+                    </span>
+                  </span>
+                </button>
+              ))
+            )
+          ) : tab === 'events' ? (
+            events.length === 0 ? (
+              <p className="ap-empty">Aucune action enregistrée avec ces filtres.</p>
+            ) : (
+              events.map((ev) => (
+                <div key={ev.id} className="ap-row ap-row-tall">
+                  <span className="ap-row-t">
+                    <b className="ap-wrap">{eventLabel(ev.event)}</b>
+                    <small>{formatDateTime(ev.createdAt)}</small>
+                    {ev.appVersion ? <small>{ev.appVersion}{ev.platform ? ` · ${ev.platform}` : ''}</small> : null}
+                  </span>
+                </div>
+              ))
+            )
+          ) : learners.length === 0 ? (
+            <p className="ap-empty">Aucun apprenant actif pour le moment.</p>
+          ) : (
+            learners.map((l) => (
+              <button
+                key={l.userId}
+                type="button"
+                className="ap-row"
+                onClick={() => {
+                  setLearnerFilter(l.userId)
+                  setTab('exams')
+                }}
+              >
+                <span className="ap-av">{learnerName(l).slice(0, 2).toUpperCase()}</span>
+                <span className="ap-row-t">
+                  <b>{learnerName(l)}</b>
+                  <small>{formatDateTime(l.lastActivity)}</small>
+                </span>
+                <span className="ap-tag">{l.events}</span>
+              </button>
+            ))
+          )}
+        </div>
+        {pag && pag.pages > 1 ? (
+          <div className="ap-pager">
+            <button type="button" disabled={pag.page <= 1} onClick={() => setPage(pag.page - 1)}>Précédent</button>
+            <span>{pag.page} / {pag.pages}</span>
+            <button type="button" disabled={pag.page >= pag.pages} onClick={() => setPage(pag.page + 1)}>Suivant</button>
+          </div>
+        ) : null}
+        {detailDrawer}
+      </PhonePage>
+    )
+  }
 
   return (
     <PageSection
@@ -648,133 +928,7 @@ export function LearnerTrackingPage() {
         )}
       </section>
 
-      <Drawer
-        wide
-        open={Boolean(selectedAttempt)}
-        onClose={() => setSelectedAttempt(null)}
-        title={selectedAttempt ? `Examen blanc n° ${selectedAttempt.examNumber} — ${learnerName(selectedAttempt)}` : ''}
-        subtitle={selectedAttempt ? `Commencé le ${formatDateTime(selectedAttempt.startAt)}` : undefined}
-      >
-        {selectedAttempt ? (
-          <div>
-            <AttemptVerdict attempt={selectedAttempt} />
-
-            <div className="cx-xr-summary">
-              <div className="cx-xr-stat">
-                <span>Répondues</span>
-                <strong>
-                  {selectedAttempt.answered}/{selectedAttempt.questionCount}
-                </strong>
-              </div>
-              <div className="cx-xr-stat">
-                <span>Bonnes</span>
-                <strong>{selectedAttempt.correct}</strong>
-              </div>
-              <div className="cx-xr-stat">
-                <span>Fausses / zappées</span>
-                <strong>
-                  {selectedAttempt.wrong - selectedAttempt.skipped} / {selectedAttempt.skipped}
-                </strong>
-              </div>
-              <div className="cx-xr-stat">
-                <span>Durée</span>
-                <strong>{formatDuration(selectedAttempt.durationSeconds)}</strong>
-              </div>
-            </div>
-
-            <div className="cx-tl-meta">
-              <span className="cx-chip">Dernière action : {formatDateTime(selectedAttempt.lastAt)}</span>
-              {selectedAttempt.completedAt ? (
-                <span className="cx-chip">Terminé le : {formatDateTime(selectedAttempt.completedAt)}</span>
-              ) : null}
-              {selectedAttempt.quits > 0 ? (
-                <span className="cx-chip cx-red">A quitté l’examen {selectedAttempt.quits} fois</span>
-              ) : null}
-              <span className="cx-chip">
-                Seuil de réussite : {selectedAttempt.passScore}/{selectedAttempt.total}
-              </span>
-            </div>
-
-            <h3 className="cx-xr-section">Questions et réponses</h3>
-            {timelineLoading && !detailQuestions ? (
-              <SkeletonBlock rows={4} />
-            ) : detailError ? (
-              <p className="cx-note cx-note-err">{detailError}</p>
-            ) : detailQuestions && detailQuestions.length > 0 ? (
-              <>
-                <div className="cx-xr-filter" role="group" aria-label="Filtrer les questions">
-                  {(
-                    [
-                      ['all', 'Toutes'],
-                      ['wrong', 'Fausses'],
-                      ['correct', 'Bonnes'],
-                      ['skipped', 'Zappées'],
-                      ['unanswered', 'Non répondues'],
-                    ] as [QuestionFilter, string][]
-                  ).map(([key, label]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      className={`cx-btn cx-btn-sm${questionFilter === key ? ' cx-btn-fill' : ''}`}
-                      onClick={() => setQuestionFilter(key)}
-                      disabled={key !== 'all' && questionCounts[key] === 0}
-                    >
-                      {label} ({questionCounts[key]})
-                    </button>
-                  ))}
-                </div>
-                <ol className="cx-xr-list">
-                  {visibleQuestions.map((q) => (
-                    <QuestionReview key={q.questionId} question={q} />
-                  ))}
-                </ol>
-              </>
-            ) : (
-              <EmptyState title="Aucune question" description="Les questions de cet examen n’ont pas pu être chargées." />
-            )}
-
-            <h3 className="cx-xr-section">Chronologie</h3>
-            {timelineLoading && !timeline ? (
-              <SkeletonBlock rows={4} />
-            ) : timelineError ? (
-              <p className="cx-note cx-note-err">{timelineError}</p>
-            ) : timeline && timeline.length > 0 ? (
-              <ol className="cx-tl">
-                {timeline.map((ev, i) => {
-                  const delta = timelineDeltas[i - 1] ?? 0
-                  const longPause = delta > 120_000
-                  return (
-                    <li key={ev.id}>
-                      <span className="cx-tl-time">{formatTime(ev.createdAt)}</span>
-                      <span className="cx-tl-dot" />
-                      <div className="cx-tl-body">
-                        <span className={`cx-evt${EXAM_GROUP_EVENTS.has(ev.event) ? ' cx-exam' : ''}`} style={{ alignSelf: 'flex-start' }}>
-                          {eventLabel(ev.event)}
-                        </span>
-                        <span>
-                          <EventDetail event={ev} />
-                          {i > 0 ? (
-                            <>
-                              {' '}
-                              · <CalendarDays className="cx-ico-inline" aria-hidden /> après {formatDelta(delta)}
-                            </>
-                          ) : null}
-                        </span>
-                        {longPause ? <span className="cx-tl-pause">Pause de plus de 2 minutes</span> : null}
-                      </div>
-                    </li>
-                  )
-                })}
-              </ol>
-            ) : (
-              <EmptyState
-                title="Chronologie vide"
-                description="Aucun événement détaillé (application sans traçage ou examen ancien)."
-              />
-            )}
-          </div>
-        ) : null}
-      </Drawer>
+      {detailDrawer}
     </PageSection>
   )
 }

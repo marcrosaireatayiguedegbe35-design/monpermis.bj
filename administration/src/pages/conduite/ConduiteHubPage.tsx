@@ -8,9 +8,12 @@ import {
   Check,
   ChevronRight,
   Clock3,
+  Star,
   UserCog,
 } from 'lucide-react'
 import { ConduiteSection } from '../../components/model/ConduiteSection'
+import { PhoneHub } from '../../components/phone/PhoneKit'
+import { useIsPhone } from '../MobileHome'
 import { nf } from '../../components/model/ModelCharts'
 import { fetchDashboardSummary, type DashboardSummary } from '../../api/dashboard'
 import { getAdminToken, isAuthError } from '../../context/AdminAuthContext'
@@ -31,6 +34,7 @@ const EMPTY: Conduite = {
 
 export function ConduiteHubPage() {
   const [data, setData] = useState<Conduite>(EMPTY)
+  const isPhone = useIsPhone()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -130,6 +134,32 @@ export function ConduiteHubPage() {
       ],
     },
   ]
+
+  if (isPhone) {
+    return (
+      <PhoneHub
+        title="Conduite"
+        error={error}
+        allDone="Tout est à jour : aucune réservation en attente, moniteurs et créneaux disponibles."
+        todo={todo}
+        tiles={[
+          ...spaces.map((sp) => ({
+            to: sp.to,
+            icon: sp.icon,
+            title: sp.title,
+            sub: loading ? '…' : sp.stats.map((st) => `${st.v} ${st.l}`).join(' · '),
+            hot: sp.to === '/conduite/reservations' && data.reservationsPending > 0,
+          })),
+          {
+            to: '/conduite/avis',
+            icon: <Star aria-hidden />,
+            title: 'Avis',
+            sub: 'Retours des élèves après chaque séance.',
+          },
+        ]}
+      />
+    )
+  }
 
   return (
     <ConduiteSection

@@ -290,3 +290,23 @@
 @media (max-width:767px){
   a.ap-sheet-act{text-decoration:none}
 }
+
+@media (max-width:767px){
+  .ap-wrap{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere}
+  .ap-link{border:0!important;background:none!important;color:#0B7F47!important;font-weight:700;padding:0!important;min-height:0!important;text-decoration:underline}
+}
+
+@media (max-width:767px){
+  .ap-hub-grid{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .ap-todo-list{flex:none;max-height:176px}
+  a.ap-row{text-decoration:none}
+  .ap-hub-grid .ap-home-tile{min-height:0}
+}
+
+@media (max-width:767px){
+  .ap-kpis{display:grid;grid-template-columns:repeat(3,1fr);background:#fff;border:1px solid #E1E8E3;border-radius:14px}
+  .ap-kpis div{display:flex;flex-direction:column;align-items:center;padding:10px 4px;border-right:1px solid #EEF1EF}
+  .ap-kpis div:last-child{border-right:0}
+  .ap-kpis b{font-size:20px;letter-spacing:-.5px;color:#10261b}
+  .ap-kpis small{font-size:11px;color:#5d7066}
+}
