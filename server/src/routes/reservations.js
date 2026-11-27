@@ -559,11 +559,9 @@ router.post('/request-slot', ...withConduiteAccess, async (req, res) => {
     }
 
     const heures = computeCreneauHeures({ startTime, endTime })
-    if (heures < 0.5) {
-      return res.status(400).json({ success: false, error: 'Durée minimale : 30 minutes' })
-    }
-    if (heures > 6) {
-      return res.status(400).json({ success: false, error: 'Durée maximale : 6 heures' })
+    // Toutes les séances durent une heure, pour tout le monde.
+    if (heures !== 1) {
+      return res.status(400).json({ success: false, error: 'Une séance de conduite dure 1 heure.' })
     }
 
     await Creneau.updateMany(

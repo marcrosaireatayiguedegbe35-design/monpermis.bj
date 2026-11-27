@@ -80,9 +80,10 @@ import { optimizedImageUrl, resolveMediaUrl } from '../../utils/mediaUrl'
 import { useViewport } from '../../utils/viewport'
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ReservationFlow'>
-type Step = 'moniteur' | 'profile' | 'duration' | 'slots'
+type Step = 'moniteur' | 'profile' | 'slots'
 
-const DURATION_OPTIONS = [1, 2, 3, 4]
+/** Toutes les séances durent une heure. */
+const SESSION_HOURS = 1
 
 /** « Marc Rosaire ATAYI GUEDEGBE » → prénoms / nom (les mots tout en majuscules forment le nom). */
 function splitFullName(fullName: string) {
@@ -180,7 +181,7 @@ export function ReservationFlowScreen() {
   const [groupSlots, setGroupSlots] = useState<GroupSlot[]>([])
   const [hoursDiscount, setHoursDiscount] = useState(HOURS_DISCOUNT_FCFA)
   const [hoursDiscountMin, setHoursDiscountMin] = useState(HOURS_DISCOUNT_MIN_HOURS)
-  const [durationHours, setDurationHours] = useState(1)
+  const durationHours = SESSION_HOURS
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedStart, setSelectedStart] = useState('')
   const [selectedEnd, setSelectedEnd] = useState('')
@@ -201,11 +202,11 @@ export function ReservationFlowScreen() {
   const pagerRef = useRef<ScrollView>(null)
   const [pagerWidth, setPagerWidth] = useState(0)
   const [moniteurIndex, setMoniteurIndex] = useState(0)
-  const stepOrder = step === 'moniteur' || step === 'profile' ? 0 : step === 'duration' ? 1 : 2
+  const stepOrder = step === 'moniteur' || step === 'profile' ? 0 : 1
 
   useEffect(() => {
     Animated.timing(stepProgress, {
-      toValue: stepOrder / 2,
+      toValue: stepOrder,
       duration: 280,
       useNativeDriver: false,
     }).start()
@@ -307,7 +308,7 @@ export function ReservationFlowScreen() {
   }, [step, loadMoniteurs])
 
   useEffect(() => {
-    if (step === 'duration' || step === 'slots') void loadAvailability()
+    if (step === 'profile' || step === 'slots') void loadAvailability()
   }, [step, loadAvailability])
 
   useEffect(() => {
@@ -457,8 +458,7 @@ export function ReservationFlowScreen() {
 
   const handleBack = () => {
     if (step === 'profile') setStep('moniteur')
-    else if (step === 'duration') setStep('profile')
-    else if (step === 'slots') setStep('duration')
+    else if (step === 'slots') setStep('profile')
     else navigation.goBack()
   }
 
@@ -470,9 +470,7 @@ export function ReservationFlowScreen() {
           subtitle={
             step === 'slots'
               ? 'Sélectionnez un créneau pour votre séance'
-              : step === 'duration'
-                ? 'Combien de temps et avec qui ?'
-                : 'Votre formation, notre priorité'
+              : 'Votre formation, notre priorité'
           }
           unread={unreadCount}
           onBack={handleBack}
@@ -480,7 +478,7 @@ export function ReservationFlowScreen() {
         />
         <StepChip
           step={stepOrder + 1}
-          label={`Étape ${stepOrder + 1} sur 3 • ${stepOrder === 0 ? 'Moniteur' : stepOrder === 1 ? 'Durée' : 'Créneau'}`}
+          label={`Étape ${stepOrder + 1} sur 2 • ${stepOrder === 0 ? 'Moniteur' : 'Créneau'}`}
         />
 
         <View style={styles.flowBody}>
@@ -699,86 +697,6 @@ export function ReservationFlowScreen() {
             </ScrollView>
           ) : null}
 
-          {step === 'duration' ? (() => {
-            const isGroup = bookingMode === 'group'
-            const rate = isGroup ? groupPriceFcfa : hourlyPriceFcfa
-            const base = rate * durationHours
-            const total = isGroup
-              ? base
-              : computeDrivingAmount(hourlyPriceFcfa, durationHours, hoursDiscount, hoursDiscountMin)
-            const discount = Math.max(0, base - total)
-            return (
-              <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 14, paddingBottom: 12 }} showsVerticalScrollIndicator={false}>
-                <View style={styles.dHead}>
-                  <View style={styles.dHeadIcon}>
-                    <Clock size={22} color="#FFFFFF" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.dTitle}>Durée de la séance</Text>
-                    <Text style={styles.dSub}>Choisissez la durée de votre séance de conduite.</Text>
-                  </View>
-                </View>
-
-                <View style={styles.modeTag}>
-                  {isGroup ? <Users size={15} color={RES.green} /> : <User size={15} color={RES.green} />}
-                  <Text style={styles.modeTagText}>
-                    {isGroup ? `En groupe · ${groupPriceFcfa.toLocaleString('fr-FR')} F/h` : 'Solo · 5 000 F/h'}
-                  </Text>
-                </View>
-
-                <View style={styles.hoursRow}>
-                  {DURATION_OPTIONS.map((hours) => {
-                    const active = durationHours === hours
-                    return (
-                      <Bouncy key={hours} scaleTo={0.97} style={{ flex: 1 }} onPress={() => setDurationHours(hours)}>
-                        <View
-                          style={[styles.hoursPill, active && styles.hoursPillOn]}
-                          accessibilityRole="button"
-                          accessibilityState={{ selected: active }}
-                          accessibilityLabel={`${hours} heures`}
-                        >
-                          <Text style={[styles.hoursPillText, active && styles.hoursPillTextOn]}>{hours} h</Text>
-                        </View>
-                      </Bouncy>
-                    )
-                  })}
-                </View>
-
-                <View style={styles.recap}>
-                  <View style={styles.recapRow}>
-                    <Text style={styles.recapLabel}>Durée</Text>
-                    <Text style={styles.recapValue}>{durationHours} heure{durationHours > 1 ? 's' : ''}</Text>
-                  </View>
-                  <View style={styles.recapRow}>
-                    <Text style={styles.recapLabel}>Tarif horaire</Text>
-                    <Text style={styles.recapValue}>{rate.toLocaleString('fr-FR')} FCFA</Text>
-                  </View>
-                  <View style={styles.recapRow}>
-                    <Text style={styles.recapLabel}>Sous-total</Text>
-                    <Text style={styles.recapValue}>{base.toLocaleString('fr-FR')} FCFA</Text>
-                  </View>
-                  {!isGroup ? (
-                  <View style={styles.recapRow}>
-                    <Text style={styles.recapLabel}>Remise</Text>
-                    <Text style={[styles.recapValue, discount > 0 && { color: RES.green }]}>
-                      {discount > 0 ? `− ${discount.toLocaleString('fr-FR')} FCFA` : '—'}
-                    </Text>
-                  </View>
-                  ) : null}
-                  <View style={styles.recapTotalRow}>
-                    <Text style={styles.recapTotalLabel}>Total</Text>
-                    <Text style={styles.recapTotal}>{total.toLocaleString('fr-FR')} FCFA</Text>
-                  </View>
-                  {!isGroup && discount === 0 && hoursDiscount > 0 ? (
-                    <Text style={styles.recapHint}>
-                      Remise de {hoursDiscount.toLocaleString('fr-FR')} FCFA à partir de {hoursDiscountMin} h.
-                    </Text>
-                  ) : null}
-                </View>
-              </ScrollView>
-            )
-          })() : null}
-
           {step === 'slots' ? (
             <View style={{ flex: 1, gap: 12 }}>
               {busy ? <ActivityIndicator color={RES.green} style={{ marginVertical: 12 }} /> : null}
@@ -790,9 +708,6 @@ export function ReservationFlowScreen() {
                   message={`Pas de plage de ${durationHours} h libre sur les 14 prochains jours.`}
                   action={
                     <View style={{ width: '100%', gap: 8 }}>
-                      <Pressable style={styles.primaryBtn} onPress={() => setStep('duration')}>
-                        <Text style={styles.primaryBtnText}>Réduire la durée</Text>
-                      </Pressable>
                       <Pressable style={styles.secondaryBtn} onPress={() => setStep('moniteur')}>
                         <Text style={styles.secondaryBtnText}>Voir un autre moniteur</Text>
                       </Pressable>
@@ -805,9 +720,9 @@ export function ReservationFlowScreen() {
                 <>
                   <View style={styles.sSummary}>
                     <Text style={styles.sSummaryText}>
-                      {durationHours} h · {priceFcfa.toLocaleString('fr-FR')} FCFA
+                      {bookingMode === 'group' ? 'En groupe' : 'Solo'} · {durationHours} h · {priceFcfa.toLocaleString('fr-FR')} FCFA
                     </Text>
-                    <Pressable style={styles.sEdit} onPress={() => setStep('duration')} accessibilityLabel="Modifier la durée" hitSlop={8}>
+                    <Pressable style={styles.sEdit} onPress={() => setStep('profile')} accessibilityLabel="Changer de mode" hitSlop={8}>
                       <Text style={styles.sEditText}>Modifier</Text>
                       <Pencil size={15} color={RES.green} />
                     </Pressable>
@@ -887,7 +802,7 @@ export function ReservationFlowScreen() {
           ) : null}
         </View>
 
-        {(step === 'moniteur' && moniteurs.length > 0) || (step === 'profile' && profile) || step === 'duration' || (step === 'slots' && daysWithSlots.length > 0) ? (
+        {(step === 'moniteur' && moniteurs.length > 0) || (step === 'profile' && profile) || (step === 'slots' && daysWithSlots.length > 0) ? (
           <View style={styles.bottomBar}>
             {step === 'moniteur' ? (
               <View style={styles.tActions}>
@@ -928,8 +843,7 @@ export function ReservationFlowScreen() {
               disabled={busy || (step === 'slots' && !(selectedStart && selectedEnd))}
               label={step === 'slots' ? (busy ? 'Un instant…' : 'Confirmer le créneau') : 'Continuer'}
               onPress={() => {
-                if (step === 'profile') setStep('duration')
-                else if (step === 'duration') setStep('slots')
+                if (step === 'profile') setStep('slots')
                 else void onContinue()
               }}
             />
