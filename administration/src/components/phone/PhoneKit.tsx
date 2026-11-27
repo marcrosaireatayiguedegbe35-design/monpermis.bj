@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { useIsPhone } from '../../pages/MobileHome'
 import { Search } from 'lucide-react'
 
 /** Page téléphone : en-tête fixe, zone centrale, et seule la liste défile. */
@@ -157,5 +158,26 @@ export function PhoneHub({
         )}
       </div>
     </div>
+  )
+}
+
+/** Liste puis détail sur téléphone : une seule des deux colonnes à la fois. */
+export function useMasterDetail() {
+  const isPhone = useIsPhone()
+  const [detail, setDetail] = useState(false)
+  return {
+    isPhone,
+    detail,
+    openDetail: () => setDetail(true),
+    closeDetail: () => setDetail(false),
+    splitClass: isPhone ? (detail ? ' ap-md is-detail' : ' ap-md is-list') : '',
+  }
+}
+
+export function PhoneBack({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button type="button" className="ap-md-back" onClick={onClick}>
+      ‹ {label}
+    </button>
   )
 }

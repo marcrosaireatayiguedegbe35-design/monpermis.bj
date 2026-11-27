@@ -16,6 +16,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { PhoneBack, useMasterDetail } from '../../components/phone/PhoneKit'
 import {
   BookOpen,
   ChevronDown,
@@ -670,6 +671,7 @@ export function CoursesPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [courses, setCourses] = useState<Course[]>([])
   const [chapters, setChapters] = useState<ChapterRef[]>([])
+  const md = useMasterDetail()
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null)
   const [courseTitle, setCourseTitle] = useState('')
   const [loading, setLoading] = useState(true)
@@ -790,6 +792,7 @@ export function CoursesPage() {
 
   const pickChapter = (id: string) => {
     setSelectedChapterId(id)
+    md.openDetail()
     setSearchParams({}, { replace: true })
   }
 
@@ -816,7 +819,7 @@ export function CoursesPage() {
       ) : null}
 
       {!loading && chapters.length > 0 ? (
-        <div className="cx-split">
+        <div className={`cx-split${md.splitClass}`}>
           <aside className="cx-panel cx-sticky" aria-label="Chapitres">
             <div className="cx-panel-head cx-ph cx-ph-plain">
               <div className="cx-ph-txt">
@@ -862,6 +865,7 @@ export function CoursesPage() {
 
           {selectedChapter ? (
             <section className="cx-panel">
+              {md.isPhone ? <PhoneBack onClick={md.closeDetail} label="Chapitres" /> : null}
               <div className="cx-detail-head">
                 <span className="cx-chap-num">{selectedChapter.order >= 1 ? selectedChapter.order : '·'}</span>
                 <div className="cx-detail-title">

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { BookOpen, HelpCircle, RefreshCw, Search } from 'lucide-react'
 import { fetchChapters, updateChapter } from '../../api/revision'
+import { PhoneBack, useMasterDetail } from '../../components/phone/PhoneKit'
 import { CodeSection } from '../../components/model/CodeSection'
 import { PublishSwitch } from '../../components/PublishSwitch'
 import { getAdminToken, isAuthError } from '../../context/AdminAuthContext'
@@ -13,6 +14,7 @@ import { ChapterTestSubjectPanel } from './ChapterTestSubjectPanel'
 const isLearnerChapter = (chapter: Chapter) => chapter.order >= 1
 
 export function RevisionChapitresPage() {
+  const md = useMasterDetail()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [chapters, setChapters] = useState<Chapter[]>([])
@@ -59,7 +61,10 @@ export function RevisionChapitresPage() {
       navigate(chapterFromUrl ? `/code/cours?chapter=${chapterFromUrl}` : '/code/cours', { replace: true })
       return
     }
-    if (chapterFromUrl) setSelectedChapterId(chapterFromUrl)
+    if (chapterFromUrl) {
+      setSelectedChapterId(chapterFromUrl)
+      md.openDetail()
+    }
   }, [searchParams, navigate])
 
   const filtered = useMemo(() => {
@@ -73,6 +78,7 @@ export function RevisionChapitresPage() {
 
   const select = (id: string) => {
     setSelectedChapterId(id)
+    md.openDetail()
     setSearchParams({}, { replace: true })
   }
 
@@ -113,7 +119,7 @@ export function RevisionChapitresPage() {
       ) : null}
 
       {!loading && chapters.length > 0 ? (
-        <div className="cx-split">
+        <div className={`cx-split${md.splitClass}`}>
           <aside className="cx-panel cx-sticky" aria-label="Liste des chapitres">
             <div className="cx-panel-head cx-ph cx-ph-plain">
               <div className="cx-ph-txt">
@@ -154,6 +160,7 @@ export function RevisionChapitresPage() {
 
           {selected ? (
             <section className="cx-panel" key={selected.id}>
+              {md.isPhone ? <PhoneBack onClick={md.closeDetail} label="Chapitres" /> : null}
               <div className="cx-detail-head">
                 <span className="cx-chap-num">{selected.order}</span>
                 <div className="cx-detail-title">

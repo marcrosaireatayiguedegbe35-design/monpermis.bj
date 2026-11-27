@@ -49,6 +49,7 @@ import {
   uploadConduiteImage,
   uploadConduiteVideo,
 } from '../../api/conduite'
+import { PhoneBack, useMasterDetail } from '../../components/phone/PhoneKit'
 import { ConduiteSection } from '../../components/model/ConduiteSection'
 import { MediaPreview } from '../../components/MediaPreview'
 import { PublishSwitch } from '../../components/PublishSwitch'
@@ -923,6 +924,7 @@ function ChapterRailItem({
 export function LeconsConduitePage() {
   const sensors = useAdminSensors()
   const [chapters, setChapters] = useState<Chapter[]>([])
+  const md = useMasterDetail()
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null)
   const [chapterName, setChapterName] = useState('')
   const [loading, setLoading] = useState(true)
@@ -963,6 +965,7 @@ export function LeconsConduitePage() {
 
   const handleSelectChapter = (chapterId: string) => {
     setSelectedChapterId(chapterId)
+    md.openDetail()
   }
 
   const handleAddChapter = async (e: FormEvent) => {
@@ -1052,7 +1055,7 @@ export function LeconsConduitePage() {
       ) : null}
 
       {!loading && chapters.length > 0 ? (
-        <div className="cx-split">
+        <div className={`cx-split${md.splitClass}`}>
           <aside className="cx-panel cx-sticky" aria-label="Chapitres">
             <div className="cx-panel-head cx-ph cx-ph-plain">
               <div className="cx-ph-txt">
@@ -1087,6 +1090,7 @@ export function LeconsConduitePage() {
             </DndContext>
           </aside>
 
+          {selectedChapter && md.isPhone && md.detail ? <PhoneBack onClick={md.closeDetail} label="Chapitres" /> : null}
           {selectedChapter ? (
             <ChapterPanel
               key={selectedChapter.id}
