@@ -1,10 +1,13 @@
+import { Maximize2, RotateCw, X } from 'lucide-react-native'
 import { useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Image,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native'
 import RenderHTML from 'react-native-render-html'
@@ -66,6 +69,9 @@ function VideoPlayer({
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  const [full, setFull] = useState(false)
+  const [rotated, setRotated] = useState(false)
+  const { width: winW, height: winH } = useWindowDimensions()
   const html = useMemo(
     () => (kind === 'iframe' ? buildEmbedHtml(src) : buildDirectVideoHtml(src)),
     [kind, src],
@@ -95,40 +101,104 @@ function VideoPlayer({
     )
   }
 
+  const player = (key: string) => (
+    <WebView
+      key={key}
+      source={{ html, baseUrl }}
+      style={StyleSheet.absoluteFill}
+      allowsFullscreenVideo
+      allowsInlineMediaPlayback
+      mediaPlaybackRequiresUserAction={false}
+      javaScriptEnabled
+      domStorageEnabled
+      scrollEnabled={false}
+      bounces={false}
+      setSupportMultipleWindows={false}
+      androidLayerType="hardware"
+      originWhitelist={[
+        'https://*',
+        'http://localhost*',
+        'http://10.0.2.2*',
+        'about:blank',
+      ]}
+      mixedContentMode="compatibility"
+      onLoadStart={() => setLoading(true)}
+      onLoadEnd={() => setLoading(false)}
+      onError={() => {
+        setLoading(false)
+        setFailed(true)
+      }}
+      onHttpError={() => {
+        setLoading(false)
+        setFailed(true)
+      }}
+    />
+  )
+
   return (
     <View style={[styles.video, { height }]}>
-      <WebView
-        key={`${src}-${reloadKey}`}
-        source={{ html, baseUrl }}
-        style={StyleSheet.absoluteFill}
-        allowsFullscreenVideo
-        allowsInlineMediaPlayback
-        mediaPlaybackRequiresUserAction={false}
-        javaScriptEnabled
-        domStorageEnabled
-        scrollEnabled={false}
-        bounces={false}
-        setSupportMultipleWindows={false}
-        androidLayerType="hardware"
-        originWhitelist={[
-          'https://*',
-          'http://localhost*',
-          'http://10.0.2.2*',
-          'about:blank',
-        ]}
-        mixedContentMode="compatibility"
-        onLoadStart={() => setLoading(true)}
-        onLoadEnd={() => setLoading(false)}
-        onError={() => {
-          setLoading(false)
-          setFailed(true)
-        }}
-        onHttpError={() => {
-          setLoading(false)
-          setFailed(true)
-        }}
-      />
-      {loading ? <LoadingOverlay label="Chargement de la vidéo…" /> : null}
+      {full ? null : player(`${src}-${reloadKey}`)}
+      {loading && !full ? <LoadingOverlay label="Chargement de la vidéo…" /> : null}
+      <Pressable
+        style={styles.fsBtn}
+        onPress={() => setFull(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Mettre la vidéo en plein écran"
+        hitSlop={8}
+      >
+        <Maximize2 size={18} color="#FFFFFF" />
+      </Pressable>
+
+      <Modal
+        visible={full}
+        animationType="fade"
+        onRequestClose={() => setFull(false)}
+        supportedOrientations={['portrait', 'landscape']}
+        statusBarTranslucent
+      >
+        <View style={styles.fsRoot}>
+          {/* Pivoté : la vidéo occupe tout l'écran même si le téléphone reste à la verticale. */}
+          <View
+            style={
+              rotated
+                ? {
+                    position: 'absolute',
+                    width: winH,
+                    height: winW,
+                    left: (winW - winH) / 2,
+                    top: (winH - winW) / 2,
+                    transform: [{ rotate: '90deg' }],
+                  }
+                : StyleSheet.absoluteFill
+            }
+          >
+            {full ? player(`full-${src}-${reloadKey}-${rotated ? 'r' : 'p'}`) : null}
+          </View>
+          <View style={styles.fsBar}>
+            <Pressable
+              style={styles.fsRound}
+              onPress={() => setRotated((value) => !value)}
+              accessibilityRole="button"
+              accessibilityLabel="Faire pivoter la vidéo"
+              hitSlop={8}
+            >
+              <RotateCw size={20} color="#FFFFFF" />
+            </Pressable>
+            <Pressable
+              style={styles.fsRound}
+              onPress={() => {
+                setFull(false)
+                setRotated(false)
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Fermer le plein écran"
+              hitSlop={8}
+            >
+              <X size={22} color="#FFFFFF" />
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -194,6 +264,10 @@ export function MediaContent({ title, text, videoUrl, imageUrl }: MediaContentPr
 }
 
 const styles = StyleSheet.create({
+  fsBtn: { position: 'absolute', top: 10, right: 10, width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.55)' },
+  fsRoot: { flex: 1, backgroundColor: '#000000' },
+  fsBar: { position: 'absolute', top: 14, right: 14, flexDirection: 'row', gap: 10 },
+  fsRound: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' },
   root: {
     gap: 14,
   },
