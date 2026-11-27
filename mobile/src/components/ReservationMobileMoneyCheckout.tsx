@@ -39,6 +39,8 @@ export interface ReservationCheckoutSlot {
   endTime: string
   vehicleType: string
   creneauId?: string
+  /** Plusieurs séances réservées et payées ensemble. */
+  creneauIds?: string[]
   lockedUntil?: string | null
   hours?: number
   amount?: number
@@ -273,7 +275,7 @@ export function ReservationMobileMoneyCheckout({
         creneauId = String(lockedSlot.creneau.id)
       }
       const result = await createReservation({
-        creneauIds: [creneauId],
+        creneauIds: slot.creneauIds?.length ? slot.creneauIds : [creneauId],
         vehicleType: slot.vehicleType,
         moniteurId: slot.moniteurId,
         mode: slot.mode,
@@ -325,7 +327,7 @@ export function ReservationMobileMoneyCheckout({
 
       const chosenOperator = detected || operator
       const result = await createReservation({
-        creneauIds: [creneauId],
+        creneauIds: slot.creneauIds?.length ? slot.creneauIds : [creneauId],
         vehicleType: slot.vehicleType,
         moniteurId: slot.moniteurId,
         mode: slot.mode,

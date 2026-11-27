@@ -263,6 +263,8 @@ export function requestReservationSlot(payload: {
   endTime: string
   vehicleType?: string
   mode?: BookingMode
+  /** Garde les créneaux déjà verrouillés (plusieurs séances réservées ensemble). */
+  keepLocks?: boolean
 }) {
   return request<{
     creneau: ReservationSlot

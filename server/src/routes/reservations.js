@@ -632,12 +632,15 @@ router.post('/request-slot', ...withConduiteAccess, async (req, res) => {
     }
 
     // Libère un éventuel créneau encore verrouillé par cet élève (même moniteur/date)
-    await Creneau.deleteMany({
-      moniteurId,
-      date,
-      status: 'libre',
-      lockedBy: req.user._id,
-    })
+    // Plusieurs séances demandées ensemble (solo sur plusieurs jours) : on garde les verrous déjà posés.
+    if (!req.body.keepLocks) {
+      await Creneau.deleteMany({
+        moniteurId,
+        date,
+        status: 'libre',
+        lockedBy: req.user._id,
+      })
+    }
 
     const vehicleType = normalizeVehicleType(
       req.body.vehicleType ||

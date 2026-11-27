@@ -184,6 +184,7 @@ export function ReservationFlowScreen() {
   const [hoursDiscountMin, setHoursDiscountMin] = useState(HOURS_DISCOUNT_MIN_HOURS)
   const [soloHours, setSoloHours] = useState<0.5 | 1>(1)
   const [selectedDate, setSelectedDate] = useState('')
+  const [picked, setPicked] = useState<{ date: string; start: string; end: string }[]>([])
   const [selectedStart, setSelectedStart] = useState('')
   const [selectedEnd, setSelectedEnd] = useState('')
   const [soldeHeures, setSoldeHeures] = useState<number | null>(null)
@@ -267,6 +268,12 @@ export function ReservationFlowScreen() {
   )
 
   const priceFcfa = bookingMode === 'group' ? groupPriceFcfa : Math.round(hourlyPriceFcfa * soloHours)
+  const pickedTotal = priceFcfa * picked.length
+  const pickedHours = durationHours * picked.length
+
+  useEffect(() => {
+    setPicked([])
+  }, [bookingMode, soloHours, moniteurId])
 
   const loadMoniteurs = useCallback(async () => {
     setBusy(true)
@@ -393,7 +400,7 @@ export function ReservationFlowScreen() {
   )
 
   const onContinue = async () => {
-    if (!moniteurId || !selectedDate || !selectedStart || !selectedEnd) {
+    if (!moniteurId || picked.length === 0) {
       setError('Choisissez un créneau disponible')
       return
     }
@@ -409,32 +416,50 @@ export function ReservationFlowScreen() {
         /* ignore */
       }
 
-      const data = await requestReservationSlot({
-        moniteurId,
-        date: selectedDate,
-        startTime: selectedStart,
-        endTime: selectedEnd,
-        vehicleType: vehicleType || 'voiture',
-        mode: bookingMode,
-      })
+      // Solo : plusieurs séances (plusieurs jours) demandées et payées ensemble.
+      const ordered = [...picked].sort((a, b) => `${a.date}${a.start}`.localeCompare(`${b.date}${b.start}`))
+      const ids: string[] = []
+      let total = 0
+      let lockedUntil: string | null = null
+      let vehicle = vehicleType || 'voiture'
+      for (let i = 0; i < ordered.length; i += 1) {
+        const slot = ordered[i]
+        const data = await requestReservationSlot({
+          moniteurId,
+          date: slot.date,
+          startTime: slot.start,
+          endTime: slot.end,
+          vehicleType: vehicleType || 'voiture',
+          mode: bookingMode,
+          keepLocks: i > 0,
+        })
+        ids.push(String(data.creneau.id))
+        total += data.amountFcfa ?? priceFcfa
+        if (i === 0) {
+          lockedUntil = data.lockedUntil || null
+          vehicle = data.creneau.vehicleType || vehicle
+        }
+      }
+      const first = ordered[0]
+      const totalHours = durationHours * ordered.length
 
-      if (bookingMode === 'solo' && currentSolde !== null && currentSolde >= durationHours) {
+      if (bookingMode === 'solo' && currentSolde !== null && currentSolde >= totalHours) {
         const result = await createReservation({
-          creneauIds: [String(data.creneau.id)],
-          vehicleType: data.creneau.vehicleType || vehicleType || 'voiture',
+          creneauIds: ids,
+          vehicleType: vehicle,
           moniteurId,
           paymentMethod: 'solde',
         })
         const reservation = result.reservations?.[0] || result.reservation
         goConfirmPage({
-          reservationId: reservation?.id || String(data.creneau.id),
+          reservationId: reservation?.id || ids[0],
           moniteurName: selectedMoniteur?.fullName || 'Moniteur',
           vehicleBrand: selectedMoniteur?.vehicleBrand || '',
-          date: selectedDate,
-          startTime: selectedStart,
-          endTime: selectedEnd,
-          hours: durationHours,
-          priceFcfa: data.amountFcfa ?? priceFcfa,
+          date: first.date,
+          startTime: first.start,
+          endTime: first.end,
+          hours: totalHours,
+          priceFcfa: total,
           paymentMethod: 'solde',
           whatsappLink: result.whatsappLink,
         })
@@ -443,14 +468,15 @@ export function ReservationFlowScreen() {
 
       setCheckoutSlot({
         moniteurId,
-        date: selectedDate,
-        startTime: selectedStart,
-        endTime: selectedEnd,
-        vehicleType: vehicleType || 'voiture',
-        hours: durationHours,
-        amount: data.amountFcfa ?? priceFcfa,
-        creneauId: String(data.creneau.id),
-        lockedUntil: data.lockedUntil || null,
+        date: first.date,
+        startTime: first.start,
+        endTime: first.end,
+        vehicleType: vehicle,
+        hours: totalHours,
+        amount: total,
+        creneauId: ids[0],
+        creneauIds: ids,
+        lockedUntil,
         mode: bookingMode,
       })
       setMmOpen(true)
@@ -761,7 +787,9 @@ export function ReservationFlowScreen() {
                     <Text style={styles.sSummaryText}>
                       {bookingMode === 'group'
                         ? `En groupe · 2 h · ${priceFcfa.toLocaleString('fr-FR')} FCFA`
-                        : `Solo · ${soloHours === 0.5 ? '30 min' : '1 h'} · ${priceFcfa.toLocaleString('fr-FR')} FCFA`}
+                        : picked.length > 0
+                          ? `Solo · ${picked.length} séance${picked.length > 1 ? 's' : ''} · ${pickedTotal.toLocaleString('fr-FR')} FCFA`
+                          : `Solo · ${soloHours === 0.5 ? '30 min' : '1 h'} · ${priceFcfa.toLocaleString('fr-FR')} FCFA par séance`}
                     </Text>
                     <Pressable style={styles.sEdit} onPress={() => setStep('profile')} accessibilityLabel="Changer de mode" hitSlop={8}>
                       <Text style={styles.sEditText}>Modifier</Text>
@@ -808,7 +836,7 @@ export function ReservationFlowScreen() {
 
                   <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
                     {selectedDaySlots.map((slot) => {
-                      const active = selectedStart === slot.start && selectedEnd === slot.end
+                      const active = picked.some((p) => p.date === selectedDate && p.start === slot.start && p.end === slot.end)
                       const hour = parseInt(slot.start.slice(0, 2), 10) || 0
                       const period = hour < 12 ? 'Matin' : hour < 16 ? 'Après-midi' : 'Soir'
                       return (
@@ -817,8 +845,25 @@ export function ReservationFlowScreen() {
                           scaleTo={0.98}
                           onPress={() => {
                             if (slot.disabled) return
-                            setSelectedStart(slot.start)
-                            setSelectedEnd(slot.end)
+                            setError(null)
+                            setPicked((prev) => {
+                              const same = (p: { date: string; start: string; end: string }) =>
+                                p.date === selectedDate && p.start === slot.start && p.end === slot.end
+                              if (bookingMode === 'group') return [{ date: selectedDate, start: slot.start, end: slot.end }]
+                              if (prev.some(same)) return prev.filter((p) => !same(p))
+                              const overlaps = prev.some(
+                                (p) => p.date === selectedDate && slot.start < p.end && p.start < slot.end,
+                              )
+                              if (overlaps) {
+                                setError('Ces horaires se chevauchent avec une séance déjà choisie.')
+                                return prev
+                              }
+                              if (prev.length >= 10) {
+                                setError('Vous pouvez réserver 10 séances à la fois.')
+                                return prev
+                              }
+                              return [...prev, { date: selectedDate, start: slot.start, end: slot.end }]
+                            })
                             void import('../../utils/haptics').then((m) => m.hapticSelect())
                           }}
                         >
@@ -886,8 +931,16 @@ export function ReservationFlowScreen() {
               </View>
             ) : (
             <ReserveButton
-              disabled={busy || (step === 'slots' && !(selectedStart && selectedEnd))}
-              label={step === 'slots' ? (busy ? 'Un instant…' : 'Confirmer le créneau') : 'Continuer'}
+              disabled={busy || (step === 'slots' && picked.length === 0)}
+              label={
+                step === 'slots'
+                  ? busy
+                    ? 'Un instant…'
+                    : picked.length > 1
+                      ? `Confirmer ${picked.length} séances`
+                      : 'Confirmer le créneau'
+                  : 'Continuer'
+              }
               onPress={() => {
                 if (step === 'profile') setStep('slots')
                 else void onContinue()
@@ -900,10 +953,14 @@ export function ReservationFlowScreen() {
         {checkoutSlot ? (
           <ReservationMobileMoneyCheckout
             visible={mmOpen}
-            label={`${checkoutSlot.date} · ${checkoutSlot.startTime} – ${checkoutSlot.endTime}`}
+            label={
+              checkoutSlot.creneauIds && checkoutSlot.creneauIds.length > 1
+                ? `${checkoutSlot.creneauIds.length} séances`
+                : `${checkoutSlot.date} · ${checkoutSlot.startTime} – ${checkoutSlot.endTime}`
+            }
             amount={checkoutSlot.amount || priceFcfa}
             slot={checkoutSlot}
-            hoursNeeded={durationHours}
+            hoursNeeded={checkoutSlot.hours ?? durationHours}
             defaultPhone={user.phone || ''}
             holdLabel={hold.label}
             holdExpired={hold.expired}
@@ -921,7 +978,7 @@ export function ReservationFlowScreen() {
                 date: checkoutSlot.date,
                 startTime: checkoutSlot.startTime,
                 endTime: checkoutSlot.endTime,
-                hours: durationHours,
+                hours: checkoutSlot.hours ?? durationHours,
                 priceFcfa: checkoutSlot.amount || priceFcfa,
                 paymentMethod: 'promo',
                 whatsappLink: result.whatsappLink,
@@ -937,7 +994,7 @@ export function ReservationFlowScreen() {
                 date: first?.creneau?.date || checkoutSlot.date,
                 startTime: first?.creneau?.startTime || checkoutSlot.startTime,
                 endTime: first?.creneau?.endTime || checkoutSlot.endTime,
-                hours: durationHours,
+                hours: checkoutSlot.hours ?? durationHours,
                 priceFcfa: first?.priceFcfa || checkoutSlot.amount || priceFcfa,
                 paymentMethod: 'mobile_money',
               })
