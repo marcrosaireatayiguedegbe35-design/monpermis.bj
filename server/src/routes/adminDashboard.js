@@ -113,6 +113,11 @@ router.get('/summary', async (_req, res) => {
     const learnerMap = new Map(learners.map((u) => [String(u._id), u]))
     const requestMap = new Map(requests.map((r) => [String(r._id), r]))
 
+    const [accessToValidate, accessUnpaid] = await Promise.all([
+      AccessRequest.countDocuments({ status: 'paiement_declare' }),
+      AccessRequest.countDocuments({ status: 'en_attente' }),
+    ])
+
     res.json({
       success: true,
       data: {
@@ -151,6 +156,10 @@ router.get('/summary', async (_req, res) => {
           accessRequests: {
             active: accessActive,
             pending: accessPending,
+            /** Paiement déclaré par l'élève : seul cas où l'administrateur a une action à faire. */
+            toValidate: accessToValidate,
+            /** Demande ouverte sans paiement ni confirmation : rien à faire. */
+            unpaid: accessUnpaid,
             expired: accessExpired,
           },
           payments: {

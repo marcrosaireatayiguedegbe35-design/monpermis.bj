@@ -44,6 +44,8 @@ export interface DashboardSummary {
   accessRequests: {
     active: number
     pending: number
+    toValidate?: number
+    unpaid?: number
     expired: number
   }
   payments: {
