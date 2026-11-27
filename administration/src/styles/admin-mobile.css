@@ -286,3 +286,7 @@
   .ap-pager button{min-height:38px;padding:0 14px;border:1px solid #E1E8E3!important;border-radius:999px!important;background:#fff!important;color:#0B7F47!important;font-weight:700}
   .ap-pager button:disabled{opacity:.4}
 }
+
+@media (max-width:767px){
+  a.ap-sheet-act{text-decoration:none}
+}

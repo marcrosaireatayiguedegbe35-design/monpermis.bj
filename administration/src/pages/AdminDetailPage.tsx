@@ -1,7 +1,8 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams } from 'react-router-dom'
 import { ArrowLeft, KeyRound, RefreshCw, ScrollText, ShieldCheck, ToggleLeft } from 'lucide-react'
 import { fetchAdminDetail, updateAdmin, type AdminAccount, type AuditLogEntry } from '../api/admins'
+import { useIsPhone } from './MobileHome'
 import { DirectionSection } from '../components/model/DirectionSection'
 import { EmptyState, SkeletonBlock } from '../ui'
 import { getAdminToken, isAuthError } from '../context/AdminAuthContext'
@@ -20,6 +21,7 @@ export function AdminDetailPage() {
   const [role, setRole] = useState<'admin' | 'superadmin'>('admin')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const isPhone = useIsPhone()
 
   const load = useCallback(async () => {
     const token = getAdminToken()
@@ -107,6 +109,9 @@ export function AdminDetailPage() {
       setConfirmPassword('')
     }
   }
+
+  // Sur téléphone, la fiche s'ouvre dans une feuille de la liste des administrateurs.
+  if (isPhone) return <Navigate to={`/administrateurs?open=${adminId}`} replace />
 
   return (
     <DirectionSection

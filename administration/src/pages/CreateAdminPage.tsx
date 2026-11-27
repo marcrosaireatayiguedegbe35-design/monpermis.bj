@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { ArrowLeft, Check, KeyRound, Phone, ShieldAlert, UserPlus, UserRound } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
+import { useIsPhone } from './MobileHome'
 import { DirectionSection } from '../components/model/DirectionSection'
 import { createAdmin, fetchRegistrationStatus } from '../api/auth'
 import { getAdminToken, isAuthError } from '../context/AdminAuthContext'
@@ -22,6 +23,7 @@ export function CreateAdminPage() {
   const [success, setSuccess] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [registrationAllowed, setRegistrationAllowed] = useState<boolean | null>(null)
+  const isPhone = useIsPhone()
 
   useEffect(() => {
     const token = getAdminToken()
@@ -85,6 +87,9 @@ export function CreateAdminPage() {
       setSubmitting(false)
     }
   }
+
+  // Sur téléphone, la création s'ouvre dans une feuille de la liste des administrateurs.
+  if (isPhone) return <Navigate to="/administrateurs?create=1" replace />
 
   return (
     <DirectionSection
