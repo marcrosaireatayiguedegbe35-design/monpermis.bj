@@ -417,7 +417,7 @@ router.get('/availability', ...withConduiteAccess, async (req, res) => {
     const groupRows = !moniteur.acceptsGroup ? [] : await Creneau.find({
       moniteurId,
       date: { $gte: from, $lte: to },
-      status: 'libre',
+      status: { $in: ['libre', 'reserve'] },
       mode: 'group',
     }).select('date startTime endTime')
     const groupSeatRows = await Reservation.aggregate([
@@ -443,9 +443,10 @@ router.get('/availability', ...withConduiteAccess, async (req, res) => {
           seatsTaken: info?.n || 0,
           seatsTotal: GROUP_CAPACITY,
           joined: (info?.mine || 0) > 0,
+          // Bloc saturé : il reste affiché mais grisé côté application.
+          full: (info?.n || 0) >= GROUP_CAPACITY,
         }
       })
-      .filter((slot) => slot.seatsTaken < GROUP_CAPACITY && !slot.joined)
       .sort((a, b) => `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`))
 
     const busyByDate = {}

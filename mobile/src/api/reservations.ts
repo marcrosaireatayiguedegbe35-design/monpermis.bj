@@ -37,6 +37,10 @@ export interface GroupSlot {
   endTime: string
   seatsTaken: number
   seatsTotal: number
+  /** Bloc saturé : affiché grisé. */
+  full?: boolean
+  /** Déjà réservé par cet élève. */
+  joined?: boolean
 }
 
 export interface ReservationSlot {

@@ -221,7 +221,7 @@ export function ReservationFlowScreen() {
   const vehicleType = selectedMoniteur?.vehicleTypes?.[0] || 'voiture'
 
   const daysWithSlots = useMemo(() => {
-    const byDate = new Map<string, { start: string; end: string; seatsTaken?: number; seatsTotal?: number }[]>()
+    const byDate = new Map<string, { start: string; end: string; seatsTaken?: number; seatsTotal?: number; disabled?: boolean; disabledLabel?: string }[]>()
     if (bookingMode === 'solo') {
       for (const day of availabilityDays) {
         byDate.set(day.date, slotsForDuration(day.windows, soloHours, earliestBookableTime(day.date)))
@@ -230,7 +230,14 @@ export function ReservationFlowScreen() {
       // Groupe : seulement les blocs de 2 h publiés par le moniteur, avec le nombre de places prises.
       for (const g of groupSlots) {
         const list = byDate.get(g.date) ?? []
-        list.push({ start: g.startTime, end: g.endTime, seatsTaken: g.seatsTaken, seatsTotal: g.seatsTotal })
+        list.push({
+          start: g.startTime,
+          end: g.endTime,
+          seatsTaken: g.seatsTaken,
+          seatsTotal: g.seatsTotal,
+          disabled: Boolean(g.full || g.joined),
+          disabledLabel: g.joined ? 'Déjà inscrit' : g.full ? 'Complet' : undefined,
+        })
         byDate.set(g.date, list)
       }
     }
@@ -329,7 +336,7 @@ export function ReservationFlowScreen() {
   }, [daysWithSlots])
 
   useEffect(() => {
-    const slots = daysWithSlots.find((day) => day.date === selectedDate)?.slots ?? []
+    const slots = (daysWithSlots.find((day) => day.date === selectedDate)?.slots ?? []).filter((s) => !s.disabled)
     if (!slots.length) {
       setSelectedStart('')
       setSelectedEnd('')
@@ -764,8 +771,9 @@ export function ReservationFlowScreen() {
                             scaleTo={0.97}
                             onPress={() => {
                               setSelectedDate(day.date)
-                              setSelectedStart(day.slots[0]?.start || '')
-                              setSelectedEnd(day.slots[0]?.end || '')
+                              const first = day.slots.find((s) => !s.disabled)
+                              setSelectedStart(first?.start || '')
+                              setSelectedEnd(first?.end || '')
                             }}
                           >
                             <View style={[styles.weekDay, active && styles.weekDayOn]} accessibilityRole="button" accessibilityState={{ selected: active }}>
@@ -799,20 +807,21 @@ export function ReservationFlowScreen() {
                           key={`${slot.start}-${slot.end}`}
                           scaleTo={0.98}
                           onPress={() => {
+                            if (slot.disabled) return
                             setSelectedStart(slot.start)
                             setSelectedEnd(slot.end)
                             void import('../../utils/haptics').then((m) => m.hapticSelect())
                           }}
                         >
                           <View
-                            style={[styles.slotRow, active && styles.slotRowOn]}
+                            style={[styles.slotRow, active && styles.slotRowOn, slot.disabled && styles.slotRowOff]}
                             accessibilityRole="button"
                             accessibilityState={{ selected: active }}
                             accessibilityLabel={`${slot.start} à ${slot.end}`}
                           >
-                            <Text style={styles.slotRowTime}>{slot.start} → {slot.end}</Text>
+                            <Text style={[styles.slotRowTime, slot.disabled && { color: '#9AA5B1' }]}>{slot.start} → {slot.end}</Text>
                             <Text style={[styles.slotRowPeriod, active && { color: RES.green }]}>
-                              {slot.seatsTotal ? `${slot.seatsTaken ?? 0}/${slot.seatsTotal} places prises` : period}
+                              {slot.disabledLabel ? slot.disabledLabel : slot.seatsTotal ? `${slot.seatsTaken ?? 0}/${slot.seatsTotal} places prises` : period}
                             </Text>
                             {active ? (
                               <View style={styles.slotRowCheck}>
@@ -1035,6 +1044,7 @@ const styles = StyleSheet.create({
   weekDayMonth: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: '#5B6B86' },
   weekDayTextOn: { color: '#FFFFFF' },
   slotRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 18, paddingVertical: 16, borderRadius: 26, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#DFE6E1', ...shadows.sm },
+  slotRowOff: { backgroundColor: '#F1F3F5', borderColor: '#E3E7EB', opacity: 0.7 },
   slotRowOn: { backgroundColor: '#EAF8EF', borderColor: RES.green },
   slotRowTime: { flex: 1, fontFamily: fonts.displayBold, fontSize: 19, color: '#0B1F3A' },
   slotRowPeriod: { fontFamily: fonts.bodyMedium, fontSize: 14, color: '#5B6B86' },
