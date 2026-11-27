@@ -92,6 +92,8 @@ export interface MoniteurPublic {
   vehiclePhotoUrl?: string
   photoUrl?: string
   city?: string
+  /** Le moniteur propose des séances en groupe (blocs de 2 h, 4 élèves). */
+  acceptsGroup?: boolean
 }
 
 export interface MoniteurProfile extends MoniteurPublic {
@@ -239,7 +241,7 @@ export function fetchMoniteurAvailability(params: {
     hoursDiscountFcfa?: number
     hoursDiscountMinHours?: number
     soloPricePerHour?: number
-    groupPricePerHour?: number
+    groupPricePerSeat?: number
     groupSlots?: GroupSlot[]
     days: AvailabilityDay[]
   }>(`/reservations/availability?${query.toString()}`)

@@ -82,8 +82,9 @@ import { useViewport } from '../../utils/viewport'
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ReservationFlow'>
 type Step = 'moniteur' | 'profile' | 'slots'
 
-/** Toutes les séances durent une heure. */
-const SESSION_HOURS = 1
+/** Solo : 30 min ou 1 h. Groupe : bloc de 2 h pour 4 élèves (30 min de conduite chacun). */
+const SOLO_DURATIONS = [0.5, 1] as const
+const GROUP_BLOCK_HOURS = 2
 
 /** « Marc Rosaire ATAYI GUEDEGBE » → prénoms / nom (les mots tout en majuscules forment le nom). */
 function splitFullName(fullName: string) {
@@ -181,7 +182,7 @@ export function ReservationFlowScreen() {
   const [groupSlots, setGroupSlots] = useState<GroupSlot[]>([])
   const [hoursDiscount, setHoursDiscount] = useState(HOURS_DISCOUNT_FCFA)
   const [hoursDiscountMin, setHoursDiscountMin] = useState(HOURS_DISCOUNT_MIN_HOURS)
-  const durationHours = SESSION_HOURS
+  const [soloHours, setSoloHours] = useState<0.5 | 1>(1)
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedStart, setSelectedStart] = useState('')
   const [selectedEnd, setSelectedEnd] = useState('')
@@ -221,15 +222,13 @@ export function ReservationFlowScreen() {
 
   const daysWithSlots = useMemo(() => {
     const byDate = new Map<string, { start: string; end: string; seatsTaken?: number; seatsTotal?: number }[]>()
-    for (const day of availabilityDays) {
-      const slots = slotsForDuration(day.windows, durationHours, earliestBookableTime(day.date))
-      // En groupe, les élèves partagent la même heure : on ne propose que des heures pleines.
-      byDate.set(day.date, bookingMode === 'group' ? slots.filter((slot) => slot.start.endsWith(':00')) : slots)
-    }
-    if (bookingMode === 'group') {
+    if (bookingMode === 'solo') {
+      for (const day of availabilityDays) {
+        byDate.set(day.date, slotsForDuration(day.windows, soloHours, earliestBookableTime(day.date)))
+      }
+    } else {
+      // Groupe : seulement les blocs de 2 h publiés par le moniteur, avec le nombre de places prises.
       for (const g of groupSlots) {
-        const minutes = timeToMinutes(g.endTime) - timeToMinutes(g.startTime)
-        if (minutes !== Math.round(durationHours * 60)) continue
         const list = byDate.get(g.date) ?? []
         list.push({ start: g.startTime, end: g.endTime, seatsTaken: g.seatsTaken, seatsTotal: g.seatsTotal })
         byDate.set(g.date, list)
@@ -242,19 +241,16 @@ export function ReservationFlowScreen() {
       }))
       .filter((day) => day.slots.length > 0)
       .sort((a, b) => a.date.localeCompare(b.date))
-  }, [availabilityDays, durationHours, bookingMode, groupSlots])
+  }, [availabilityDays, soloHours, bookingMode, groupSlots])
+
+  const durationHours = bookingMode === 'group' ? GROUP_BLOCK_HOURS : soloHours
 
   const selectedDaySlots = useMemo(
     () => daysWithSlots.find((day) => day.date === selectedDate)?.slots ?? [],
     [daysWithSlots, selectedDate],
   )
 
-  const priceFcfa =
-    bookingMode === 'group'
-      ? Math.round(groupPriceFcfa * durationHours)
-      : computeDrivingAmount(hourlyPriceFcfa, durationHours, hoursDiscount, hoursDiscountMin)
-  const priceDiscount =
-    bookingMode === 'group' ? 0 : Math.max(0, Math.round(hourlyPriceFcfa * durationHours) - priceFcfa)
+  const priceFcfa = bookingMode === 'group' ? groupPriceFcfa : Math.round(hourlyPriceFcfa * soloHours)
 
   const loadMoniteurs = useCallback(async () => {
     setBusy(true)
@@ -275,6 +271,7 @@ export function ReservationFlowScreen() {
     try {
       const data = await fetchMoniteurProfile(id)
       setProfile(data.moniteur)
+      if (!data.moniteur.acceptsGroup) setBookingMode('solo')
       setMoniteurId(data.moniteur.id)
       setBioExpanded(false)
       setVehicleImageIndex(0)
@@ -294,7 +291,7 @@ export function ReservationFlowScreen() {
       const data = await fetchMoniteurAvailability({ moniteurId, days: 14 })
       setAvailabilityDays(data.days)
       setHourlyPriceFcfa(data.hourlyPriceFcfa || 5000)
-      if (data.groupPricePerHour) setGroupPriceFcfa(data.groupPricePerHour)
+      if (data.groupPricePerSeat) setGroupPriceFcfa(data.groupPricePerSeat)
       setGroupSlots(data.groupSlots ?? [])
       if (data.hoursDiscountFcfa !== undefined) setHoursDiscount(data.hoursDiscountFcfa)
       if (data.hoursDiscountMinHours !== undefined) setHoursDiscountMin(data.hoursDiscountMinHours)
@@ -574,10 +571,12 @@ export function ReservationFlowScreen() {
                                 <Wallet size={15} color={RES.green} />
                                 <Text style={[styles.tChipText, { color: RES.green }]}>Solo 5 000 F/h</Text>
                               </View>
-                              <View style={[styles.tChip, { backgroundColor: RES.soft }]}>
-                                <Users size={15} color={RES.green} />
-                                <Text style={[styles.tChipText, { color: RES.green }]}>Groupe {groupPriceFcfa.toLocaleString('fr-FR')} F/h</Text>
-                              </View>
+                              {moniteur.acceptsGroup ? (
+                                <View style={[styles.tChip, { backgroundColor: RES.soft }]}>
+                                  <Users size={15} color={RES.green} />
+                                  <Text style={[styles.tChipText, { color: RES.green }]}>Groupe {groupPriceFcfa.toLocaleString('fr-FR')} F/élève</Text>
+                                </View>
+                              ) : null}
                             </View>
                           </LinearGradient>
                         </View>
@@ -642,7 +641,7 @@ export function ReservationFlowScreen() {
                 ))}
               </View>
 
-              <ModeCards mode={bookingMode} soloPrice={5000} groupPrice={groupPriceFcfa} onChange={setBookingMode} />
+              <ModeCards mode={bookingMode} soloPrice={5000} groupPrice={groupPriceFcfa} groupAvailable={Boolean(profile.acceptsGroup)} onChange={setBookingMode} />
 
               <View style={styles.pCard}>
                 {profileTab === 'about' ? (
@@ -664,10 +663,12 @@ export function ReservationFlowScreen() {
                         <Wallet size={15} color="#0B1F3A" />
                         <Text style={styles.pChipText}>Solo 5 000 F / h</Text>
                       </View>
-                      <View style={styles.pChip}>
-                        <Wallet size={15} color="#0B1F3A" />
-                        <Text style={styles.pChipText}>Groupe {groupPriceFcfa.toLocaleString('fr-FR')} F / h</Text>
-                      </View>
+                      {profile.acceptsGroup ? (
+                        <View style={styles.pChip}>
+                          <Wallet size={15} color="#0B1F3A" />
+                          <Text style={styles.pChipText}>Groupe {groupPriceFcfa.toLocaleString('fr-FR')} F / élève</Text>
+                        </View>
+                      ) : null}
                     </View>
                   </View>
                 ) : null}
@@ -707,7 +708,7 @@ export function ReservationFlowScreen() {
                 <EmptyState
                   icon={<CalendarOff size={30} color={dark.textMuted} />}
                   title="Aucun créneau disponible"
-                  message={`Pas de plage de ${durationHours} h libre sur les 14 prochains jours.`}
+                  message={bookingMode === 'group' ? 'Ce moniteur n’a pas de groupe ouvert pour le moment.' : `Pas de plage libre sur les 14 prochains jours.`}
                   action={
                     <View style={{ width: '100%', gap: 8 }}>
                       <Pressable style={styles.secondaryBtn} onPress={() => setStep('moniteur')}>
@@ -720,9 +721,31 @@ export function ReservationFlowScreen() {
 
               {daysWithSlots.length > 0 ? (
                 <>
+                  {bookingMode === 'solo' ? (
+                    <View style={styles.hoursRow}>
+                      {SOLO_DURATIONS.map((h) => {
+                        const active = soloHours === h
+                        return (
+                          <Bouncy key={h} scaleTo={0.97} style={{ flex: 1 }} onPress={() => setSoloHours(h)}>
+                            <View
+                              style={[styles.hoursPill, { height: 46 }, active && styles.hoursPillOn]}
+                              accessibilityRole="button"
+                              accessibilityState={{ selected: active }}
+                            >
+                              <Text style={[styles.hoursPillText, { fontSize: 16 }, active && styles.hoursPillTextOn]}>
+                                {h === 0.5 ? '30 min' : '1 heure'} · {Math.round(hourlyPriceFcfa * h).toLocaleString('fr-FR')} F
+                              </Text>
+                            </View>
+                          </Bouncy>
+                        )
+                      })}
+                    </View>
+                  ) : null}
                   <View style={styles.sSummary}>
                     <Text style={styles.sSummaryText}>
-                      {bookingMode === 'group' ? 'En groupe' : 'Solo'} · {durationHours} h · {priceFcfa.toLocaleString('fr-FR')} FCFA
+                      {bookingMode === 'group'
+                        ? `En groupe · 2 h · ${priceFcfa.toLocaleString('fr-FR')} FCFA`
+                        : `Solo · ${soloHours === 0.5 ? '30 min' : '1 h'} · ${priceFcfa.toLocaleString('fr-FR')} FCFA`}
                     </Text>
                     <Pressable style={styles.sEdit} onPress={() => setStep('profile')} accessibilityLabel="Changer de mode" hitSlop={8}>
                       <Text style={styles.sEditText}>Modifier</Text>
@@ -757,7 +780,7 @@ export function ReservationFlowScreen() {
                   </View>
 
                   {bookingMode === 'group' ? (
-                    <Text style={styles.sNote}>En groupe, vous partagez la même heure avec d’autres élèves.</Text>
+                    <Text style={styles.sNote}>En groupe : 2 h à 4 élèves, 30 min de conduite chacun.</Text>
                   ) : null}
                   {selectedDate && earliestBookableTime(selectedDate) ? (
                     <Text style={styles.sNote}>Réservation possible à partir de {earliestBookableTime(selectedDate)} aujourd’hui.</Text>
@@ -789,7 +812,7 @@ export function ReservationFlowScreen() {
                           >
                             <Text style={styles.slotRowTime}>{slot.start} → {slot.end}</Text>
                             <Text style={[styles.slotRowPeriod, active && { color: RES.green }]}>
-                              {slot.seatsTaken ? `Groupe ouvert · ${slot.seatsTaken}/${slot.seatsTotal} places` : period}
+                              {slot.seatsTotal ? `${slot.seatsTaken ?? 0}/${slot.seatsTotal} places prises` : period}
                             </Text>
                             {active ? (
                               <View style={styles.slotRowCheck}>
@@ -913,16 +936,20 @@ function ModeCards({
   mode,
   soloPrice,
   groupPrice,
+  groupAvailable,
   onChange,
 }: {
   mode: 'solo' | 'group'
   soloPrice: number
   groupPrice: number
+  groupAvailable: boolean
   onChange: (mode: 'solo' | 'group') => void
 }) {
   const items = [
-    { id: 'solo' as const, label: 'Solo', price: soloPrice, note: 'Pour vous seul', Icon: User },
-    { id: 'group' as const, label: 'En groupe', price: groupPrice, note: 'Jusqu’à 7 élèves', Icon: Users },
+    { id: 'solo' as const, label: 'Solo', price: `${soloPrice.toLocaleString('fr-FR')} F / h`, note: '30 min ou 1 h, pour vous seul', Icon: User },
+    ...(groupAvailable
+      ? [{ id: 'group' as const, label: 'En groupe', price: `${groupPrice.toLocaleString('fr-FR')} F / élève`, note: '2 h à 4 élèves · 30 min chacun', Icon: Users }]
+      : []),
   ]
   return (
     <View style={styles.modeRow}>
@@ -940,7 +967,7 @@ function ModeCards({
                 <Icon size={17} color={active ? '#FFFFFF' : RES.green} />
               </View>
               <Text style={styles.modeLabel}>{label}</Text>
-              <Text style={[styles.modePrice, active && { color: RES.green }]}>{price.toLocaleString('fr-FR')} F / h</Text>
+              <Text style={[styles.modePrice, active && { color: RES.green }]}>{price}</Text>
               <Text style={styles.modeNote} numberOfLines={2}>{note}</Text>
               {active ? (
                 <View style={styles.modeCheck}>
