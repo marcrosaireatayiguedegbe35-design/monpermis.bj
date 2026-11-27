@@ -11,6 +11,8 @@ import {
 import { CodeSection } from '../../components/model/CodeSection'
 import { getAdminToken, isAuthError } from '../../context/AdminAuthContext'
 import { EmptyState, SkeletonBlock } from '../../ui'
+import { LearnerDetailPhone, LearnerListPhone } from '../../components/phone/LearnerResultsPhone'
+import { useIsPhone } from '../MobileHome'
 import { LearnerRankingPanel } from './LearnerRankingPanel'
 import { LearnerReportPanels } from './LearnerReportPanels'
 
@@ -164,6 +166,7 @@ export function LearnerProgressListPage() {
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [view, setView] = useState<'list' | 'ranking'>('list')
+  const isPhone = useIsPhone()
 
   const load = useCallback(async () => {
     const token = getAdminToken()
@@ -195,6 +198,14 @@ export function LearnerProgressListPage() {
       `${user.firstName} ${user.lastName} ${user.email} ${user.phone}`.toLowerCase().includes(needle),
     )
   }, [users, query])
+
+  if (isPhone) {
+    return (
+      <CodeSection title="Résultats des apprenants">
+        <LearnerListPhone />
+      </CodeSection>
+    )
+  }
 
   return (
     <CodeSection
@@ -282,6 +293,7 @@ export function LearnerProgressDetailPage() {
   const [data, setData] = useState<LearnerProgressDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const isPhone = useIsPhone()
 
   const load = useCallback(async () => {
     const token = getAdminToken()
@@ -314,6 +326,14 @@ export function LearnerProgressDetailPage() {
   }, [userId, load])
 
   const pct = (done: number, total: number) => (total ? Math.round((done / total) * 100) : 0)
+
+  if (isPhone) {
+    return (
+      <CodeSection title={data ? `${data.user.firstName} ${data.user.lastName}` : 'Apprenant'}>
+        <LearnerDetailPhone userId={userId} />
+      </CodeSection>
+    )
+  }
 
   return (
     <CodeSection

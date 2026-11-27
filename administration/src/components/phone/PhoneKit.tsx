@@ -209,7 +209,7 @@ export function PhotoHub({
   title: string
   subtitle?: string
   back?: string | null
-  banner: { title: string; text: string; to?: string; cta?: string; tone?: 'green' | 'alert' }
+  banner: { title: string; text: string; to?: string; cta?: string; tone?: 'green' | 'alert'; image?: string; badge?: string }
   cards: PhotoCard[]
   wide?: PhotoCard
 }) {
@@ -239,7 +239,21 @@ export function PhotoHub({
           {subtitle ? <small>{subtitle}</small> : null}
         </div>
       </div>
-      <div className={`ap-ph-banner${banner.tone === 'alert' ? ' is-alert' : ''}`}>
+      {banner.image ? (
+        <div className="ap-ph-banner is-photo">
+          <img src={banner.image} alt="" />
+          <span className="ap-ph-bbadge">
+            <i />
+            {banner.badge || 'Ton parcours'}
+          </span>
+          <div className="ap-ph-bcap">
+            <b>{banner.title}</b>
+            <p>{banner.text}</p>
+          </div>
+          {banner.to ? <Link to={banner.to} className="ap-ph-bgo" aria-label={banner.cta || 'Ouvrir'} /> : null}
+        </div>
+      ) : (
+        <div className={`ap-ph-banner${banner.tone === 'alert' ? ' is-alert' : ''}`}>
         <div>
           <b>{banner.title}</b>
           <p>{banner.text}</p>
@@ -250,6 +264,7 @@ export function PhotoHub({
           </Link>
         ) : null}
       </div>
+      )}
       <div className="ap-ph-grid">{cards.map((c) => renderCard(c, ''))}</div>
       {wide ? renderCard(wide, 'is-wide') : null}
     </div>

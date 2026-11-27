@@ -412,6 +412,18 @@
   .ap-ph-banner.is-alert{background:linear-gradient(135deg,#C2410C,#9A3412)}
   .ap-ph-banner b{font-size:17px;letter-spacing:-.2px;display:block}
   .ap-ph-banner p{margin:3px 0 0;font-size:13px;opacity:.9;line-height:1.3}
+  .ap-ph-banner.is-photo{position:relative;display:block;flex:1 1 0;min-height:118px;padding:0;overflow:hidden;border:2.5px solid #FFC000;background:#001030;box-shadow:0 8px 20px rgba(0,16,48,.18)}
+  .ap-ph-banner.is-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .ap-ph-banner.is-photo::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,16,48,.08),rgba(0,16,48,.42) 40%,rgba(0,16,48,.88));pointer-events:none}
+  .ap-ph-bbadge{position:absolute;z-index:3;top:12px;left:12px;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.92);color:#001030;font-size:12px;font-weight:700}
+  .ap-ph-bbadge i{width:7px;height:7px;border-radius:50%;background:#00B050}
+  .ap-ph-bcap{position:absolute;z-index:3;left:14px;right:14px;bottom:12px;color:#fff}
+  .ap-ph-bcap b{display:block;font-size:22px;line-height:26px;letter-spacing:-.3px;color:#fff}
+  .ap-ph-bcap p{margin:3px 0 0;font-size:13.5px;line-height:19px;opacity:.95;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:#fff}
+  .ap-ph-banner.is-photo{flex:31 1 0}
+  .ap-ph-banner.is-photo ~ .ap-ph-grid{flex:52 1 0}
+  .ap-ph-banner.is-photo ~ .ap-ph-card.is-wide{flex:0 0 14%;min-height:84px}
+  .ap-ph-bgo{position:absolute;inset:0;z-index:4}
   .ap-ph-cta{flex:none;background:#fff;color:#0A1E55;border-radius:999px;padding:10px 16px;font-weight:800;font-size:13.5px;text-decoration:none}
   .ap-ph-grid{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:12px}
   .ap-ph-card{position:relative;display:block;overflow:hidden;border-radius:22px;text-decoration:none;color:#0A1E55;min-height:0;background:#ddd}

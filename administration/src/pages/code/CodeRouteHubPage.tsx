@@ -11,6 +11,7 @@ import {
   Layers,
   List,
   Radar,
+  TriangleAlert,
 } from 'lucide-react'
 import { CodeSection } from '../../components/model/CodeSection'
 import { PhotoHub } from '../../components/phone/PhoneKit'
@@ -195,8 +196,8 @@ export function CodeRouteHubPage() {
         subtitle="Apprendre • Réviser • Réussir"
         banner={
           first
-            ? { title: first.title, text: first.sub, to: first.to, cta: 'Voir', tone: 'alert' }
-            : { title: 'Tout est à jour', text: 'Chapitres, notions et examens sont publiés.', to: '/code/revision-chapitres', cta: 'Réviser' }
+            ? { title: 'Code de la route', text: `${first.title} — ${first.sub}`, to: first.to, cta: 'Voir', image: '/phone/banner-code.jpg', badge: 'À traiter' }
+            : { title: 'Code de la route', text: 'Tout est à jour : chapitres, notions et examens sont publiés.', to: '/code/revision-chapitres', cta: 'Réviser', image: '/phone/banner-code.jpg' }
         }
         cards={[
           {
@@ -206,6 +207,14 @@ export function CodeRouteHubPage() {
             image: '/phone/revision.jpg',
             tone: 'pink',
             icon: <List aria-hidden />,
+          },
+          {
+            to: '/code/panneaux',
+            title: 'Révision panneaux',
+            sub: '20 catégories de panneaux à réviser',
+            image: '/phone/panneaux.png',
+            tone: 'cyan',
+            icon: <TriangleAlert aria-hidden />,
           },
           {
             to: '/code/examens-test',

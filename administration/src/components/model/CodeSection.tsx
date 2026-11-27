@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react'
-import { BookOpen, ClipboardCheck, LayoutGrid, List, Radar } from 'lucide-react'
+import { BookOpen, ClipboardCheck, LayoutGrid, List, Radar, TriangleAlert } from 'lucide-react'
 import { PageSection, type SectionTab } from './PageSection'
 
 /** Onglets de l'espace « Code de la route » : même barre sur toutes les pages de la section. */
 const TABS: readonly SectionTab[] = [
   { to: '/code', label: 'Vue d’ensemble', icon: LayoutGrid, end: true },
   { to: '/code/revision-chapitres', label: 'Révision', icon: List },
+  { to: '/code/panneaux', label: 'Panneaux', icon: TriangleAlert },
   { to: '/code/cours', label: 'Cours', icon: BookOpen },
   { to: '/code/examens-test', label: 'Examens test', icon: ClipboardCheck },
   { to: '/code/suivi-apprenants', label: 'Suivi apprenants', icon: Radar },
