@@ -719,12 +719,12 @@ export function ReservationFlowScreen() {
                   </View>
                 </View>
 
-                <ModeCards mode={bookingMode} soloPrice={5000} groupPrice={groupPriceFcfa} onChange={setBookingMode} />
-                <Text style={styles.recapHint}>
-                  {isGroup
-                    ? 'En groupe : séance partagée, paiement Mobile Money.'
-                    : 'Solo : le créneau est à vous seul.'}
-                </Text>
+                <View style={styles.modeTag}>
+                  {isGroup ? <Users size={15} color={RES.green} /> : <User size={15} color={RES.green} />}
+                  <Text style={styles.modeTagText}>
+                    {isGroup ? `En groupe · ${groupPriceFcfa.toLocaleString('fr-FR')} F/h` : 'Solo · 5 000 F/h'}
+                  </Text>
+                </View>
 
                 <View style={styles.hoursRow}>
                   {DURATION_OPTIONS.map((hours) => {
@@ -1037,6 +1037,8 @@ function ModeCards({
 }
 
 const styles = StyleSheet.create({
+  modeTag: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: RES.soft },
+  modeTagText: { fontFamily: fonts.bodyBold, fontSize: 13.5, color: RES.green },
   tCard: { flex: 1, borderRadius: 30, overflow: 'hidden', backgroundColor: '#EAF6EF', borderWidth: 1, borderColor: RES.line, ...shadows.md },
   tBars: { position: 'absolute', top: 10, left: 12, right: 12, flexDirection: 'row', gap: 5 },
   tBar: { flex: 1, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.65)' },
