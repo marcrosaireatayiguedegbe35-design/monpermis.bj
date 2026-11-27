@@ -6,12 +6,14 @@ import { TEST_SUBJECT_SIZE, TestSubject } from '../models/TestSubject.js'
 import {
   buildSubjectSummaries,
   computeChapterTestSubjectCount,
+  pickQuestionsForSubject,
 } from '../utils/chapterTestSubjects.js'
 import { requireAdminAuth } from '../middleware/adminAuth.js'
 import { audit } from '../middleware/audit.js'
 import { logger } from '../utils/logger.js'
 import {
   getHardcodedQuestionsForChapter,
+  hardcodedAsQuestionDocs,
   listHardcodedQuestionsAdmin,
 } from '../services/hardcodedQuestions.js'
 
@@ -101,6 +103,37 @@ router.patch('/chapters/:chapterId/questions/:questionId', audit('update', 'ques
 
 router.delete('/chapters/:chapterId/questions/:questionId', audit('delete', 'question'), async (_req, res) => {
   return res.status(400).json({ success: false, error: FILE_BASED_QUESTIONS_ERROR })
+})
+
+/** Contenu d'un sujet test (mêmes questions que celles tirées pour l'apprenant), avec les bonnes réponses. */
+router.get('/chapters/:chapterId/test-subjects/:subjectNumber', async (req, res, next) => {
+  if (!/^\d+$/.test(String(req.params.subjectNumber))) return next()
+  try {
+    const chapter = await ensureChapter(req.params.chapterId)
+    if (!chapter) {
+      return res.status(404).json({ success: false, error: 'Chapitre introuvable' })
+    }
+    const subjectNumber = Math.max(1, parseInt(String(req.params.subjectNumber), 10) || 0)
+    const bank = hardcodedAsQuestionDocs(chapter) || []
+    const summary = buildSubjectSummaries(bank.length, String(chapter._id)).find((item) => item.number === subjectNumber)
+    if (!summary) {
+      return res.status(404).json({ success: false, error: 'Sujet test introuvable' })
+    }
+    const pickedIds = new Set(
+      pickQuestionsForSubject(bank, subjectNumber, String(chapter._id)).map((q) => String(q._id || q.id)),
+    )
+    const admin = (listHardcodedQuestionsAdmin(chapter) || []).filter((q) => pickedIds.has(String(q.id)))
+    res.json({
+      success: true,
+      data: {
+        chapter: { id: chapter._id, name: chapter.name },
+        subject: { ...summary, questionCount: admin.length, questions: admin },
+      },
+    })
+  } catch (error) {
+    logger.error('Erreur contenu sujet test:', error)
+    res.status(500).json({ success: false, error: 'Chargement impossible' })
+  }
 })
 
 router.get('/chapters/:chapterId/test-subjects/current', async (req, res) => {

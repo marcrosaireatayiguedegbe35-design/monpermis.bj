@@ -18,6 +18,9 @@ import { PublishSwitch } from '../../components/PublishSwitch'
 import { getAdminToken, isAuthError } from '../../context/AdminAuthContext'
 import { SkeletonBlock } from '../../ui'
 import { resolveMediaUrl } from '../../utils/mediaUrl'
+import { QuestionViewPhone } from '../../components/phone/QuestionPhone'
+import type { ChapterQuestion } from '../../types/questions'
+import { Link } from 'react-router-dom'
 
 interface ExamItem {
   id: string
@@ -102,6 +105,7 @@ export function BaseExamAdminPage(config: BaseExamConfig) {
   const [detailExam, setDetailExam] = useState<ExamWithQuestions | null>(null)
   const isPhone = useIsPhone()
   const [phoneView, setPhoneView] = useState<'sujets' | 'notes' | 'banque'>('sujets')
+  const [phoneIndex, setPhoneIndex] = useState(0)
   const [detailLoading, setDetailLoading] = useState(false)
   const [expandedQuestionId, setExpandedQuestionId] = useState<string | null>(null)
   const [metaForm, setMetaForm] = useState({ author: '', sceneName: '', coefficient: '1' })
@@ -230,6 +234,110 @@ export function BaseExamAdminPage(config: BaseExamConfig) {
 
   const bankFill = data && data.requiredSize > 0 ? Math.min(100, (data.bankCount / data.requiredSize) * 100) : 0
   const maxChapter = Math.max(1, ...(data?.chapterBank ?? []).map((c) => c.questionCount))
+
+  if (isPhone) {
+    if (detailExam && !detailLoading) {
+      return (
+        <QuestionViewPhone
+          questions={(detailExam.questions || []) as unknown as ChapterQuestion[]}
+          index={phoneIndex}
+          onIndex={setPhoneIndex}
+          onClose={() => {
+            setDetailExam(null)
+            setPhoneIndex(0)
+          }}
+          title={`${config.itemLabel} ${detailExam.examNumber}`}
+        />
+      )
+    }
+    return (
+      <CodeSection title={config.title}>
+        <div className="qp-page">
+          <div className="qp-intro">
+            <span>Auto-évaluation</span>
+            <h2>{config.title}</h2>
+            <p>
+              {data?.examTotal ?? 80} {config.itemsLabel} · questions tirées au hasard à chaque essai · {data?.requiredSize ?? 20} questions · note /20 · moyenne{' '}
+              {data?.passScore ?? 14}/20
+            </p>
+          </div>
+          {error ? <p className="cx-note cx-note-err" role="alert">{error}</p> : null}
+          {success ? <p className="cx-note cx-note-ok" role="status">{success}</p> : null}
+          {loading || detailLoading ? <p className="ap-empty">Chargement…</p> : null}
+          {data ? (
+            <>
+              <div className="ep-banner">
+                <div>
+                  <b>
+                    {data.examCount}/{data.examTotal}
+                  </b>
+                  <small>générés</small>
+                </div>
+                <div>
+                  <b>{data.recentResults.length}</b>
+                  <small>notes récentes</small>
+                </div>
+                <Link to="/code/suivi-apprenants" className="ep-link">
+                  Résultats
+                </Link>
+              </div>
+              <button
+                type="button"
+                className="ep-gen"
+                onClick={() => void handleGenerate()}
+                disabled={generating || data.bankCount < data.requiredSize}
+              >
+                {generating ? 'Mélange…' : `Mélanger & générer ${data.examTotal} ${config.itemsLabel}`}
+              </button>
+              {data.exams.length === 0 ? (
+                <div className="ep-empty">
+                  <b>Examens en préparation</b>
+                  <p>{generationHint}</p>
+                </div>
+              ) : null}
+              {data.exams.map((exam) => (
+                <div key={exam.id} className="ep-card">
+                  <span>
+                    <b>
+                      {config.itemLabel} {exam.examNumber}
+                    </b>
+                    <small>
+                      {exam.questionCount} questions{exam.published ? '' : ' · Brouillon'}
+                    </small>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhoneIndex(0)
+                      void handleViewDetail(exam.id)
+                    }}
+                  >
+                    Voir
+                  </button>
+                </div>
+              ))}
+              {data.recentResults.length > 0 ? (
+                <>
+                  <h3 className="ep-h">Notes récentes</h3>
+                  {data.recentResults.slice(0, 10).map((r) => (
+                    <div key={r.id} className="ep-card">
+                      <span>
+                        <b>{r.learnerName}</b>
+                        <small>
+                          {config.itemLabel} {r.examNumber}
+                        </small>
+                      </span>
+                      <em className={r.passed ? 'is-ok' : 'is-ko'}>{r.scoreLabel}</em>
+                    </div>
+                  ))}
+                </>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+      </CodeSection>
+    )
+  }
 
   return (
     <CodeSection

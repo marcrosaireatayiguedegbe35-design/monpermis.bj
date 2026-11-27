@@ -14,6 +14,8 @@ import {
 } from 'lucide-react'
 import { fetchChapterQuestions } from '../../api/questions'
 import { CodeSection } from '../../components/model/CodeSection'
+import { QuestionListPhone, QuestionViewPhone } from '../../components/phone/QuestionPhone'
+import { useIsPhone } from '../MobileHome'
 import { getAdminToken, isAuthError } from '../../context/AdminAuthContext'
 import { EmptyState, SkeletonBlock } from '../../ui'
 import { resolveMediaUrl } from '../../utils/mediaUrl'
@@ -37,6 +39,8 @@ export function ChapterQuestionsPage() {
   const [error, setError] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  const isPhone = useIsPhone()
+  const [openIndex, setOpenIndex] = useState<number | null>(null)
 
   const loadQuestions = useCallback(async () => {
     if (!chapterId) return
@@ -100,6 +104,36 @@ export function ChapterQuestionsPage() {
   if (!chapterId) return <Navigate to="/code/revision-chapitres" replace />
 
   const ready = !loading && !awaitingFiles && questions.length > 0
+
+  if (isPhone) {
+    if (ready && openIndex !== null) {
+      return (
+        <QuestionViewPhone
+          questions={questions}
+          index={openIndex}
+          onIndex={setOpenIndex}
+          onClose={() => setOpenIndex(null)}
+          title="Questions"
+        />
+      )
+    }
+    return (
+      <CodeSection title={chapterName || 'Questions'}>
+        {error ? <p className="cx-note cx-note-err" role="alert">{error}</p> : null}
+        {loading ? <p className="ap-empty">Chargement…</p> : null}
+        {!loading && !error && !ready ? <p className="ap-empty">Aucune question pour ce chapitre.</p> : null}
+        {ready ? (
+          <QuestionListPhone
+            kicker="Entraînement"
+            title="Questions"
+            intro="Les questions telles que l’apprenant les voit. Touchez-en une pour l’écouter et voir les bonnes réponses."
+            questions={questions}
+            onOpen={setOpenIndex}
+          />
+        ) : null}
+      </CodeSection>
+    )
+  }
 
   return (
     <CodeSection

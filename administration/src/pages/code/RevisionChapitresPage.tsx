@@ -122,7 +122,7 @@ export function RevisionChapitresPage() {
                   <Link to={`/code/revision-chapitres/${chapter.id}/questions`} className="is-primary">
                     <HelpCircle aria-hidden /> Questions
                   </Link>
-                  <button type="button" onClick={() => setSubjectChapterId(chapter.id)}>
+                  <button type="button" onClick={() => navigate(`/code/revision-chapitres/${chapter.id}/sujets`)}>
                     <ClipboardList aria-hidden /> Sujet test
                   </button>
                   <button

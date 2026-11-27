@@ -54,6 +54,18 @@ practiceExamSchema.methods.toPublicJSON = function toPublicJSON(questions = []) 
 
 practiceExamSchema.methods.toAdminJSON = function toAdminJSON(questions = []) {
   const data = this.toPublicJSON(questions)
+  // L'admin voit les bonnes réponses : on reprend la version « admin » de chaque question quand elle existe.
+  const byId = new Map(questions.map((q) => [String(q.id || q._id), q]))
+  data.questions = (this.questionIds || [])
+    .map((id) => byId.get(String(id)))
+    .filter(Boolean)
+    .map((q) =>
+      typeof q.toAdminJSON === 'function'
+        ? q.toAdminJSON()
+        : typeof q.toPublicJSON === 'function'
+          ? q.toPublicJSON()
+          : q,
+    )
   return {
     ...data,
     published: Boolean(this.published),

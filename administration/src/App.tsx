@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { SuperAdminRoute } from './components/SuperAdminRoute'
 import { CodeRouteHubPage } from './pages/code/CodeRouteHubPage'
 import { ChapterQuestionsPage } from './pages/code/ChapterQuestionsPage'
+import { ChapterSubjectsPage } from './pages/code/ChapterSubjectsPage'
 import { PanneauxCategoryPage, PanneauxPage } from './pages/code/PanneauxPage'
 import { ExamensTestAdminPage } from './pages/code/ExamensTestAdminPage'
 import { CoursesPage } from './pages/code/CoursesPage'
@@ -57,6 +58,8 @@ export default function App() {
             path="/code/revision-chapitres/:chapterId/questions"
             element={<ChapterQuestionsPage />}
           />
+          <Route path="/code/revision-chapitres/:chapterId/sujets" element={<ChapterSubjectsPage />} />
+          <Route path="/code/revision-chapitres/:chapterId/sujets/:subjectNumber" element={<ChapterSubjectsPage />} />
           <Route path="/code/cours" element={<CoursesPage />} />
           <Route path="/code/panneaux" element={<PanneauxPage />} />
           <Route path="/code/panneaux/:categoryId" element={<PanneauxCategoryPage />} />

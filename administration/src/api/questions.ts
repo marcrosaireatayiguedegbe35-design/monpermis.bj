@@ -88,3 +88,11 @@ export function deleteTestSubject(token: string, chapterId: string, subjectId: s
     token,
   )
 }
+
+/** Questions d'un sujet test donné (avec les bonnes réponses), telles que l'apprenant les reçoit. */
+export function fetchTestSubjectQuestions(token: string, chapterId: string, subjectNumber: number) {
+  return apiFetch<{
+    chapter: { id: string; name: string }
+    subject: { number: number; id: string; label: string; questionCount: number; questions: ChapterQuestion[] }
+  }>(`/api/admin/revision/chapters/${chapterId}/test-subjects/${subjectNumber}`, {}, token)
+}
