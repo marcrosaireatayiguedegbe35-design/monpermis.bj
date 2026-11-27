@@ -226,3 +226,11 @@
   .ap-sheet-act.is-danger{border-color:#F3C6C6!important;color:#b83232!important}
   .ap-sheet-act svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 }
+
+@media (max-width:767px){
+  .ap-selects{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .ap-selects select{min-height:44px;border:1px solid #E1E8E3;border-radius:12px;background:#fff;padding:0 10px;font-size:14px;color:#10261b;min-width:0;width:100%}
+  .ap-row-tall{align-items:flex-start;padding:12px 14px}
+  .ap-stack{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none;max-width:42%}
+  .ap-stack .ap-tag{text-align:right}
+}

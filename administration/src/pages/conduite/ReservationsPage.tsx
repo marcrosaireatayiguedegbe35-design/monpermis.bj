@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CalendarClock, CheckCircle2, Clock3, RefreshCw, Trash2, Wallet } from 'lucide-react'
+import { PhonePage, PhoneSeg, PhoneSheet } from '../../components/phone/PhoneKit'
+import { useIsPhone } from '../MobileHome'
 import { useSearchParams } from 'react-router-dom'
 import {
   deleteAdminReservation,
@@ -84,8 +86,33 @@ function statusLabel(status: string) {
       return 'Terminée'
     case 'no_show':
       return 'Absent'
+    case 'pending_payment':
+      return 'À payer'
     default:
       return status || '—'
+  }
+}
+
+function normStatus(status: string) {
+  switch (String(status || '').toLowerCase()) {
+    case 'confirmed':
+    case 'confirmee':
+    case 'confirmée':
+      return 'confirmed'
+    case 'pending':
+    case 'en_attente':
+      return 'pending'
+    case 'cancelled':
+    case 'canceled':
+    case 'annulee':
+    case 'annulée':
+      return 'cancelled'
+    case 'completed':
+    case 'terminee':
+    case 'terminée':
+      return 'completed'
+    default:
+      return 'other'
   }
 }
 
@@ -107,6 +134,8 @@ export function ReservationsPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [deletingReservationId, setDeletingReservationId] = useState<string | null>(null)
+  const isPhone = useIsPhone()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const load = useCallback(async (opts?: { silent?: boolean }) => {
     const token = getAdminToken()
@@ -210,6 +239,116 @@ export function ReservationsPage() {
     }
     return { total: reservations.length, confirmed, pending, revenue }
   }, [reservations])
+
+  if (isPhone) {
+    const count = (key: string) => reservations.filter((r) => normStatus(r.status) === key).length
+    const selected = reservations.find((r) => String(r.id) === selectedId) || null
+    return (
+      <PhonePage
+        title="Séances"
+        action={
+          <button type="button" className="ap-add" onClick={() => void load()} disabled={loading} aria-label="Actualiser">
+            <RefreshCw aria-hidden />
+          </button>
+        }
+      >
+        {error ? <p className="cx-note cx-note-err" role="alert">{error}</p> : null}
+        {success ? <p className="cx-note cx-note-ok" role="status">{success}</p> : null}
+        <PhoneSeg
+          value={filterStatus}
+          onChange={setFilterStatus}
+          options={[
+            { id: '', label: `Toutes ${reservations.length}` },
+            { id: 'pending', label: `En attente ${count('pending')}` },
+            { id: 'confirmed', label: `Confirmées ${count('confirmed')}` },
+            { id: 'completed', label: `Terminées ${count('completed')}` },
+            { id: 'cancelled', label: `Annulées ${count('cancelled')}` },
+          ]}
+        />
+        <div className="ap-selects">
+          <select value={filterMoniteur} onChange={(e) => setFilterMoniteur(e.target.value)} aria-label="Moniteur">
+            <option value="">Tous les moniteurs</option>
+            {moniteurs.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.fullName}
+              </option>
+            ))}
+          </select>
+          <select value={filterPayment} onChange={(e) => setFilterPayment(e.target.value)} aria-label="Paiement">
+            <option value="">Paiement : tous</option>
+            <option value="paid">Payé</option>
+            <option value="pending">En attente</option>
+            <option value="unpaid">Non payé</option>
+          </select>
+        </div>
+        <div className="ap-list">
+          {loading && reservations.length === 0 ? (
+            <p className="ap-empty">Chargement…</p>
+          ) : filteredReservations.length === 0 ? (
+            <p className="ap-empty">{reservations.length === 0 ? 'Aucune réservation.' : 'Aucun résultat.'}</p>
+          ) : (
+            filteredReservations.map((r) => {
+              const badge = paymentBadge(r)
+              const when = r.creneau ? `${r.creneau.date} · ${r.creneau.startTime}` : 'Créneau —'
+              const st = normStatus(r.status)
+              return (
+                <button key={String(r.id)} type="button" className="ap-row ap-row-tall" onClick={() => setSelectedId(String(r.id))}>
+                  <span className="ap-row-t">
+                    <b>{learnerName(r)}</b>
+                    <small>{when}</small>
+                    <small>
+                      {r.moniteur?.fullName || 'Moniteur'} ·{' '}
+                      {r.heuresDebitees > 0 ? `${r.heuresDebitees} h` : fcfa(r.priceFcfa || 0)}
+                    </small>
+                  </span>
+                  <span className="ap-stack">
+                    <span className={`ap-tag${st === 'pending' ? ' is-warn' : st === 'cancelled' ? ' is-red' : ''}`}>
+                      {statusLabel(r.status)}
+                    </span>
+                    <span className={`ap-tag${badge.tone === 'is-danger' ? ' is-red' : badge.tone === 'is-warning' ? ' is-warn' : ''}`}>
+                      {badge.label.replace(' (Mobile Money)', '').replace(' (solde d’heures)', '')}
+                    </span>
+                  </span>
+                </button>
+              )
+            })
+          )}
+        </div>
+        <PhoneSheet open={Boolean(selected)} title={selected ? learnerName(selected) : ''} onClose={() => setSelectedId(null)}>
+          {selected ? (
+            <>
+              <div className="ap-count">
+                {selected.creneau ? `${selected.creneau.date} · ${selected.creneau.startTime}${selected.creneau.endTime ? `–${selected.creneau.endTime}` : ''}` : 'Créneau —'}
+                {' · '}
+                {selected.moniteur?.fullName || 'Moniteur'}
+                {selected.moniteur?.vehicleBrand ? ` (${selected.moniteur.vehicleBrand})` : ''}
+              </div>
+              <div className="ap-count">
+                {statusLabel(selected.status)} · {paymentBadge(selected).label} ·{' '}
+                {selected.heuresDebitees > 0 ? `${selected.heuresDebitees} h débitées` : fcfa(selected.priceFcfa || 0)}
+                {selected.paymentRef ? ` · Réf. ${selected.paymentRef}` : ''}
+              </div>
+              {selected.cancellationReason ? (
+                <div className="ap-count">Motif d’annulation : {selected.cancellationReason}</div>
+              ) : null}
+              <button
+                type="button"
+                className="ap-sheet-act is-danger"
+                disabled={deletingReservationId === selected.id}
+                onClick={() => {
+                  setSelectedId(null)
+                  void handleDeleteReservation(selected)
+                }}
+              >
+                <Trash2 aria-hidden />
+                Supprimer la réservation
+              </button>
+            </>
+          ) : null}
+        </PhoneSheet>
+      </PhonePage>
+    )
+  }
 
   return (
     <ConduiteSection
