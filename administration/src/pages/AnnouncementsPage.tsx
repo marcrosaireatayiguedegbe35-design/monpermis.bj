@@ -30,6 +30,8 @@ import {
 import { PageSection } from '../components/model/PageSection'
 import { nf } from '../components/model/ModelCharts'
 import { RichTextEditor } from '../components/RichTextEditor'
+import { PhonePage, PhoneSearch, PhoneSeg, PhoneSheet } from '../components/phone/PhoneKit'
+import { useIsPhone } from './MobileHome'
 import { getAdminToken, isAuthError } from '../context/AdminAuthContext'
 import { Drawer, EmptyState, SkeletonBlock } from '../ui'
 import { resolveMediaUrl } from '../utils/mediaUrl'
@@ -114,6 +116,8 @@ export function AnnouncementsPage() {
   const [recipientCount, setRecipientCount] = useState<number | null>(null)
   const [confirmLoading, setConfirmLoading] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const isPhone = useIsPhone()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const plainLen = useMemo(() => stripHtml(form.body).length, [form.body])
 
@@ -591,6 +595,200 @@ export function AnnouncementsPage() {
     return { total: items.length, active, scheduled, draft, views }
   }, [items])
 
+  const overlays = (
+    <>
+      <Drawer
+        open={composeOpen}
+        title={editingId ? 'Modifier l’annonce' : 'Nouvelle annonce'}
+        subtitle="Enregistrez un brouillon ou publiez avec notification."
+        onClose={resetForm}
+      >
+        {composeForm}
+      </Drawer>
+
+      {previewOpen ? (
+        <div className="cx-modal-bg" onClick={() => setPreviewOpen(false)}>
+          <div className="cx-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <div className="cx-modal-head">
+              <h2>Aperçu apprenant</h2>
+              <button type="button" className="cx-btn cx-btn-icon" onClick={() => setPreviewOpen(false)} aria-label="Fermer">
+                <X aria-hidden />
+              </button>
+            </div>
+            <div className="cx-modal-body">
+              <div className="cx-prev-grid">
+                <div>
+                  <p className="cx-prev-label">Web — carte accueil</p>
+                  <article className={`cx-ann-web cx-k-${form.kind}`}>
+                    {form.imageUrl ? <img src={resolveMediaUrl(form.imageUrl)} alt="" className="cx-ann-img" /> : null}
+                    <strong>{form.title || 'Sans titre'}</strong>
+                    {form.body ? <div className="cx-ann-body" dangerouslySetInnerHTML={{ __html: sanitizeHtml(form.body) }} /> : null}
+                    {form.ctaUrl ? <span className="cx-ann-cta">Voir plus</span> : null}
+                  </article>
+                </div>
+                <div>
+                  <p className="cx-prev-label">Mobile — carte</p>
+                  <div className={`cx-ann-mob cx-k-${form.kind}`}>
+                    <i />
+                    <div>
+                      <strong>{form.title || 'Sans titre'}</strong>
+                      <p>{stripHtml(form.body) || '—'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {confirmMode ? (
+        <div className="cx-modal-bg" onClick={() => setConfirmMode(null)}>
+          <div className="cx-modal cx-modal-sm" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <div className="cx-modal-head">
+              <h2>{confirmCopy}</h2>
+              <button type="button" className="cx-btn cx-btn-icon" onClick={() => setConfirmMode(null)} aria-label="Fermer">
+                <X aria-hidden />
+              </button>
+            </div>
+            <div className="cx-modal-body">
+              <p className="cx-panel-note" style={{ color: 'var(--ink)' }}>
+                Audience : <strong>{AUDIENCE_LABELS[form.audience]}</strong>
+                <br />
+                {confirmLoading ? (
+                  'Calcul du nombre de destinataires…'
+                ) : (
+                  <>
+                    Environ <strong>{recipientCount ?? '—'}</strong> compte(s) actif(s) seront notifiés dans
+                    l’application.
+                  </>
+                )}
+              </p>
+              <p className="cx-panel-note">
+                Les comptes suspendus ne sont pas notifiés. La diffusion se fait dans l’application (boîte de
+                notifications).
+              </p>
+              <div className="cx-actions">
+                <button type="button" className="cx-btn" onClick={() => setConfirmMode(null)}>
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  className="cx-btn cx-btn-fill"
+                  disabled={submitting || confirmLoading}
+                  onClick={() => void confirmAction()}
+                >
+                  <Send aria-hidden />
+                  {submitting ? 'Envoi…' : 'Confirmer'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
+  )
+
+  if (isPhone) {
+    const selected = items.find((x) => x.id === selectedId) || null
+    return (
+      <PhonePage
+        title="Annonces"
+        action={
+          <button type="button" className="ap-add" onClick={openCompose} aria-label="Nouvelle annonce">
+            <Plus aria-hidden />
+          </button>
+        }
+      >
+        {!composeOpen && error ? <p className="cx-note cx-note-err" role="alert">{error}</p> : null}
+        {!composeOpen && success ? <p className="cx-note cx-note-ok" role="status">{success}</p> : null}
+        <PhoneSearch id="ann-search-m" value={query} onChange={setQuery} placeholder="Rechercher une annonce" />
+        <PhoneSeg
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={[
+            { id: 'all', label: 'Toutes' },
+            { id: 'active', label: 'Actives' },
+            { id: 'draft', label: 'Dépubliées' },
+            { id: 'scheduled', label: 'Programmées' },
+            { id: 'expired', label: 'Expirées' },
+          ]}
+        />
+        <div className="ap-list">
+          {loading && items.length === 0 ? (
+            <p className="ap-empty">Chargement…</p>
+          ) : items.length === 0 ? (
+            <p className="ap-empty">Aucune annonce. Touchez « + » pour en créer une.</p>
+          ) : (
+            items.map((a) => {
+              const meta = statusMeta(a)
+              const preview = stripHtml(a.body)
+              return (
+                <button key={a.id} type="button" className="ap-row ap-row-tall" onClick={() => setSelectedId(a.id)}>
+                  <span className="ap-av">
+                    <Megaphone size={18} aria-hidden />
+                  </span>
+                  <span className="ap-row-t">
+                    <b>{a.title}</b>
+                    <small>{preview ? (preview.length > 60 ? `${preview.slice(0, 59)}…` : preview) : KIND_LABELS[a.kind]}</small>
+                    <small>
+                      {AUDIENCE_LABELS[a.audience || 'all']} · {a.viewCount ?? 0} vue{(a.viewCount ?? 0) > 1 ? 's' : ''}
+                    </small>
+                  </span>
+                  <span className={`ap-tag${meta.label === 'Active' ? '' : meta.label === 'Programmée' ? ' is-warn' : ' is-red'}`}>{meta.label}</span>
+                </button>
+              )
+            })
+          )}
+        </div>
+        <PhoneSheet open={Boolean(selected)} title={selected?.title || ''} onClose={() => setSelectedId(null)}>
+          {selected ? (
+            <>
+              <div className="ap-count">
+                {KIND_LABELS[selected.kind]} · {AUDIENCE_LABELS[selected.audience || 'all']} · créée le {new Date(selected.createdAt).toLocaleDateString('fr-FR')}
+                {selected.broadcastAt ? ` · notifiée le ${new Date(selected.broadcastAt).toLocaleDateString('fr-FR')}` : ''}
+              </div>
+              <button
+                type="button"
+                className={`ap-sheet-act${selected.active ? '' : ' is-fill'}`}
+                onClick={() => {
+                  setSelectedId(null)
+                  void handleToggle(selected)
+                }}
+              >
+                <Send aria-hidden />
+                {selected.active ? 'Dépublier' : 'Publier et notifier'}
+              </button>
+              <button
+                type="button"
+                className="ap-sheet-act"
+                onClick={() => {
+                  setSelectedId(null)
+                  fillForm(selected)
+                }}
+              >
+                <Pencil aria-hidden />
+                Modifier
+              </button>
+              <button
+                type="button"
+                className="ap-sheet-act is-danger"
+                onClick={() => {
+                  setSelectedId(null)
+                  void handleDelete(selected)
+                }}
+              >
+                <Trash2 aria-hidden />
+                Supprimer
+              </button>
+            </>
+          ) : null}
+        </PhoneSheet>
+        {overlays}
+      </PhonePage>
+    )
+  }
+
   return (
     <PageSection
       kicker="Communication"
@@ -752,95 +950,7 @@ export function AnnouncementsPage() {
         )}
       </section>
 
-      <Drawer
-        open={composeOpen}
-        title={editingId ? 'Modifier l’annonce' : 'Nouvelle annonce'}
-        subtitle="Enregistrez un brouillon ou publiez avec notification."
-        onClose={resetForm}
-      >
-        {composeForm}
-      </Drawer>
-
-      {previewOpen ? (
-        <div className="cx-modal-bg" onClick={() => setPreviewOpen(false)}>
-          <div className="cx-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            <div className="cx-modal-head">
-              <h2>Aperçu apprenant</h2>
-              <button type="button" className="cx-btn cx-btn-icon" onClick={() => setPreviewOpen(false)} aria-label="Fermer">
-                <X aria-hidden />
-              </button>
-            </div>
-            <div className="cx-modal-body">
-              <div className="cx-prev-grid">
-                <div>
-                  <p className="cx-prev-label">Web — carte accueil</p>
-                  <article className={`cx-ann-web cx-k-${form.kind}`}>
-                    {form.imageUrl ? <img src={resolveMediaUrl(form.imageUrl)} alt="" className="cx-ann-img" /> : null}
-                    <strong>{form.title || 'Sans titre'}</strong>
-                    {form.body ? <div className="cx-ann-body" dangerouslySetInnerHTML={{ __html: sanitizeHtml(form.body) }} /> : null}
-                    {form.ctaUrl ? <span className="cx-ann-cta">Voir plus</span> : null}
-                  </article>
-                </div>
-                <div>
-                  <p className="cx-prev-label">Mobile — carte</p>
-                  <div className={`cx-ann-mob cx-k-${form.kind}`}>
-                    <i />
-                    <div>
-                      <strong>{form.title || 'Sans titre'}</strong>
-                      <p>{stripHtml(form.body) || '—'}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {confirmMode ? (
-        <div className="cx-modal-bg" onClick={() => setConfirmMode(null)}>
-          <div className="cx-modal cx-modal-sm" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            <div className="cx-modal-head">
-              <h2>{confirmCopy}</h2>
-              <button type="button" className="cx-btn cx-btn-icon" onClick={() => setConfirmMode(null)} aria-label="Fermer">
-                <X aria-hidden />
-              </button>
-            </div>
-            <div className="cx-modal-body">
-              <p className="cx-panel-note" style={{ color: 'var(--ink)' }}>
-                Audience : <strong>{AUDIENCE_LABELS[form.audience]}</strong>
-                <br />
-                {confirmLoading ? (
-                  'Calcul du nombre de destinataires…'
-                ) : (
-                  <>
-                    Environ <strong>{recipientCount ?? '—'}</strong> compte(s) actif(s) seront notifiés dans
-                    l’application.
-                  </>
-                )}
-              </p>
-              <p className="cx-panel-note">
-                Les comptes suspendus ne sont pas notifiés. La diffusion se fait dans l’application (boîte de
-                notifications).
-              </p>
-              <div className="cx-actions">
-                <button type="button" className="cx-btn" onClick={() => setConfirmMode(null)}>
-                  Annuler
-                </button>
-                <button
-                  type="button"
-                  className="cx-btn cx-btn-fill"
-                  disabled={submitting || confirmLoading}
-                  onClick={() => void confirmAction()}
-                >
-                  <Send aria-hidden />
-                  {submitting ? 'Envoi…' : 'Confirmer'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      {overlays}
     </PageSection>
   )
 }
