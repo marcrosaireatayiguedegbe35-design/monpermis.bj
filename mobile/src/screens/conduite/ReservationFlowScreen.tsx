@@ -672,38 +672,47 @@ export function ReservationFlowScreen() {
           {step === 'profile' && profile ? (
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 12, paddingBottom: 12 }} showsVerticalScrollIndicator={false}>
               {busy ? <ActivityIndicator color={RES.green} /> : null}
-              <View style={styles.pCard}>
-                <View style={styles.pHead}>
+              <View style={{ height: Math.max(340, Math.round(windowHeight * 0.5)) }}>
+                <View style={styles.tCard}>
                   {profile.photoUrl || profile.vehiclePhotoUrl ? (
-                    <View style={styles.pPhotoSmall}>
-                      <Image
-                        source={{ uri: optimizedImageUrl(resolveMediaUrl(profile.photoUrl || profile.vehiclePhotoUrl || ''), 500) }}
-                        style={StyleSheet.absoluteFill}
-                        resizeMode="cover"
-                      />
+                    <Image
+                      source={{ uri: optimizedImageUrl(resolveMediaUrl(profile.photoUrl || profile.vehiclePhotoUrl || '')) }}
+                      style={StyleSheet.absoluteFill}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={[StyleSheet.absoluteFill, styles.mNoPhoto]}>
+                      <Text style={styles.mInitial}>{profile.fullName.slice(0, 1).toUpperCase()}</Text>
+                    </View>
+                  )}
+                  <View style={[styles.tVerified, { top: 14 }]}>
+                    <ShieldCheck size={14} color="#FFFFFF" />
+                    <Text style={styles.mVerifiedText}>Profil vérifié</Text>
+                  </View>
+                  <LinearGradient
+                    colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.94)', '#FFFFFF']}
+                    locations={[0, 0.45, 1]}
+                    style={styles.tShade}
+                  >
+                    <View style={styles.tTop}>
+                      <View style={{ flex: 1, gap: 8 }}>
+                        <Text style={styles.tName} numberOfLines={2}>{profile.fullName}</Text>
+                        <View style={styles.tRow}>
+                          <User size={16} color={RES.muted} />
+                          <Text style={styles.tRole} numberOfLines={1}>
+                            Moniteur de conduite{profile.city ? ` · ${profile.city}` : ''}
+                          </Text>
+                        </View>
+                      </View>
                       {profile.photoUrl && profile.vehiclePhotoUrl ? (
                         <Image
-                          source={{ uri: optimizedImageUrl(resolveMediaUrl(profile.vehiclePhotoUrl), 200) }}
-                          style={styles.pAvatar}
+                          source={{ uri: optimizedImageUrl(resolveMediaUrl(profile.vehiclePhotoUrl), 300) }}
+                          style={styles.tAvatar}
                           resizeMode="cover"
                         />
                       ) : null}
                     </View>
-                  ) : (
-                    <View style={[styles.pPhotoSmall, styles.mNoPhoto]}>
-                      <Text style={[styles.mInitial, { fontSize: 44 }]}>{profile.fullName.slice(0, 1).toUpperCase()}</Text>
-                    </View>
-                  )}
-                  <View style={styles.pHeadCopy}>
-                    <Text style={styles.pFirst} numberOfLines={2}>{splitFullName(profile.fullName).first}</Text>
-                    {splitFullName(profile.fullName).last ? (
-                      <Text style={styles.pLast} numberOfLines={1}>{splitFullName(profile.fullName).last}</Text>
-                    ) : null}
-                    <View style={styles.pVerified}>
-                      <ShieldCheck size={16} color={RES.green} />
-                      <Text style={styles.pVerifiedText}>Profil vérifié</Text>
-                    </View>
-                  </View>
+                  </LinearGradient>
                 </View>
               </View>
 
