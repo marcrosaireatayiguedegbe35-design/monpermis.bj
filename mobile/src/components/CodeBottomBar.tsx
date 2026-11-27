@@ -8,7 +8,7 @@ export type CodeTab = 'Home' | 'MesNotes' | 'CodeCours' | 'Profile'
 const TABS: { key: CodeTab; label: string; Icon: typeof House }[] = [
   { key: 'Home', label: 'Accueil', Icon: House },
   { key: 'MesNotes', label: 'Mes stats', Icon: BarChart3 },
-  { key: 'CodeCours', label: 'Cours', Icon: BookOpen },
+  { key: 'CodeCours', label: 'Chapitres', Icon: BookOpen },
   { key: 'Profile', label: 'Paramètres', Icon: Settings },
 ]
 
