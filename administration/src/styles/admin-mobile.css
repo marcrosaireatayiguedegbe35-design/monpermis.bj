@@ -178,7 +178,7 @@
 
 /* ---------- Accueil téléphone : six tuiles, un seul écran ---------- */
 @media (max-width:767px){
-  .ap-home{display:flex;flex-direction:column;gap:12px;height:calc(100dvh - 68px - 100px - env(safe-area-inset-bottom));min-height:420px}
+  .ap-home{display:flex;flex-direction:column;gap:12px;height:calc(100dvh - 68px - 108px - env(safe-area-inset-bottom));min-height:420px}
   .ap-home-head small{display:block;font-size:13px;color:#5d7066}.ap-home-head small::first-letter{text-transform:uppercase}
   .ap-home-head b{display:block;font-size:26px;letter-spacing:-.6px;color:#10261b}
   .ap-home-grid{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);gap:10px}
@@ -194,7 +194,7 @@
 
 /* ---------- Kit pages téléphone : en-tête fixe, seule la liste défile ---------- */
 @media (max-width:767px){
-  .ap-page{display:flex;flex-direction:column;gap:10px;height:calc(100dvh - 68px - 100px - env(safe-area-inset-bottom));min-height:380px}
+  .ap-page{display:flex;flex-direction:column;gap:10px;height:calc(100dvh - 68px - 108px - env(safe-area-inset-bottom));min-height:380px}
   .ap-page-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .ap-page-head h1{margin:0;font-size:24px;letter-spacing:-.5px;color:#10261b}
   .ap-add{width:42px;height:42px;border-radius:12px!important;background:#0B7F47!important;border:0!important;color:#fff!important;display:grid;place-items:center;padding:0!important}
@@ -402,7 +402,7 @@
 
 /* ---------- Accueils de rubrique au format de l'application apprenant ---------- */
 @media (max-width:767px){
-  .ap-ph{display:flex;flex-direction:column;gap:12px;height:calc(100dvh - 68px - 100px - env(safe-area-inset-bottom));min-height:440px}
+  .ap-ph{display:flex;flex-direction:column;gap:12px;height:calc(100dvh - 68px - 108px - env(safe-area-inset-bottom));min-height:440px}
   .ap-ph-top{display:flex;align-items:center;gap:12px}
   .ap-ph-round{flex:none;width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid #E6EDF3;display:grid;place-items:center;font-size:30px;line-height:1;color:#0A1E55;text-decoration:none;padding-bottom:4px}
   .ap-ph-titles{display:flex;flex-direction:column}
@@ -439,4 +439,25 @@
   .ap-ph-card.is-wide .ap-ph-ico{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:46px;height:46px;margin:0}
   .ap-ph-arrow{position:absolute;right:10px;bottom:10px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.85);display:grid;place-items:center;font-size:19px;line-height:1;color:#0A1E55;padding-bottom:2px}
   .ap-ph-badge{position:absolute;top:10px;right:10px;min-width:24px;height:24px;padding:0 7px;border-radius:12px;background:#ef4444;color:#fff;font:700 12px/24px inherit;font-style:normal;text-align:center}
+}
+
+/* ---------- Barre de navigation : même esprit que l'application apprenant ---------- */
+@media (max-width:767px){
+  .cx-root,.cx-shell2 .cx-main{background:#F4F7FB!important}
+  /* Haut : barre claire, logo, nom, avatar */
+  .cx-mobile-bar{background:#F4F7FB!important;color:#0A1E55!important;border-bottom:0!important;padding:10px 16px 6px!important;position:static!important}
+  .cx-mobile-bar-brand{color:#0A1E55;font-weight:800;letter-spacing:.01em}
+  .cx-mobile-bar-brand img{background:none!important;padding:0!important;border-radius:10px!important}
+  .cx-mobile-bar .cx-user-avatar{background:#0B7F47;color:#fff}
+  /* Bas : barre flottante arrondie avec trait sous l'onglet actif */
+  .ap-tabs{left:14px!important;right:14px!important;bottom:calc(10px + env(safe-area-inset-bottom))!important;padding:10px 6px 6px!important;border:1px solid rgba(0,16,48,.06)!important;border-radius:30px!important;background:#fff!important;box-shadow:0 10px 30px rgba(10,30,85,.14)!important}
+  .ap-tab{min-height:0!important;gap:3px!important;padding:2px 0 0!important;font-size:12px!important;color:#64748B!important}
+  .ap-tab svg{width:26px!important;height:26px!important}
+  .ap-tab::after{content:"";display:block;width:36px;height:3px;border-radius:2px;background:transparent;margin-top:3px}
+  .ap-tab.is-active{color:#0B7F47!important}
+  .ap-tab.is-active::after{background:#0B7F47}
+  .ap-tab.is-active svg{stroke-width:2.4!important}
+  .ap-tab-badge{top:-4px!important}
+  .cx-shell2 .cx-content{padding-bottom:calc(104px + env(safe-area-inset-bottom))!important}
+  .ap-sheet-wrap{z-index:90}
 }
