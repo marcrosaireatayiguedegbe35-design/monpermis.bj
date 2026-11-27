@@ -222,7 +222,9 @@ export function ReservationFlowScreen() {
   const daysWithSlots = useMemo(() => {
     const byDate = new Map<string, { start: string; end: string; seatsTaken?: number; seatsTotal?: number }[]>()
     for (const day of availabilityDays) {
-      byDate.set(day.date, slotsForDuration(day.windows, durationHours, earliestBookableTime(day.date)))
+      const slots = slotsForDuration(day.windows, durationHours, earliestBookableTime(day.date))
+      // En groupe, les élèves partagent la même heure : on ne propose que des heures pleines.
+      byDate.set(day.date, bookingMode === 'group' ? slots.filter((slot) => slot.start.endsWith(':00')) : slots)
     }
     if (bookingMode === 'group') {
       for (const g of groupSlots) {
@@ -754,6 +756,9 @@ export function ReservationFlowScreen() {
                     </ScrollView>
                   </View>
 
+                  {bookingMode === 'group' ? (
+                    <Text style={styles.sNote}>En groupe, vous partagez la même heure avec d’autres élèves.</Text>
+                  ) : null}
                   {selectedDate && earliestBookableTime(selectedDate) ? (
                     <Text style={styles.sNote}>Réservation possible à partir de {earliestBookableTime(selectedDate)} aujourd’hui.</Text>
                   ) : null}
