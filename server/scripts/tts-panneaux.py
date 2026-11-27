@@ -126,6 +126,7 @@ def load_env() -> None:
 
 def spoken_code(code: str) -> str:
     # « G1a_bis » → « G1a bis », « B6b3-ancien » → « B6b3 ancien modèle »
+    code = re.sub(r"^(B14|B33)-\d+$", r"\1", code)  # variantes de vitesse : on dit seulement B14 / B33
     code = re.sub(r"[-_]ancien$", " ancien modèle", code)
     return code.replace("_", " ")
 
