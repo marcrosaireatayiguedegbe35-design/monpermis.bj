@@ -471,8 +471,14 @@ router.get('/availability', ...withConduiteAccess, async (req, res) => {
       const published = clipWindowsToLeadTime(publishedByDate[cursor] || [], cursor)
       const windows = mergeWindows([...weekly, ...published])
       const freeWindows = subtractBusy(windows, busyByDate[cursor] || [])
-      if (freeWindows.length > 0) {
-        days.push({ date: cursor, windows: freeWindows })
+      if (windows.length > 0) {
+        // allWindows + busy permettent à l'application d'afficher les créneaux pris en grisé.
+        days.push({
+          date: cursor,
+          windows: freeWindows,
+          allWindows: windows,
+          busy: (busyByDate[cursor] || []).map((slot) => ({ start: slot.startTime, end: slot.endTime })),
+        })
       }
       cursor = addLocalDays(cursor, 1) || cursor
       if (cursor > to) break

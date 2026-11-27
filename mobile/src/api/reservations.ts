@@ -116,6 +116,9 @@ export interface AvailabilityWindow {
 export interface AvailabilityDay {
   date: string
   windows: AvailabilityWindow[]
+  /** Toutes les plages du jour, occupées comprises (pour griser les créneaux pris). */
+  allWindows?: AvailabilityWindow[]
+  busy?: AvailabilityWindow[]
 }
 
 export type MobileMoneyOperator = 'mtn' | 'moov' | 'celtiis'

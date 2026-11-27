@@ -224,7 +224,15 @@ export function ReservationFlowScreen() {
     const byDate = new Map<string, { start: string; end: string; seatsTaken?: number; seatsTotal?: number; disabled?: boolean; disabledLabel?: string }[]>()
     if (bookingMode === 'solo') {
       for (const day of availabilityDays) {
-        byDate.set(day.date, slotsForDuration(day.windows, soloHours, earliestBookableTime(day.date)))
+        const busy = day.busy ?? []
+        const base = day.allWindows ?? day.windows
+        byDate.set(
+          day.date,
+          slotsForDuration(base, soloHours, earliestBookableTime(day.date)).map((slot) => {
+            const taken = busy.some((b) => slot.start < b.end && b.start < slot.end)
+            return taken ? { ...slot, disabled: true, disabledLabel: 'Pris' } : slot
+          }),
+        )
       }
     } else {
       // Groupe : seulement les blocs de 2 h publiés par le moniteur, avec le nombre de places prises.
