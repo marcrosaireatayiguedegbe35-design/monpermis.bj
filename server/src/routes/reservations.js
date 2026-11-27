@@ -1,7 +1,9 @@
 import {
   ACTIVE_STATUSES,
   GROUP_CAPACITY,
-  GROUP_PRICE_PER_HOUR,
+  GROUP_BLOCK_HOURS,
+  GROUP_PRICE_PER_SEAT,
+  soloAmount,
   SOLO_PRICE_PER_HOUR,
   countGroupSeats,
   normalizeBookingMode,
@@ -154,13 +156,10 @@ function slotDateTime(date, time) {
  * heures de conduite n'est retirée qu'une fois, sur le total de la réservation.
  */
 function computeBookingAmount(creneaux, mode = 'solo') {
-  if (mode === 'group') {
-    const heuresGroupe = creneaux.reduce((sum, creneau) => sum + computeCreneauHeures(creneau), 0)
-    return Math.round(heuresGroupe * GROUP_PRICE_PER_HOUR)
-  }
-  const base = creneaux.reduce((sum, creneau) => sum + (creneau.priceFcfa || 5000), 0)
+  // Groupe : prix fixe par élève et par bloc. Solo : tarif horaire × durée (30 min ou 1 h).
+  if (mode === 'group') return creneaux.length * GROUP_PRICE_PER_SEAT
   const heures = creneaux.reduce((sum, creneau) => sum + computeCreneauHeures(creneau), 0)
-  return applyHoursDiscount(base, heures)
+  return soloAmount(heures)
 }
 
 function canCancel(creneau) {
@@ -415,7 +414,7 @@ router.get('/availability', ...withConduiteAccess, async (req, res) => {
       $or: [{ lockedUntil: null }, { lockedUntil: { $lte: new Date() } }],
     }).select('date startTime endTime')
 
-    const groupRows = await Creneau.find({
+    const groupRows = !moniteur.acceptsGroup ? [] : await Creneau.find({
       moniteurId,
       date: { $gte: from, $lte: to },
       status: 'libre',
@@ -488,7 +487,7 @@ router.get('/availability', ...withConduiteAccess, async (req, res) => {
         hoursDiscountFcfa: HOURS_DISCOUNT_FCFA,
         hoursDiscountMinHours: HOURS_DISCOUNT_MIN_HOURS,
         soloPricePerHour: SOLO_PRICE_PER_HOUR,
-        groupPricePerHour: GROUP_PRICE_PER_HOUR,
+        groupPricePerSeat: GROUP_PRICE_PER_SEAT,
         groupSlots,
         days,
       },
@@ -559,9 +558,16 @@ router.post('/request-slot', ...withConduiteAccess, async (req, res) => {
     }
 
     const heures = computeCreneauHeures({ startTime, endTime })
-    // Toutes les séances durent une heure, pour tout le monde.
-    if (heures !== 1) {
-      return res.status(400).json({ success: false, error: 'Une séance de conduite dure 1 heure.' })
+    // Solo : 30 min ou 1 h. Groupe : bloc de 2 h publié par le moniteur (4 élèves, 30 min de conduite chacun).
+    if (bookingMode === 'group') {
+      if (!moniteur.acceptsGroup) {
+        return res.status(409).json({ success: false, error: 'Ce moniteur ne propose pas de séances en groupe.' })
+      }
+      if (heures !== GROUP_BLOCK_HOURS) {
+        return res.status(400).json({ success: false, error: 'Une séance de groupe dure 2 heures.' })
+      }
+    } else if (heures !== 0.5 && heures !== 1) {
+      return res.status(400).json({ success: false, error: 'Une séance solo dure 30 minutes ou 1 heure.' })
     }
 
     await Creneau.updateMany(
@@ -668,6 +674,11 @@ router.post('/request-slot', ...withConduiteAccess, async (req, res) => {
             },
           })
         }
+        // Un groupe se rejoint seulement : c'est le moniteur qui publie les blocs de 2 h.
+        return res.status(409).json({
+          success: false,
+          error: 'Aucun groupe n’est ouvert à cette heure. Choisissez un groupe proposé.',
+        })
       }
       const exactPublished = await Creneau.findOne({
         moniteurId,
@@ -823,7 +834,7 @@ router.get('/creneaux', ...withConduiteAccess, async (req, res) => {
         seatsTaken,
         seatsTotal: GROUP_CAPACITY,
         soloPricePerHour: SOLO_PRICE_PER_HOUR,
-        groupPricePerHour: GROUP_PRICE_PER_HOUR,
+        groupPricePerSeat: GROUP_PRICE_PER_SEAT,
         moniteur: slot.moniteurId
           ? {
               id: asId(slot.moniteurId._id || slot.moniteurId),
@@ -1043,11 +1054,8 @@ router.post('/quote', ...withConduiteAccess, async (req, res) => {
     const moniteur = creneaux[0].moniteurId
     const bookingMode = normalizeBookingMode(req.body.mode)
     const hours = creneaux.reduce((sum, c) => sum + computeCreneauHeures(c), 0)
-    const baseAmount =
-      bookingMode === 'group'
-        ? Math.round(hours * GROUP_PRICE_PER_HOUR)
-        : Math.round(hours * SOLO_PRICE_PER_HOUR)
-    const amount = bookingMode === 'group' ? baseAmount : applyHoursDiscount(baseAmount, hours)
+    const baseAmount = computeBookingAmount(creneaux, bookingMode)
+    const amount = baseAmount
     const soldeHeures = req.user.soldeHeures || 0
 
     res.json({
@@ -1322,8 +1330,8 @@ router.post('/reservations', ...withConduiteAccess, async (req, res) => {
             bookingGroupId,
             priceFcfa:
               bookingMode === 'group'
-                ? Math.round(computeCreneauHeures(creneau) * GROUP_PRICE_PER_HOUR)
-                : creneau.priceFcfa || SOLO_PRICE_PER_HOUR,
+                ? GROUP_PRICE_PER_SEAT
+                : soloAmount(computeCreneauHeures(creneau)),
             heuresDebitees: 0,
           }),
         ),

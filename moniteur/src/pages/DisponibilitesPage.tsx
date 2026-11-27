@@ -5,7 +5,9 @@ import {
   deleteCreneau,
   fetchAvailability,
   fetchMyCreneaux,
+  fetchProfile,
   saveAvailability,
+  updateProfile,
   updateCreneau,
   type CreneauItem,
   type WeeklySlot,
@@ -62,6 +64,12 @@ function fromEditDayHours(days: EditDayHours[]): WeeklySlot[] {
     }
   }
   return result
+}
+
+function plusTwoHours(start: string) {
+  const [h, m] = start.split(':').map((v) => parseInt(v, 10) || 0)
+  const total = Math.min(23 * 60 + 59, h * 60 + m + 120)
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
 }
 
 function todayLocal() {
@@ -143,6 +151,8 @@ export function DisponibilitesPage() {
   const [tab, setTab] = useState<Tab>('agenda')
   const [selected, setSelected] = useState(todayLocal())
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [acceptsGroup, setAcceptsGroup] = useState(false)
+  const [kind, setKind] = useState<'solo' | 'group'>('solo')
   const [savedHours, setSavedHours] = useState('')
 
   const load = useCallback(async () => {
@@ -151,10 +161,12 @@ export function DisponibilitesPage() {
     setLoading(true)
     setError(null)
     try {
-      const [creneauxData, availability] = await Promise.all([
+      const [creneauxData, availability, profileData] = await Promise.all([
         fetchMyCreneaux(token, todayLocal()),
         fetchAvailability(token),
+        fetchProfile(token).catch(() => null),
       ])
+      if (profileData) setAcceptsGroup(Boolean(profileData.profile.acceptsGroup))
       setItems(creneauxData.creneaux)
       const loaded = toEditDayHours(availability.weeklyAvailability)
       setDayHours(loaded)
@@ -197,6 +209,7 @@ export function DisponibilitesPage() {
   }
 
   const openNew = () => {
+    setKind('solo')
     setEditingId(null)
     setDate(selected)
     setStartTime('08:00')
@@ -204,6 +217,18 @@ export function DisponibilitesPage() {
     setError(null)
     setSuccess(null)
     setSheetOpen(true)
+  }
+
+  const toggleGroup = async (value: boolean) => {
+    const token = getMoniteurToken()
+    if (!token) return
+    setAcceptsGroup(value)
+    try {
+      await updateProfile(token, { acceptsGroup: value })
+    } catch (err) {
+      setAcceptsGroup(!value)
+      setError(isAuthError(err) ? err.message : 'Enregistrement impossible')
+    }
   }
 
   const handleWeeklySave = async (e: FormEvent) => {
@@ -249,8 +274,14 @@ export function DisponibilitesPage() {
         await updateCreneau(token, editingId, { date, startTime, endTime })
         setSuccess('Créneau mis à jour.')
       } else {
-        await createCreneau(token, { date, startTime, endTime })
-        setSuccess('Créneau publié.')
+        const isGroup = kind === 'group'
+        await createCreneau(token, {
+          date,
+          startTime,
+          endTime: isGroup ? plusTwoHours(startTime) : endTime,
+          mode: isGroup ? 'group' : 'solo',
+        })
+        setSuccess(isGroup ? 'Bloc de groupe publié (2 h, 4 élèves).' : 'Créneau publié.')
       }
       resetForm()
       await load()
@@ -421,8 +452,8 @@ export function DisponibilitesPage() {
                     <small>{item.endTime}</small>
                   </span>
                   <span className="mp-wk-body">
-                    <b>{label}</b>
-                    <small>{item.status === 'libre' ? formatMoney(item.priceFcfa) : 'Séance liée'}</small>
+                    <b>{item.groupBlock ? `Groupe · ${label}` : label}</b>
+                    <small>{item.groupBlock ? '2 000 F par élève · 4 places' : item.status === 'libre' ? formatMoney(item.priceFcfa) : 'Séance liée'}</small>
                   </span>
                   {item.editable ? (
                     <span className="mp-wk-tools">
@@ -439,6 +470,17 @@ export function DisponibilitesPage() {
             })}
           </div>
 
+          <label className="mp-hr-head" style={{ margin: '4px 0 10px' }}>
+            <div>
+              <b>Je donne des séances en groupe</b>
+              <small>Blocs de 2 h, 4 élèves, 2 000 F par élève</small>
+            </div>
+            <span className="mp-switch">
+              <input type="checkbox" checked={acceptsGroup} onChange={(e) => void toggleGroup(e.target.checked)} />
+              <span aria-hidden="true" />
+            </span>
+          </label>
+
           <button type="button" className="mp-wk-fab" onClick={openNew}>
             <Plus aria-hidden />
             Ajouter un créneau
@@ -453,7 +495,17 @@ export function DisponibilitesPage() {
           {sheetOpen ? (
             <div className="mp-sheet-bg" onClick={resetForm}>
               <form className="mp-sheet" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
-                <h3>{editingId ? 'Modifier le créneau' : 'Nouveau créneau'}</h3>
+                <h3>{editingId ? 'Modifier le créneau' : kind === 'group' ? 'Nouveau bloc de groupe' : 'Nouveau créneau'}</h3>
+                {!editingId && acceptsGroup ? (
+                  <div className="mp-av-two">
+                    <button type="button" className={kind === 'solo' ? 'mp-av-primary' : 'mp-av-ghost'} onClick={() => setKind('solo')}>
+                      Solo
+                    </button>
+                    <button type="button" className={kind === 'group' ? 'mp-av-primary' : 'mp-av-ghost'} onClick={() => setKind('group')}>
+                      Groupe (2 h)
+                    </button>
+                  </div>
+                ) : null}
                 <label className="mp-av-field">
                   Date
                   <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
@@ -465,7 +517,13 @@ export function DisponibilitesPage() {
                   </label>
                   <label className="mp-av-field">
                     Fin
-                    <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
+                    <input
+                      type="time"
+                      value={!editingId && kind === 'group' ? plusTwoHours(startTime) : endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                      disabled={!editingId && kind === 'group'}
+                      required
+                    />
                   </label>
                 </div>
                 <div className="mp-av-actions">

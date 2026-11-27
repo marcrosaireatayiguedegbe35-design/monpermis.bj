@@ -20,6 +20,12 @@ function slotDateTime(date, time) {
 export async function creditHeuresEffectueesForCompletion(reservation) {
   if (!reservation?.userId) return { heures: 0 }
 
+  // Séance de groupe : 30 min de conduite par élève, sans toucher au solde d'heures.
+  if (reservation.mode === 'group') {
+    await User.findByIdAndUpdate(reservation.userId, { $inc: { heuresEffectuees: 0.5 } })
+    return { heures: 0.5 }
+  }
+
   if (reservation.heuresDebitees > 0) {
     await User.findByIdAndUpdate(reservation.userId, {
       $inc: { heuresEffectuees: reservation.heuresDebitees },

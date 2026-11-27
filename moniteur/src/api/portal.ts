@@ -10,6 +10,8 @@ export interface CreneauItem {
   vehicleType: string
   status: 'libre' | 'reserve' | 'bloque'
   priceFcfa: number
+  mode?: '' | 'solo' | 'group'
+  groupBlock?: boolean
   editable?: boolean
   reservationStatus?: string | null
 }
@@ -123,6 +125,7 @@ export interface MoniteurProfile {
   specialties: string[]
   photos: string[]
   defaultPriceFcfa: number
+  acceptsGroup?: boolean
   activeLogin: boolean
   lastLoginAt: string | null
 }
@@ -134,7 +137,7 @@ export function fetchMyCreneaux(token: string, from?: string) {
 
 export function createCreneau(
   token: string,
-  payload: { date: string; startTime: string; endTime: string },
+  payload: { date: string; startTime: string; endTime: string; mode?: 'solo' | 'group' },
 ) {
   return apiFetch<{ creneau: CreneauItem }>(
     '/api/moniteur/creneaux',
@@ -255,6 +258,7 @@ export function updateProfile(
     bio: string
     photoUrl: string
     vehicleBrand: string
+    acceptsGroup: boolean
     meetingPointUrl: string
     meetingPointNote: string
     vehiclePhotoUrl: string

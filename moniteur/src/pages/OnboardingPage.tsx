@@ -33,6 +33,7 @@ export function OnboardingPage() {
   const [days, setDays] = useState<DayRow[]>(
     DAYS.map((d) => ({ ...d, enabled: d.dayOfWeek >= 1 && d.dayOfWeek <= 5, start: '08:00', end: '17:00' })),
   )
+  const [acceptsGroup, setAcceptsGroup] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -44,6 +45,7 @@ export function OnboardingPage() {
       .then(({ profile }) => {
         if (profile.photoUrl) setPhotoUrl(profile.photoUrl)
         if (profile.vehicleBrand) setVehicleBrand(profile.vehicleBrand)
+        if (profile.acceptsGroup) setAcceptsGroup(true)
         if (profile.vehicleTypes?.[0]) setVehicleType(profile.vehicleTypes[0])
       })
       .catch(() => undefined)
@@ -102,6 +104,7 @@ export function OnboardingPage() {
         return
       }
       await saveAvailability(token, slots)
+      await updateProfile(token, { acceptsGroup })
       await completeOnboarding()
     } catch (err) {
       fail(err, 'Enregistrement impossible')
@@ -209,6 +212,17 @@ export function OnboardingPage() {
               )}
             </div>
           ))}
+          <label className={`ob-day${acceptsGroup ? ' on' : ''}`}>
+            <span className="mp-check" style={{ flex: '1 1 100%' }}>
+              <input type="checkbox" checked={acceptsGroup} onChange={(e) => setAcceptsGroup(e.target.checked)} />
+              <span>
+                J’accepte les séances en groupe
+                <small style={{ display: 'block', fontWeight: 400, color: 'var(--mp-muted)' }}>
+                  Blocs de 2 h, 4 élèves, 30 min de conduite chacun. Vous les publiez ensuite dans votre agenda.
+                </small>
+              </span>
+            </span>
+          </label>
         </div>
       ) : null}
 

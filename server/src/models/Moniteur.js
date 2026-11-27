@@ -48,6 +48,8 @@ const moniteurSchema = new mongoose.Schema(
     weeklyAvailability: { type: [availabilitySlotSchema], default: [] },
     active: { type: Boolean, default: true },
     defaultPriceFcfa: { type: Number, default: 5000 },
+    /** Accepte de donner des séances en groupe (blocs de 2 h, 4 élèves). */
+    acceptsGroup: { type: Boolean, default: false },
     /** Marque du véhicule d'apprentissage (ex. Toyota Corolla). */
     vehicleBrand: { type: String, default: '', trim: true },
     /** Lieu de séance : lien Google Maps + description, affichés à l'apprenant pour qu'il s'y rende. */
@@ -126,6 +128,7 @@ moniteurSchema.methods.toJSONSafe = function toJSONSafe() {
     vehicleTypes: this.vehicleTypes || [],
     weeklyAvailability: this.weeklyAvailability || [],
     active: Boolean(this.active),
+    acceptsGroup: Boolean(this.acceptsGroup),
     defaultPriceFcfa: this.defaultPriceFcfa || 5000,
     vehicleBrand: this.vehicleBrand || '',
     vehiclePhotoUrl: this.vehiclePhotoUrl || '',
@@ -164,6 +167,7 @@ moniteurSchema.methods.toPublicListJSON = function toPublicListJSON() {
     fullName: `${this.firstName} ${this.lastName}`.trim(),
     vehicleTypes: this.vehicleTypes || [],
     defaultPriceFcfa: this.defaultPriceFcfa || 5000,
+    acceptsGroup: Boolean(this.acceptsGroup),
     vehicleBrand: this.vehicleBrand || '',
     vehiclePhotoUrl: this.vehiclePhotoUrl || '',
     photoUrl: this.photoUrl || '',

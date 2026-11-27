@@ -24,6 +24,8 @@ const creneauSchema = new mongoose.Schema(
     },
     /** '' = aucune réservation · solo = exclusif · group = places partagées. */
     mode: { type: String, enum: ['', 'solo', 'group'], default: '' },
+    /** Bloc de groupe de 2 h publié par le moniteur (4 élèves, 30 min chacun). */
+    groupBlock: { type: Boolean, default: false },
     priceFcfa: { type: Number, default: 5000 },
     lockedUntil: { type: Date, default: null },
     lockedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
@@ -43,6 +45,7 @@ creneauSchema.methods.toJSONSafe = function toJSONSafe() {
     vehicleType: this.vehicleType,
     status: this.status,
     mode: this.mode || '',
+    groupBlock: Boolean(this.groupBlock),
     priceFcfa: this.priceFcfa || 0,
     lockedUntil: this.lockedUntil,
     createdAt: this.createdAt,

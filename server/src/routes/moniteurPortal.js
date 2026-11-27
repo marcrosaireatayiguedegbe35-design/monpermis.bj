@@ -1,4 +1,9 @@
-import { refreshCreneauState } from '../utils/creneauSeats.js'
+import {
+  GROUP_BLOCK_HOURS,
+  GROUP_PRICE_PER_SEAT,
+  SOLO_PRICE_PER_HOUR,
+  refreshCreneauState,
+} from '../utils/creneauSeats.js'
 import { Router } from 'express'
 import mongoose from 'mongoose'
 import { Creneau } from '../models/Creneau.js'
@@ -59,6 +64,7 @@ function profilePayload(m) {
     bio: m.bio || '',
     photoUrl: m.photoUrl || '',
     vehicleBrand: m.vehicleBrand || '',
+    acceptsGroup: Boolean(m.acceptsGroup),
     meetingPointUrl: m.meetingPointUrl || '',
     meetingPointNote: m.meetingPointNote || '',
     vehiclePhotoUrl: m.vehiclePhotoUrl || '',
@@ -182,11 +188,24 @@ router.post('/creneaux', async (req, res) => {
     }
 
     const heures = computeCreneauHeures({ startTime, endTime })
-    if (heures < 0.5) {
-      return res.status(400).json({ success: false, error: 'Durée minimale : 30 minutes' })
-    }
-    if (heures > 6) {
-      return res.status(400).json({ success: false, error: 'Durée maximale : 6 heures' })
+    const isGroupBlock = req.body.mode === 'group'
+    if (isGroupBlock) {
+      if (!req.moniteur.acceptsGroup) {
+        return res.status(403).json({
+          success: false,
+          error: 'Activez les séances en groupe dans votre profil pour publier un bloc de groupe.',
+        })
+      }
+      if (heures !== GROUP_BLOCK_HOURS) {
+        return res.status(400).json({ success: false, error: 'Un bloc de groupe dure 2 heures.' })
+      }
+    } else {
+      if (heures < 0.5) {
+        return res.status(400).json({ success: false, error: 'Durée minimale : 30 minutes' })
+      }
+      if (heures > 6) {
+        return res.status(400).json({ success: false, error: 'Durée maximale : 6 heures' })
+      }
     }
 
     const vehicleType = normalizeVehicleType(
@@ -194,7 +213,7 @@ router.post('/creneaux', async (req, res) => {
         (Array.isArray(req.moniteur.vehicleTypes) && req.moniteur.vehicleTypes[0]) ||
         'voiture',
     )
-    const hourly = req.moniteur.defaultPriceFcfa || 5000
+    const hourly = SOLO_PRICE_PER_HOUR
 
     let creneau
     try {
@@ -205,7 +224,9 @@ router.post('/creneaux', async (req, res) => {
         endTime,
         vehicleType,
         status: 'libre',
-        priceFcfa: Math.round(hourly * heures),
+        mode: isGroupBlock ? 'group' : '',
+        groupBlock: isGroupBlock,
+        priceFcfa: isGroupBlock ? GROUP_PRICE_PER_SEAT : Math.round(hourly * heures),
         lockedUntil: null,
         lockedBy: null,
       })
@@ -654,6 +675,9 @@ router.patch('/profile', async (req, res) => {
     if (req.body.photoUrl !== undefined) m.photoUrl = sanitizePublicUrl(req.body.photoUrl)
     if (req.body.vehicleBrand !== undefined) {
       m.vehicleBrand = String(req.body.vehicleBrand || '').trim()
+    }
+    if (req.body.acceptsGroup !== undefined) {
+      m.acceptsGroup = Boolean(req.body.acceptsGroup)
     }
     if (req.body.meetingPointUrl !== undefined) {
       const raw = String(req.body.meetingPointUrl || '').trim()

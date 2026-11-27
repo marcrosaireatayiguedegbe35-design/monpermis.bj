@@ -3,9 +3,17 @@ import { Creneau } from '../models/Creneau.js'
 
 /** Tarifs de conduite par heure selon le mode. */
 export const SOLO_PRICE_PER_HOUR = 5000
-export const GROUP_PRICE_PER_HOUR = 2000
-/** Nombre maximum d'élèves dans un créneau en groupe. */
-export const GROUP_CAPACITY = Math.max(2, Number(process.env.GROUP_CAPACITY) || 7)
+/** Séance de groupe : un bloc de 2 h pour 4 élèves, 30 min de conduite chacun. */
+export const GROUP_PRICE_PER_SEAT = 2000
+export const GROUP_BLOCK_HOURS = 2
+export const GROUP_DRIVING_HOURS = 0.5
+/** Nombre d'élèves d'un groupe. */
+export const GROUP_CAPACITY = Math.max(2, Number(process.env.GROUP_CAPACITY) || 4)
+
+/** Prix d'une séance solo : tarif horaire × durée (30 min ou 1 h). */
+export function soloAmount(hours) {
+  return Math.round(SOLO_PRICE_PER_HOUR * (Number(hours) || 0))
+}
 
 export const ACTIVE_STATUSES = ['pending_payment', 'pending_moniteur', 'confirmed']
 
@@ -31,12 +39,14 @@ export async function countGroupSeats(creneauId) {
 export async function refreshCreneauState(creneauId) {
   if (!creneauId) return null
   const id = creneauId._id || creneauId
+  const slot = await Creneau.findById(id).select('groupBlock').lean()
   const active = await Reservation.find({ creneauId: id, status: { $in: ACTIVE_STATUSES } })
     .select('mode')
     .lean()
   let set
   if (!active.length) {
-    set = { status: 'libre', mode: '', lockedUntil: null, lockedBy: null }
+    // Un bloc de groupe publié par le moniteur reste un bloc de groupe, même vide.
+    set = { status: 'libre', mode: slot?.groupBlock ? 'group' : '', lockedUntil: null, lockedBy: null }
   } else if (active.some((r) => (r.mode || 'solo') === 'solo')) {
     set = { status: 'reserve', mode: 'solo', lockedUntil: null, lockedBy: null }
   } else {
