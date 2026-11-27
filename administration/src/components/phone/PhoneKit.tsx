@@ -205,6 +205,7 @@ export function PhotoHub({
   banner,
   cards,
   wide,
+  wides,
 }: {
   title: string
   subtitle?: string
@@ -212,6 +213,7 @@ export function PhotoHub({
   banner: { title: string; text: string; to?: string; cta?: string; tone?: 'green' | 'alert'; image?: string; badge?: string }
   cards: PhotoCard[]
   wide?: PhotoCard
+  wides?: PhotoCard[]
 }) {
   const renderCard = (c: PhotoCard, cls: string) => (
     <Link key={c.to + c.title} to={c.to} className={`ap-ph-card tone-${c.tone} ${cls}`}>
@@ -267,6 +269,7 @@ export function PhotoHub({
       )}
       <div className="ap-ph-grid">{cards.map((c) => renderCard(c, ''))}</div>
       {wide ? renderCard(wide, 'is-wide') : null}
+      {wides ? wides.map((w) => renderCard(w, 'is-wide')) : null}
     </div>
   )
 }
