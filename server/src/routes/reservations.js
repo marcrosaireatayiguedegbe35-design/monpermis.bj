@@ -484,7 +484,7 @@ router.get('/availability', ...withConduiteAccess, async (req, res) => {
         moniteur: moniteur.toPublicListJSON(),
         from,
         to,
-        hourlyPriceFcfa: moniteur.defaultPriceFcfa || 5000,
+        hourlyPriceFcfa: SOLO_PRICE_PER_HOUR,
         hoursDiscountFcfa: HOURS_DISCOUNT_FCFA,
         hoursDiscountMinHours: HOURS_DISCOUNT_MIN_HOURS,
         soloPricePerHour: SOLO_PRICE_PER_HOUR,
@@ -623,7 +623,7 @@ router.post('/request-slot', ...withConduiteAccess, async (req, res) => {
         (Array.isArray(moniteur.vehicleTypes) && moniteur.vehicleTypes[0]) ||
         'voiture',
     )
-    const hourly = moniteur.defaultPriceFcfa || 5000
+    const hourly = SOLO_PRICE_PER_HOUR
     // priceFcfa reste le prix de ligne sans remise : la remise heures s'applique
     // une seule fois par réservation (voir computeBookingAmount).
     const priceFcfa = Math.round(hourly * heures)
@@ -1048,7 +1048,7 @@ router.post('/quote', ...withConduiteAccess, async (req, res) => {
     const baseAmount =
       bookingMode === 'group'
         ? Math.round(hours * GROUP_PRICE_PER_HOUR)
-        : creneaux.reduce((sum, c) => sum + (c.priceFcfa || moniteur?.defaultPriceFcfa || SOLO_PRICE_PER_HOUR), 0)
+        : Math.round(hours * SOLO_PRICE_PER_HOUR)
     const amount = bookingMode === 'group' ? baseAmount : applyHoursDiscount(baseAmount, hours)
     const soldeHeures = req.user.soldeHeures || 0
 

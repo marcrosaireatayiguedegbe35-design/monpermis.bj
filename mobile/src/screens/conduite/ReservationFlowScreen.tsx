@@ -289,7 +289,7 @@ export function ReservationFlowScreen() {
     try {
       const data = await fetchMoniteurAvailability({ moniteurId, days: 14 })
       setAvailabilityDays(data.days)
-      setHourlyPriceFcfa(data.hourlyPriceFcfa || data.moniteur.defaultPriceFcfa || 5000)
+      setHourlyPriceFcfa(data.hourlyPriceFcfa || 5000)
       if (data.groupPricePerHour) setGroupPriceFcfa(data.groupPricePerHour)
       setGroupSlots(data.groupSlots ?? [])
       if (data.hoursDiscountFcfa !== undefined) setHoursDiscount(data.hoursDiscountFcfa)
@@ -587,7 +587,7 @@ export function ReservationFlowScreen() {
                               <Wallet size={26} color={dark.green} />
                               <View style={{ flexShrink: 1 }}>
                                 <Text style={[styles.mTileValue, { color: dark.green }]} numberOfLines={1}>
-                                  {(moniteur.defaultPriceFcfa || 5000).toLocaleString('fr-FR')} F / h
+                                  5 000 F / h
                                 </Text>
                                 <Text style={styles.mTileLabel} numberOfLines={1}>
                                   Solo · Groupe {groupPriceFcfa.toLocaleString('fr-FR')} F / h
@@ -650,7 +650,7 @@ export function ReservationFlowScreen() {
 
               <View style={styles.hoursRow}>
                 {([
-                  { id: 'solo', label: 'Solo', price: profile.defaultPriceFcfa || 5000, note: 'Créneau pour vous seul' },
+                  { id: 'solo', label: 'Solo', price: 5000, note: 'Créneau pour vous seul' },
                   { id: 'group', label: 'En groupe', price: groupPriceFcfa, note: `Jusqu’à 7 élèves` },
                 ] as const).map((opt) => {
                   const active = bookingMode === opt.id
@@ -690,7 +690,7 @@ export function ReservationFlowScreen() {
                       </View>
                       <View style={styles.pChip}>
                         <Wallet size={15} color="#0A1E55" />
-                        <Text style={styles.pChipText}>Solo {(profile.defaultPriceFcfa || 5000).toLocaleString('fr-FR')} F / h</Text>
+                        <Text style={styles.pChipText}>Solo 5 000 F / h</Text>
                       </View>
                       <View style={styles.pChip}>
                         <Wallet size={15} color="#0A1E55" />
