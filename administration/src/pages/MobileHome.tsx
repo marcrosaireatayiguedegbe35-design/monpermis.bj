@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { BookOpen, CalendarDays, Gift, Landmark, UserCog, Users, Wallet } from 'lucide-react'
 import { fetchDashboardOverview, fetchDashboardSummary } from '../api/dashboard'
 import type { DashboardOverview, DashboardSummary } from '../api/dashboard'
 import { getAdminToken, useAdminAuth } from '../context/AdminAuthContext'
+import { PhotoHub } from '../components/phone/PhoneKit'
 
 const MOBILE_QUERY = '(max-width: 767px)'
 
@@ -46,69 +46,42 @@ export function MobileHome() {
   const access = s?.accessRequests?.pending ?? 0
   const refunds = s?.payments?.needsRefund ?? 0
 
-  const tiles = [
-    {
-      to: '/conduite/reservations',
-      icon: CalendarDays,
-      title: 'Séances',
-      sub: pend > 0 ? `${pend} à confirmer` : 'Rien en attente',
-      badge: pend,
-    },
-    {
-      to: '/abonnements',
-      icon: Wallet,
-      title: 'Abonnés',
-      sub: access > 0 ? `${access} à valider` : 'Rien en attente',
-      badge: access,
-    },
-    {
-      to: '/utilisateurs',
-      icon: Users,
-      title: 'Apprenants',
-      sub: s ? `${s.users.total} · ${s.users.active} actifs` : '…',
-      badge: 0,
-    },
-    {
-      to: '/conduite/moniteurs',
-      icon: UserCog,
-      title: 'Moniteurs',
-      sub: s ? `${s.conduite.moniteursActive} en service` : '…',
-      badge: 0,
-    },
-    canManageAdmins
-      ? {
-          to: refunds > 0 ? '/finances?tab=refunds' : '/finances',
-          icon: Landmark,
-          title: 'Compta',
-          sub: refunds > 0 ? `${refunds} à rembourser` : o ? `${fcfa(o.kpi.day.ca)} aujourd'hui` : '…',
-          badge: refunds,
-        }
-      : { to: '/codes-promo', icon: Gift, title: 'Codes promo', sub: 'Remises', badge: 0 },
-    { to: '/code', icon: BookOpen, title: 'Contenu', sub: 'Code · Conduite', badge: 0 },
-  ]
+  const todoCount = pend + access + refunds
+  const nextTo = pend > 0 ? '/conduite/reservations' : access > 0 ? '/abonnements' : refunds > 0 ? '/finances?tab=refunds' : ''
 
   return (
-    <div className="ap-home">
-      <div className="ap-home-head">
-        <small>{date}</small>
-        <b>Bonjour {first}</b>
-      </div>
-      <div className="ap-home-grid">
-        {tiles.map((t) => {
-          const Icon = t.icon
-          return (
-            <Link key={t.title} to={t.to} className={`ap-home-tile${t.badge > 0 ? ' is-hot' : ''}`}>
-              <span className="ap-home-ico">
-                <Icon aria-hidden />
-              </span>
-              {t.badge > 0 ? <em>{t.badge > 99 ? '99+' : t.badge}</em> : null}
-              <b>{t.title}</b>
-              <small>{t.sub}</small>
-            </Link>
-          )
-        })}
-      </div>
-    </div>
+    <PhotoHub
+      title={`Bonjour ${first}`}
+      subtitle={date.charAt(0).toUpperCase() + date.slice(1)}
+      back={null}
+      banner={
+        todoCount > 0
+          ? {
+              title: `${todoCount} chose${todoCount > 1 ? 's' : ''} à traiter`,
+              text: [
+                pend > 0 ? `${pend} séance${pend > 1 ? 's' : ''}` : '',
+                access > 0 ? `${access} abonnement${access > 1 ? 's' : ''}` : '',
+                refunds > 0 ? `${refunds} remboursement${refunds > 1 ? 's' : ''}` : '',
+              ]
+                .filter(Boolean)
+                .join(' · '),
+              to: nextTo,
+              cta: 'Traiter',
+              tone: 'alert',
+            }
+          : { title: 'Tout est à jour', text: 'Rien n’attend une décision pour le moment.' }
+      }
+      cards={[
+        { to: '/conduite/reservations', title: 'Séances', sub: pend > 0 ? `${pend} à confirmer` : 'Rien en attente', image: '/phone/examens.jpg', tone: 'orange', icon: <CalendarDays aria-hidden />, badge: pend },
+        { to: '/abonnements', title: 'Abonnés', sub: access > 0 ? `${access} à valider` : 'Rien en attente', image: '/phone/notes.jpg', tone: 'green', icon: <Wallet aria-hidden />, badge: access },
+        { to: '/utilisateurs', title: 'Apprenants', sub: s ? `${s.users.total} · ${s.users.active} actifs` : '…', image: '/phone/revision.jpg', tone: 'pink', icon: <Users aria-hidden /> },
+        { to: '/conduite/moniteurs', title: 'Moniteurs', sub: s ? `${s.conduite.moniteursActive} en service` : '…', image: '/phone/ecodepermis.jpg', tone: 'cyan', icon: <UserCog aria-hidden /> },
+        canManageAdmins
+          ? { to: refunds > 0 ? '/finances?tab=refunds' : '/finances', title: 'Compta', sub: refunds > 0 ? `${refunds} à rembourser` : o ? `${fcfa(o.kpi.day.ca)} aujourd'hui` : '…', image: '/phone/notes.jpg', tone: 'green' as const, icon: <Landmark aria-hidden />, badge: refunds }
+          : { to: '/codes-promo', title: 'Codes promo', sub: 'Remises', image: '/phone/notes.jpg', tone: 'green' as const, icon: <Gift aria-hidden /> },
+        { to: '/code', title: 'Contenu', sub: 'Code · Conduite', image: '/phone/revision.jpg', tone: 'pink' as const, icon: <BookOpen aria-hidden /> },
+      ]}
+    />
   )
 }
 

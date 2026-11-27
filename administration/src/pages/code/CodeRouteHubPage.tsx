@@ -13,7 +13,7 @@ import {
   Radar,
 } from 'lucide-react'
 import { CodeSection } from '../../components/model/CodeSection'
-import { PhoneHub } from '../../components/phone/PhoneKit'
+import { PhotoHub } from '../../components/phone/PhoneKit'
 import { useIsPhone } from '../MobileHome'
 import { nf } from '../../components/model/ModelCharts'
 import { fetchStandaloneCourses } from '../../api/courses'
@@ -188,18 +188,50 @@ export function CodeRouteHubPage() {
   ]
 
   if (isPhone) {
+    const first = todo[0]
     return (
-      <PhoneHub
+      <PhotoHub
         title="Code de la route"
-        error={error}
-        allDone="Tout est à jour : chapitres, notions et examens sont publiés."
-        todo={todo}
-        tiles={spaces.map((sp) => ({
-          to: sp.to,
-          icon: sp.icon,
-          title: sp.title,
-          sub: loading ? '…' : sp.stats.map((st) => `${st.v} ${st.l}`).join(' · '),
-        }))}
+        subtitle="Apprendre • Réviser • Réussir"
+        banner={
+          first
+            ? { title: first.title, text: first.sub, to: first.to, cta: 'Voir', tone: 'alert' }
+            : { title: 'Tout est à jour', text: 'Chapitres, notions et examens sont publiés.', to: '/code/revision-chapitres', cta: 'Réviser' }
+        }
+        cards={[
+          {
+            to: '/code/revision-chapitres',
+            title: 'Révision par chapitres',
+            sub: loading ? '…' : `${data.chapters.published}/${data.chapters.total} chapitres publiés`,
+            image: '/phone/revision.jpg',
+            tone: 'pink',
+            icon: <List aria-hidden />,
+          },
+          {
+            to: '/code/examens-test',
+            title: 'Examens test',
+            sub: loading ? '…' : `${data.exams.done}/${data.exams.total} sujets générés`,
+            image: '/phone/examens.jpg',
+            tone: 'orange',
+            icon: <ClipboardCheck aria-hidden />,
+          },
+          {
+            to: '/code/suivi-apprenants',
+            title: 'Résultats des apprenants',
+            sub: loading ? '…' : `${nf(data.learners.active)} actifs sur ${nf(data.learners.total)} inscrits`,
+            image: '/phone/notes.jpg',
+            tone: 'green',
+            icon: <Radar aria-hidden />,
+          },
+        ]}
+        wide={{
+          to: '/code/cours',
+          title: 'Cours',
+          sub: loading ? '…' : `${data.notions.published}/${data.notions.total} notions publiées`,
+          image: '/phone/ecodepermis.jpg',
+          tone: 'navy',
+          icon: <BookOpen aria-hidden />,
+        }}
       />
     )
   }

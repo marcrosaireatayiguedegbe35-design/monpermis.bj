@@ -181,3 +181,77 @@ export function PhoneBack({ onClick, label }: { onClick: () => void; label: stri
     </button>
   )
 }
+
+export type PhotoTone = 'pink' | 'orange' | 'green' | 'cyan' | 'navy'
+
+export type PhotoCard = {
+  to: string
+  title: string
+  sub?: string
+  image: string
+  tone: PhotoTone
+  icon: ReactNode
+  badge?: number
+}
+
+/**
+ * Page d'accueil de rubrique au format de l'application apprenant : bandeau, cartes photo
+ * (dégradé coloré, icône ronde, flèche) et carte large en bas. Tout tient dans un écran.
+ */
+export function PhotoHub({
+  title,
+  subtitle,
+  back = '/',
+  banner,
+  cards,
+  wide,
+}: {
+  title: string
+  subtitle?: string
+  back?: string | null
+  banner: { title: string; text: string; to?: string; cta?: string; tone?: 'green' | 'alert' }
+  cards: PhotoCard[]
+  wide?: PhotoCard
+}) {
+  const renderCard = (c: PhotoCard, cls: string) => (
+    <Link key={c.to + c.title} to={c.to} className={`ap-ph-card tone-${c.tone} ${cls}`}>
+      <img src={c.image} alt="" className="ap-ph-img" />
+      <span className="ap-ph-shade" />
+      <span className="ap-ph-body">
+        <span className="ap-ph-ico">{c.icon}</span>
+        <b>{c.title}</b>
+        {c.sub ? <small>{c.sub}</small> : null}
+        <span className="ap-ph-arrow">›</span>
+      </span>
+      {c.badge && c.badge > 0 ? <em className="ap-ph-badge">{c.badge > 99 ? '99+' : c.badge}</em> : null}
+    </Link>
+  )
+  return (
+    <div className="ap-ph">
+      <div className="ap-ph-top">
+        {back ? (
+          <Link to={back} className="ap-ph-round" aria-label="Retour">
+            ‹
+          </Link>
+        ) : null}
+        <div className="ap-ph-titles">
+          <b>{title}</b>
+          {subtitle ? <small>{subtitle}</small> : null}
+        </div>
+      </div>
+      <div className={`ap-ph-banner${banner.tone === 'alert' ? ' is-alert' : ''}`}>
+        <div>
+          <b>{banner.title}</b>
+          <p>{banner.text}</p>
+        </div>
+        {banner.to ? (
+          <Link to={banner.to} className="ap-ph-cta">
+            {banner.cta || 'Ouvrir'}
+          </Link>
+        ) : null}
+      </div>
+      <div className="ap-ph-grid">{cards.map((c) => renderCard(c, ''))}</div>
+      {wide ? renderCard(wide, 'is-wide') : null}
+    </div>
+  )
+}

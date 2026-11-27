@@ -399,3 +399,44 @@
 @media (max-width:767px){
   .ap-sec .cx-person small,.ap-sec .cx-row-main small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal!important;max-width:100%}
 }
+
+/* ---------- Accueils de rubrique au format de l'application apprenant ---------- */
+@media (max-width:767px){
+  .ap-ph{display:flex;flex-direction:column;gap:12px;height:calc(100dvh - 68px - 100px - env(safe-area-inset-bottom));min-height:440px}
+  .ap-ph-top{display:flex;align-items:center;gap:12px}
+  .ap-ph-round{flex:none;width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid #E6EDF3;display:grid;place-items:center;font-size:30px;line-height:1;color:#0A1E55;text-decoration:none;padding-bottom:4px}
+  .ap-ph-titles{display:flex;flex-direction:column}
+  .ap-ph-titles b{font-size:21px;letter-spacing:-.4px;color:#0A1E55}
+  .ap-ph-titles small{font-size:12.5px;color:#5d7066}
+  .ap-ph-banner{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px;border-radius:22px;background:linear-gradient(135deg,#0B7F47,#0a5f37);color:#fff}
+  .ap-ph-banner.is-alert{background:linear-gradient(135deg,#C2410C,#9A3412)}
+  .ap-ph-banner b{font-size:17px;letter-spacing:-.2px;display:block}
+  .ap-ph-banner p{margin:3px 0 0;font-size:13px;opacity:.9;line-height:1.3}
+  .ap-ph-cta{flex:none;background:#fff;color:#0A1E55;border-radius:999px;padding:10px 16px;font-weight:800;font-size:13.5px;text-decoration:none}
+  .ap-ph-grid{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:12px}
+  .ap-ph-card{position:relative;display:block;overflow:hidden;border-radius:22px;text-decoration:none;color:#0A1E55;min-height:0;background:#ddd}
+  .ap-ph-grid .ap-ph-card:last-child:nth-child(odd){grid-column:1 / -1}
+  .ap-ph-card.is-wide{flex:0 0 22%;min-height:84px;background:#0A1E55}
+  .ap-ph-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .ap-ph-shade{position:absolute;inset:0}
+  .tone-pink .ap-ph-shade{background:linear-gradient(35deg,rgba(255,196,222,.97),rgba(255,214,232,.72) 50%,rgba(255,236,245,0))}
+  .tone-orange .ap-ph-shade{background:linear-gradient(35deg,rgba(255,205,150,.97),rgba(255,224,186,.72) 50%,rgba(255,243,226,0))}
+  .tone-green .ap-ph-shade{background:linear-gradient(35deg,rgba(168,230,192,.97),rgba(200,240,214,.72) 50%,rgba(232,250,238,0))}
+  .tone-cyan .ap-ph-shade{background:linear-gradient(35deg,rgba(160,205,248,.97),rgba(196,224,252,.72) 50%,rgba(232,243,255,0))}
+  .tone-navy .ap-ph-shade{background:linear-gradient(90deg,#0A1E55,#0A1E55 40%,rgba(10,30,85,.55) 70%,rgba(10,30,85,0))}
+  .ap-ph-body{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;padding:12px}
+  .ap-ph-ico{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:#fff;margin-bottom:4px}
+  .tone-pink .ap-ph-ico{background:rgba(219,39,119,.92)}
+  .tone-orange .ap-ph-ico{background:rgba(234,88,12,.92)}
+  .tone-green .ap-ph-ico{background:rgba(11,127,71,.92)}
+  .tone-cyan .ap-ph-ico{background:rgba(2,132,199,.92)}
+  .tone-navy .ap-ph-ico{background:rgba(255,255,255,.2)}
+  .ap-ph-ico svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .ap-ph-body b{font-size:15.5px;line-height:1.15;letter-spacing:-.2px}
+  .ap-ph-body small{font-size:11.5px;line-height:1.25;opacity:.85}
+  .tone-navy .ap-ph-body{color:#fff}
+  .ap-ph-card.is-wide .ap-ph-body{flex-direction:column;justify-content:center;padding-left:78px}
+  .ap-ph-card.is-wide .ap-ph-ico{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:46px;height:46px;margin:0}
+  .ap-ph-arrow{position:absolute;right:10px;bottom:10px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.85);display:grid;place-items:center;font-size:19px;line-height:1;color:#0A1E55;padding-bottom:2px}
+  .ap-ph-badge{position:absolute;top:10px;right:10px;min-width:24px;height:24px;padding:0 7px;border-radius:12px;background:#ef4444;color:#fff;font:700 12px/24px inherit;font-style:normal;text-align:center}
+}

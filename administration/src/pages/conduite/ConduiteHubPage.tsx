@@ -12,7 +12,7 @@ import {
   UserCog,
 } from 'lucide-react'
 import { ConduiteSection } from '../../components/model/ConduiteSection'
-import { PhoneHub } from '../../components/phone/PhoneKit'
+import { PhotoHub } from '../../components/phone/PhoneKit'
 import { useIsPhone } from '../MobileHome'
 import { nf } from '../../components/model/ModelCharts'
 import { fetchDashboardSummary, type DashboardSummary } from '../../api/dashboard'
@@ -136,25 +136,49 @@ export function ConduiteHubPage() {
   ]
 
   if (isPhone) {
+    const first = todo[0]
     return (
-      <PhoneHub
+      <PhotoHub
         title="Conduite"
-        error={error}
-        allDone="Tout est à jour : aucune réservation en attente, moniteurs et créneaux disponibles."
-        todo={todo}
-        tiles={[
-          ...spaces.map((sp) => ({
-            to: sp.to,
-            icon: sp.icon,
-            title: sp.title,
-            sub: loading ? '…' : sp.stats.map((st) => `${st.v} ${st.l}`).join(' · '),
-            hot: sp.to === '/conduite/reservations' && data.reservationsPending > 0,
-          })),
+        subtitle="Leçons • Séances • Moniteurs"
+        banner={
+          first
+            ? { title: first.title, text: first.sub, to: first.to, cta: 'Voir', tone: 'alert' }
+            : { title: 'Tout est à jour', text: 'Aucune réservation en attente, moniteurs et créneaux disponibles.' }
+        }
+        cards={[
+          {
+            to: '/conduite/lecons',
+            title: 'Leçons de conduite',
+            sub: loading ? '…' : `${data.published}/${data.chapters} chapitres publiés`,
+            image: '/phone/revision.jpg',
+            tone: 'pink',
+            icon: <CarFront aria-hidden />,
+          },
+          {
+            to: '/conduite/reservations',
+            title: 'Réservations',
+            sub: loading ? '…' : `${data.reservations} au total · ${data.reservationsPending} en attente`,
+            image: '/phone/examens.jpg',
+            tone: 'orange',
+            icon: <CalendarDays aria-hidden />,
+            badge: data.reservationsPending,
+          },
+          {
+            to: '/conduite/moniteurs',
+            title: 'Moniteurs',
+            sub: loading ? '…' : `${data.moniteursActive}/${data.moniteurs} actifs · ${data.creneauxLibre} créneaux`,
+            image: '/phone/ecodepermis.jpg',
+            tone: 'cyan',
+            icon: <UserCog aria-hidden />,
+          },
           {
             to: '/conduite/avis',
-            icon: <Star aria-hidden />,
             title: 'Avis',
-            sub: 'Retours des élèves après chaque séance.',
+            sub: 'Retours après chaque séance',
+            image: '/phone/notes.jpg',
+            tone: 'green',
+            icon: <Star aria-hidden />,
           },
         ]}
       />
