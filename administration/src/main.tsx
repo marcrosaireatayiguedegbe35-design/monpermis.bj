@@ -19,6 +19,7 @@ import './styles/admin-tracking.css'
 import './styles/admin-motion.css'
 import './styles/admin-admins.css'
 import './styles/admin-clean.css'
+import './styles/admin-mobile.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

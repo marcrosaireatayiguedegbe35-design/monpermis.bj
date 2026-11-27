@@ -25,6 +25,7 @@ import { fetchOpsStatus } from '../api/auth'
 import { fetchDashboardSummary } from '../api/dashboard'
 import { getAdminToken, useAdminAuth } from '../context/AdminAuthContext'
 import { SITE_NAME } from '../theme/brand'
+import { watchTables } from '../utils/responsiveTables'
 
 type NavItem = {
   to: string
@@ -154,6 +155,9 @@ export function AdminLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  // Tableaux en cartes sur téléphone : les cellules reçoivent le nom de leur colonne.
+  useEffect(() => watchTables(), [])
   const [searchQuery, setSearchQuery] = useState('')
   const [badges, setBadges] = useState<OpsBadges>({ reservations: 0, access: 0, refunds: 0 })
   const [health, setHealth] = useState<HealthSnapshot | null>(null)
