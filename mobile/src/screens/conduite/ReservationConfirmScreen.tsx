@@ -5,7 +5,7 @@ import { CalendarCheck, Car, Check, ChevronRight, Clock, CreditCard, House, Info
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Bouncy } from '../../components/Bouncy'
-import { RES, ReserveBackdrop, ReserveButton, ReserveHeader, ReserveOutlineButton, StepChip } from '../../components/ReserveFrame'
+import { RES, ReserveButton, ReserveHeader, ReserveOutlineButton, StepChip } from '../../components/ReserveFrame'
 import { useUnreadNotifications } from '../../hooks/useUnreadNotifications'
 import type { RootStackParamList } from '../../navigation/types'
 import { dark, fonts, shadows } from '../../theme'
@@ -88,7 +88,6 @@ export function ReservationConfirmScreen() {
 
   return (
     <View style={styles.root}>
-      <ReserveBackdrop />
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         <ReserveHeader
           title={fromList ? 'Détail de la séance' : 'Réservation confirmée'}

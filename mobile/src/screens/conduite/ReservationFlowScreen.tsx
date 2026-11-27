@@ -61,7 +61,7 @@ import {
 import { fetchAccessMe } from '../../api/accessRequests'
 import { Bouncy } from '../../components/Bouncy'
 import { CodeRouteBanner } from '../../components/CodeRouteBanner'
-import { RES, ReserveBackdrop, ReserveButton, ReserveHeader, StepChip } from '../../components/ReserveFrame'
+import { RES, ReserveButton, ReserveHeader, StepChip } from '../../components/ReserveFrame'
 import { DriveModuleIcon } from '../../components/ModuleIcons'
 import { EmptyState } from '../../components/EmptyState'
 import { FadeUp } from '../../components/FadeUp'
@@ -464,7 +464,6 @@ export function ReservationFlowScreen() {
 
   return (
     <View style={styles.root}>
-      <ReserveBackdrop />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <ReserveHeader
           title={step === 'slots' ? 'Créneaux libres' : 'Nouvelle séance'}

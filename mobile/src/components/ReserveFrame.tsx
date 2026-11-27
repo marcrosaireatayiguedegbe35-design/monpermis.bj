@@ -18,16 +18,6 @@ export const RES = {
   line: '#DFE6E1',
 }
 
-/** Taches vertes douces en haut à gauche et en bas à droite (à placer en premier dans l'écran). */
-export function ReserveBackdrop() {
-  return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <View style={[styles.blob, { top: -130, left: -120, width: 320, height: 300, backgroundColor: RES.blobA }]} />
-      <View style={[styles.blob, { bottom: -160, right: -130, width: 420, height: 300, backgroundColor: RES.blobB }]} />
-    </View>
-  )
-}
-
 /** En-tête : retour, gros titre centré, cloche. */
 export function ReserveHeader({
   title,
@@ -120,7 +110,6 @@ export function ReserveOutlineButton({ label, onPress, icon }: { label: string; 
 }
 
 const styles = StyleSheet.create({
-  blob: { position: 'absolute', borderRadius: 999 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 6 },
   round: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: RES.line, ...shadows.sm },
   headerText: { flex: 1, alignItems: 'center', minWidth: 0 },
