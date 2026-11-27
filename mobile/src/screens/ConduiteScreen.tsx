@@ -403,7 +403,12 @@ export function ConduiteScreen() {
             />
           </View>
 
-          <View style={[styles.progressRow, { height: progressH }]}>
+          <Pressable
+            style={[styles.progressRow, { height: progressH }]}
+            onPress={() => navigation.navigate('HistoriqueConduite')}
+            accessibilityRole="button"
+            accessibilityLabel="Voir mon historique de conduite"
+          >
             {progress ? (
               <>
                 <HoursRing percent={progress.percent} />
@@ -418,7 +423,7 @@ export function ConduiteScreen() {
                     height={7}
                   />
                   <Text style={styles.progressMeta} numberOfLines={1}>
-                    Solde heures moniteur : {progress.soldeHeures} h
+                    Solde heures : {progress.soldeHeures} h · Historique ›
                   </Text>
                 </View>
               </>
@@ -427,7 +432,7 @@ export function ConduiteScreen() {
                 {error ?? 'Chargement de ta progression…'}
               </Text>
             )}
-          </View>
+          </Pressable>
 
           {pendingReviews.length > 0 ? (
             <Bouncy

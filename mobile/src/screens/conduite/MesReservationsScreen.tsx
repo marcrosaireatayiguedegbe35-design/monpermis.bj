@@ -120,6 +120,13 @@ export function MesReservationsScreen() {
         tone="drive"
       />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <Pressable
+          style={styles.historyLink}
+          onPress={() => navigation.navigate('HistoriqueConduite')}
+          accessibilityRole="button"
+        >
+          <Text style={styles.historyLinkText}>Historique de conduite et heures effectuées ›</Text>
+        </Pressable>
         {error ? <Text style={styles.error}>{error}</Text> : null}
         {busy ? <ActivityIndicator color={dark.green} style={{ marginVertical: 20 }} /> : null}
 
@@ -318,6 +325,14 @@ export function MesReservationsScreen() {
 
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 22, paddingTop: 14, paddingBottom: 32, gap: 8 },
+  historyLink: {
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: 'rgba(11,127,71,0.1)',
+  },
+  historyLinkText: { fontFamily: fonts.bodyBold, fontSize: 13.5, color: dark.green },
   section: {
     fontFamily: fonts.displayBold,
     fontSize: 15,
@@ -369,6 +384,20 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 13,
     color: dark.textMuted,
+  },
+  cancelBtn: {
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: dark.coral,
+  },
+  cancelBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: dark.coral,
   },
   cancelLink: {
     alignSelf: 'flex-start',

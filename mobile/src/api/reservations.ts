@@ -167,6 +167,35 @@ export async function fetchMyReservations() {
   }
 }
 
+export interface DrivingHistorySession {
+  id: string
+  status: 'completed' | 'cancelled'
+  date: string
+  startTime: string
+  endTime: string
+  hours: number
+  moniteurName: string
+  vehicleBrand: string
+  cancelledBy: string
+}
+
+export interface DrivingHistory {
+  summary: {
+    heuresEffectuees: number
+    heuresObjectif: number
+    heuresMinimum: number
+    heuresRestantes: number
+    percent: number
+    seancesEffectuees: number
+  }
+  sessions: DrivingHistorySession[]
+}
+
+/** Historique de conduite : séances effectuées et annulées, total d'heures, minimum de 48 h. */
+export function fetchDrivingHistory() {
+  return request<DrivingHistory>('/reservations/history')
+}
+
 export function fetchPublicMoniteurs(vehicleType?: string) {
   const query = vehicleType
     ? `?vehicleType=${encodeURIComponent(vehicleType)}`

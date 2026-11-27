@@ -62,6 +62,7 @@ import { ExamensTestScreen, ExamensTestTakeScreen } from '../screens/code-route/
 import { MesNotesScreen } from '../screens/code-route/MesNotesScreen'
 import { ConduiteScreen } from '../screens/ConduiteScreen'
 import { ReservationFlowScreen } from '../screens/conduite/ReservationFlowScreen'
+import { HistoriqueConduiteScreen } from '../screens/conduite/HistoriqueConduiteScreen'
 import { MesReservationsScreen } from '../screens/conduite/MesReservationsScreen'
 import { ReservationConfirmScreen } from '../screens/conduite/ReservationConfirmScreen'
 import { SessionReviewScreen } from '../screens/conduite/SessionReviewScreen'
@@ -110,6 +111,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       Conduite: 'conduite',
       ReservationFlow: 'conduite/reservation',
       MesReservations: 'conduite/reservations',
+      HistoriqueConduite: 'conduite/historique',
       ReservationConfirm: 'conduite/reservation/confirmation',
       SessionReview: 'conduite/avis/:reservationId',
       LeconsChapitres: 'conduite/lecons',
@@ -264,6 +266,10 @@ function AppNavigator() {
       <Stack.Screen
         name="MesReservations"
         component={MesReservationsScreen}
+      />
+      <Stack.Screen
+        name="HistoriqueConduite"
+        component={HistoriqueConduiteScreen}
       />
       <Stack.Screen
         name="ReservationConfirm"

@@ -1,3 +1,4 @@
+import { drivingObjective } from '../utils/drivingHours.js'
 import mongoose from 'mongoose'
 import bcrypt from 'bcryptjs'
 
@@ -23,8 +24,8 @@ const userSchema = new mongoose.Schema(
     soldeHeures: { type: Number, default: 0, min: 0 },
     /** Heures de conduite déjà effectuées. */
     heuresEffectuees: { type: Number, default: 0, min: 0 },
-    /** Objectif d'heures (ex. 20). */
-    heuresObjectif: { type: Number, default: 20, min: 1 },
+    /** Objectif d'heures de conduite : 48 h minimum (les anciens comptes à 20 h sont relevés à 48 h à la lecture). */
+    heuresObjectif: { type: Number, default: 48, min: 1 },
     completedCourses: [
       {
         chapterId: { type: String, required: true },
@@ -137,7 +138,7 @@ userSchema.methods.toPublicJSON = function toPublicJSON() {
     isActive: this.isActive !== false,
     soldeHeures: this.soldeHeures || 0,
     heuresEffectuees: this.heuresEffectuees || 0,
-    heuresObjectif: this.heuresObjectif || 20,
+    heuresObjectif: drivingObjective(this.heuresObjectif),
     createdAt: this.createdAt,
   }
 }

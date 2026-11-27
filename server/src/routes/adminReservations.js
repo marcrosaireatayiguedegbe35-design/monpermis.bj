@@ -1,3 +1,4 @@
+import { DRIVING_MIN_HOURS } from '../utils/drivingHours.js'
 import { Router } from 'express'
 import mongoose from 'mongoose'
 import { Moniteur, MONITEUR_BIO_MAX, MONITEUR_PHOTOS_MAX } from '../models/Moniteur.js'
@@ -748,7 +749,7 @@ router.patch('/users/:userId/heures', audit('update', 'solde_heures'), async (re
       user.heuresEffectuees = Math.max(0, Number(req.body.heuresEffectuees) || 0)
     }
     if (req.body.heuresObjectif !== undefined) {
-      user.heuresObjectif = Math.max(1, Number(req.body.heuresObjectif) || 20)
+      user.heuresObjectif = Math.max(DRIVING_MIN_HOURS, Number(req.body.heuresObjectif) || DRIVING_MIN_HOURS)
     }
     await user.save()
     res.json({ success: true, data: { user: user.toAdminJSON() } })

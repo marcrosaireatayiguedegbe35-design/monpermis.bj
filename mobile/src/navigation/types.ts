@@ -109,6 +109,7 @@ export type RootStackParamList = {
   Conduite: undefined
   ReservationFlow: undefined
   MesReservations: undefined
+  HistoriqueConduite: undefined
   SessionReview: { reservationId: string }
   ReservationConfirm: {
     reservationId: string

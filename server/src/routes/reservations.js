@@ -53,6 +53,7 @@ import {
 import { recordPaymentCreated } from '../utils/paymentLedger.js'
 import { logger } from '../utils/logger.js'
 import { notifyMoniteur } from '../services/push.js'
+import { DRIVING_MIN_HOURS, drivingObjective } from '../utils/drivingHours.js'
 
 const router = Router()
 /** Réservations : auth seule — le solde d’heures est contrôlé à la création. */
@@ -185,6 +186,60 @@ async function hydrateReservationGroup(reservations) {
   return Promise.all(reservations.map((reservation) => hydrateReservation(reservation)))
 }
 
+/** Historique de conduite de l'élève : séances effectuées (et annulées), avec le total d'heures et le minimum de 48 h. */
+router.get('/history', ...withConduiteAccess, async (req, res) => {
+  try {
+    const rows = await Reservation.find({
+      userId: req.user._id,
+      status: { $in: ['completed', 'cancelled'] },
+    })
+      .populate('creneauId')
+      .populate('moniteurId', 'firstName lastName vehicleBrand photoUrl')
+      .sort({ updatedAt: -1 })
+      .limit(300)
+      .lean()
+
+    const sessions = rows
+      .filter((row) => row.creneauId)
+      .map((row) => {
+        const creneau = row.creneauId
+        const moniteur = row.moniteurId
+        return {
+          id: String(row._id),
+          status: row.status,
+          date: creneau.date,
+          startTime: creneau.startTime,
+          endTime: creneau.endTime,
+          hours: row.status === 'completed' ? computeCreneauHeures(creneau) : 0,
+          moniteurName: moniteur ? `${moniteur.firstName || ''} ${moniteur.lastName || ''}`.trim() : '',
+          vehicleBrand: moniteur?.vehicleBrand || '',
+          cancelledBy: row.cancelledBy || '',
+        }
+      })
+      .sort((a, b) => `${b.date} ${b.startTime}`.localeCompare(`${a.date} ${a.startTime}`))
+
+    const objectif = drivingObjective(req.user.heuresObjectif)
+    const effectuees = Number(req.user.heuresEffectuees) || 0
+    res.json({
+      success: true,
+      data: {
+        summary: {
+          heuresEffectuees: effectuees,
+          heuresObjectif: objectif,
+          heuresMinimum: DRIVING_MIN_HOURS,
+          heuresRestantes: Math.max(0, Math.round((objectif - effectuees) * 100) / 100),
+          percent: Math.min(100, Math.round((effectuees / objectif) * 100)),
+          seancesEffectuees: sessions.filter((item) => item.status === 'completed').length,
+        },
+        sessions,
+      },
+    })
+  } catch (error) {
+    console.error('Erreur historique conduite:', error)
+    res.status(500).json({ success: false, error: 'Chargement impossible' })
+  }
+})
+
 router.get('/mine', ...withConduiteAccess, async (req, res) => {
   try {
     const now = new Date()
@@ -249,7 +304,7 @@ router.get('/dashboard', ...withConduiteAccess, async (req, res) => {
     })
 
     const user = req.user
-    const objectif = user.heuresObjectif || 20
+    const objectif = drivingObjective(user.heuresObjectif)
     const effectuees = user.heuresEffectuees || 0
 
     res.json({
