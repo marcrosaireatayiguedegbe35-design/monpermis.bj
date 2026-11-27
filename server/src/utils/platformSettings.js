@@ -1,6 +1,6 @@
 import { PlatformSetting } from '../models/PlatformSetting.js'
 
-export const DEFAULT_PLATFORM_FEE_PERCENT = 20
+export const DEFAULT_PLATFORM_FEE_PERCENT = 10
 const FEE_KEY = 'platformFeePercent'
 
 /** Part gardée par la plateforme sur chaque séance de conduite (0–60 %). */
