@@ -28,6 +28,8 @@ import {
   type FinanceSummary,
 } from '../api/finances'
 import { DirectionSection } from '../components/model/DirectionSection'
+import { PhonePage, PhoneSeg } from '../components/phone/PhoneKit'
+import { useIsPhone } from './MobileHome'
 import { getAdminToken, isAuthError } from '../context/AdminAuthContext'
 import { Drawer, EmptyState, SkeletonBlock } from '../ui'
 import { MoniteurFinancesPanel } from './MoniteurFinancesPanel'
@@ -109,6 +111,7 @@ export function FinancesPage() {
   const [refundNote, setRefundNote] = useState('')
   const [refundBusy, setRefundBusy] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const isPhone = useIsPhone()
 
   const setActiveTab = (next: Tab) => {
     setTab(next)
@@ -302,6 +305,247 @@ export function FinancesPage() {
     { key: 'settlements', label: 'À régler aux moniteurs' },
     { key: 'moniteurs', label: 'Paiements moniteurs' },
   ]
+
+  const detailDrawer = (
+      <Drawer open={Boolean(detailId)} title="Détail du paiement" subtitle={detailId ?? undefined} onClose={closeDetail}>
+        {detailLoading || !detail ? (
+          <p className="cx-empty">{detailLoading ? 'Chargement…' : 'Introuvable'}</p>
+        ) : (
+          <div className="cx-form">
+            <div className="cx-form-grid">
+              <div className="cx-subject">
+                <span>Montant</span>
+                <b>{formatMoney(detail.payment.amount, detail.payment.currency)}</b>
+              </div>
+              <div className="cx-subject">
+                <span>Statut</span>
+                {statusChip(detail.payment.financeStatus)}
+              </div>
+              <div className="cx-subject">
+                <span>Type</span>
+                <b>{financeKindLabel(detail.payment.kind)}</b>
+              </div>
+              <div className="cx-subject">
+                <span>Canal</span>
+                <b>{paymentChannelLabel(detail.payment)}</b>
+              </div>
+            </div>
+
+            <div className="cx-block">
+              <h3>Apprenant</h3>
+              <p style={{ color: 'var(--ink)' }}>
+                <strong>{learnerName(detail.payment.learner)}</strong>
+                <br />
+                {detail.payment.learner?.phone || '—'}
+                {detail.payment.learner?.email ? ` · ${detail.payment.learner.email}` : ''}
+              </p>
+              {detail.learnerSoldeHeures != null ? <p>Solde heures : {detail.learnerSoldeHeures} h</p> : null}
+            </div>
+
+            <div className="cx-block">
+              <h3>FedaPay</h3>
+              <p>
+                Réf. {detail.payment.fedapayReference || '—'}
+                <br />
+                Tx {detail.payment.fedapayTransactionId || '—'}
+                <br />
+                Dernier événement : {detail.payment.lastEventName || '—'}
+              </p>
+            </div>
+
+            {detail.payment.accessRequests && detail.payment.accessRequests.length > 0 ? (
+              <div className="cx-block">
+                <h3>Abonnements liés</h3>
+                <ul className="cx-scores">
+                  {detail.payment.accessRequests.map((r) => (
+                    <li key={r.id}>
+                      <span>
+                        {r.module || 'module'} · {r.status}
+                      </span>
+                      <strong>{formatMoney(r.amount || 0, r.currency || 'XOF')}</strong>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {detail.payment.reservations && detail.payment.reservations.length > 0 ? (
+              <div className="cx-block">
+                <h3>Réservations liées</h3>
+                <ul className="cx-scores">
+                  {detail.payment.reservations.map((r) => (
+                    <li key={r.id}>
+                      <span>
+                        {r.status} / {r.paymentStatus}
+                        {r.startAt ? ` · ${formatDateTime(r.startAt)}` : ''}
+                      </span>
+                      {r.priceFcfa != null ? <strong>{formatMoney(r.priceFcfa)}</strong> : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {detail.relatedPromos.length > 0 ? (
+              <div className="cx-block">
+                <h3>Codes promo proches</h3>
+                <ul className="cx-scores">
+                  {detail.relatedPromos.map((p) => (
+                    <li key={p.redemptionId}>
+                      <span>
+                        {p.code || p.label || 'Promo'}
+                        {p.heuresBonus ? ` · +${p.heuresBonus} h` : ''}
+                      </span>
+                      <small>{formatDateTime(p.redeemedAt)}</small>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <div className="cx-block">
+              <h3>Chronologie</h3>
+              <ol className="cx-tl">
+                {detail.timeline.map((event) => (
+                  <li key={event.id}>
+                    <span className="cx-tl-time">{formatDateTime(event.createdAt).split(' ').slice(0, 2).join(' ')}</span>
+                    <span className="cx-tl-dot" />
+                    <div className="cx-tl-body">
+                      <strong style={{ color: 'var(--ink)' }}>{ledgerEventLabel(event.eventType)}</strong>
+                      <span>
+                        {formatDateTime(event.createdAt)}
+                        {event.actorLabel ? ` · ${event.actorLabel}` : ''}
+                      </span>
+                      {event.note ? <span style={{ color: 'var(--ink)' }}>{event.note}</span> : null}
+                      {event.fedapayEventName ? <span>Webhook : {event.fedapayEventName}</span> : null}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            {detail.payment.adminNote ? (
+              <div className="cx-block">
+                <h3>Notes admin</h3>
+                <p style={{ whiteSpace: 'pre-wrap', color: 'var(--ink)' }}>{detail.payment.adminNote}</p>
+              </div>
+            ) : null}
+
+            {detail.payment.needsRefund ? (
+              <div className="cx-block">
+                <h3>Marquer le remboursement</h3>
+                <p>Après remboursement réel dans le dashboard FedaPay / opérateur Mobile Money.</p>
+                <textarea
+                  className="cx-textarea"
+                  value={refundNote}
+                  onChange={(e) => setRefundNote(e.target.value)}
+                  placeholder="Ex. remboursé MTN le 29/07, réf. XXX"
+                  rows={3}
+                  disabled={refundBusy}
+                />
+                <button type="button" className="cx-btn cx-btn-fill" disabled={refundBusy} onClick={() => void handleResolveRefund()}>
+                  {refundBusy ? '…' : 'Marquer résolu'}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        )}
+      </Drawer>
+  )
+
+  if (isPhone) {
+    const toneClass = (value: string) => {
+      const t = financeStatusTone(value)
+      return t === 'success' ? '' : t === 'warning' ? ' is-warn' : t === 'danger' ? ' is-red' : ' is-gray'
+    }
+    const isLedger = tab === 'ledger' || tab === 'refunds'
+    return (
+      <PhonePage title="Compta">
+        {error ? <p className="cx-note cx-note-err" role="alert">{error}</p> : null}
+        {success ? <p className="cx-note cx-note-ok" role="status">{success}</p> : null}
+        <div className="ap-money">
+          <div>
+            <small>Encaissé</small>
+            <b>{formatMoney(period?.encaisse.total ?? 0)}</b>
+            <small>{period?.encaisse.count ?? 0} paiement(s)</small>
+          </div>
+          <button type="button" className={`ap-money-q${outstanding && outstanding.count > 0 ? ' is-hot' : ''}`} onClick={() => setActiveTab('refunds')}>
+            <small>À rembourser</small>
+            <b>{outstanding?.count ?? 0}</b>
+            <small>{formatMoney(outstanding?.total ?? 0)}</small>
+          </button>
+        </div>
+        <PhoneSeg
+          value={kpiPeriod}
+          onChange={setKpiPeriod}
+          options={[
+            { id: 'today', label: 'Aujourd’hui' },
+            { id: 'week', label: 'Semaine' },
+            { id: 'month', label: 'Mois' },
+          ]}
+        />
+        <PhoneSeg
+          value={tab}
+          onChange={setActiveTab}
+          options={[
+            { id: 'ledger', label: 'Mouvements' },
+            { id: 'refunds', label: `À rembourser${outstanding && outstanding.count > 0 ? ` ${outstanding.count}` : ''}` },
+            { id: 'breakdown', label: 'Code / Conduite' },
+            { id: 'settlements', label: 'À régler' },
+            { id: 'moniteurs', label: 'Moniteurs' },
+          ]}
+        />
+        {isLedger ? (
+          <>
+            <form
+              className="ap-search"
+              onSubmit={(e) => {
+                e.preventDefault()
+                void loadLedger(1)
+              }}
+            >
+              <Filter aria-hidden />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nom, téléphone, référence" aria-label="Recherche" />
+            </form>
+            <div className="ap-list">
+              {loading && payments.length === 0 ? (
+                <p className="ap-empty">Chargement…</p>
+              ) : payments.length === 0 ? (
+                <p className="ap-empty">Aucun mouvement.</p>
+              ) : (
+                payments.map((payment) => (
+                  <button key={payment.id} type="button" className="ap-row ap-row-tall" onClick={() => openDetail(payment.id)}>
+                    <span className="ap-av">{initials(payment.learner)}</span>
+                    <span className="ap-row-t">
+                      <b>{learnerName(payment.learner)}</b>
+                      <small>{financeKindLabel(payment.kind)} · {paymentChannelLabel(payment)}</small>
+                      <small>{formatDateTime(payment.activatedAt || payment.createdAt)}</small>
+                    </span>
+                    <span className="ap-stack">
+                      <b className="ap-amt">{formatMoney(payment.amount, payment.currency)}</b>
+                      <span className={`ap-tag${toneClass(payment.financeStatus)}`}>{financeStatusLabel(payment.financeStatus as FinanceStatus)}</span>
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+            {pages > 1 ? (
+              <div className="ap-pager">
+                <button type="button" disabled={page <= 1 || loading} onClick={() => void loadLedger(page - 1)}>Précédent</button>
+                <span>{page} / {pages}</span>
+                <button type="button" disabled={page >= pages || loading} onClick={() => void loadLedger(page + 1)}>Suivant</button>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <div className="ap-scroll">
+            {tab === 'moniteurs' ? <MoniteurFinancesPanel /> : tab === 'breakdown' ? <RevenueBreakdownPanel /> : <SettlementsPanel />}
+          </div>
+        )}
+        {detailDrawer}
+      </PhonePage>
+    )
+  }
 
   return (
     <DirectionSection
@@ -586,150 +830,7 @@ export function FinancesPage() {
         )}
       </section>
 
-      <Drawer open={Boolean(detailId)} title="Détail du paiement" subtitle={detailId ?? undefined} onClose={closeDetail}>
-        {detailLoading || !detail ? (
-          <p className="cx-empty">{detailLoading ? 'Chargement…' : 'Introuvable'}</p>
-        ) : (
-          <div className="cx-form">
-            <div className="cx-form-grid">
-              <div className="cx-subject">
-                <span>Montant</span>
-                <b>{formatMoney(detail.payment.amount, detail.payment.currency)}</b>
-              </div>
-              <div className="cx-subject">
-                <span>Statut</span>
-                {statusChip(detail.payment.financeStatus)}
-              </div>
-              <div className="cx-subject">
-                <span>Type</span>
-                <b>{financeKindLabel(detail.payment.kind)}</b>
-              </div>
-              <div className="cx-subject">
-                <span>Canal</span>
-                <b>{paymentChannelLabel(detail.payment)}</b>
-              </div>
-            </div>
-
-            <div className="cx-block">
-              <h3>Apprenant</h3>
-              <p style={{ color: 'var(--ink)' }}>
-                <strong>{learnerName(detail.payment.learner)}</strong>
-                <br />
-                {detail.payment.learner?.phone || '—'}
-                {detail.payment.learner?.email ? ` · ${detail.payment.learner.email}` : ''}
-              </p>
-              {detail.learnerSoldeHeures != null ? <p>Solde heures : {detail.learnerSoldeHeures} h</p> : null}
-            </div>
-
-            <div className="cx-block">
-              <h3>FedaPay</h3>
-              <p>
-                Réf. {detail.payment.fedapayReference || '—'}
-                <br />
-                Tx {detail.payment.fedapayTransactionId || '—'}
-                <br />
-                Dernier événement : {detail.payment.lastEventName || '—'}
-              </p>
-            </div>
-
-            {detail.payment.accessRequests && detail.payment.accessRequests.length > 0 ? (
-              <div className="cx-block">
-                <h3>Abonnements liés</h3>
-                <ul className="cx-scores">
-                  {detail.payment.accessRequests.map((r) => (
-                    <li key={r.id}>
-                      <span>
-                        {r.module || 'module'} · {r.status}
-                      </span>
-                      <strong>{formatMoney(r.amount || 0, r.currency || 'XOF')}</strong>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            {detail.payment.reservations && detail.payment.reservations.length > 0 ? (
-              <div className="cx-block">
-                <h3>Réservations liées</h3>
-                <ul className="cx-scores">
-                  {detail.payment.reservations.map((r) => (
-                    <li key={r.id}>
-                      <span>
-                        {r.status} / {r.paymentStatus}
-                        {r.startAt ? ` · ${formatDateTime(r.startAt)}` : ''}
-                      </span>
-                      {r.priceFcfa != null ? <strong>{formatMoney(r.priceFcfa)}</strong> : null}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            {detail.relatedPromos.length > 0 ? (
-              <div className="cx-block">
-                <h3>Codes promo proches</h3>
-                <ul className="cx-scores">
-                  {detail.relatedPromos.map((p) => (
-                    <li key={p.redemptionId}>
-                      <span>
-                        {p.code || p.label || 'Promo'}
-                        {p.heuresBonus ? ` · +${p.heuresBonus} h` : ''}
-                      </span>
-                      <small>{formatDateTime(p.redeemedAt)}</small>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            <div className="cx-block">
-              <h3>Chronologie</h3>
-              <ol className="cx-tl">
-                {detail.timeline.map((event) => (
-                  <li key={event.id}>
-                    <span className="cx-tl-time">{formatDateTime(event.createdAt).split(' ').slice(0, 2).join(' ')}</span>
-                    <span className="cx-tl-dot" />
-                    <div className="cx-tl-body">
-                      <strong style={{ color: 'var(--ink)' }}>{ledgerEventLabel(event.eventType)}</strong>
-                      <span>
-                        {formatDateTime(event.createdAt)}
-                        {event.actorLabel ? ` · ${event.actorLabel}` : ''}
-                      </span>
-                      {event.note ? <span style={{ color: 'var(--ink)' }}>{event.note}</span> : null}
-                      {event.fedapayEventName ? <span>Webhook : {event.fedapayEventName}</span> : null}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
-
-            {detail.payment.adminNote ? (
-              <div className="cx-block">
-                <h3>Notes admin</h3>
-                <p style={{ whiteSpace: 'pre-wrap', color: 'var(--ink)' }}>{detail.payment.adminNote}</p>
-              </div>
-            ) : null}
-
-            {detail.payment.needsRefund ? (
-              <div className="cx-block">
-                <h3>Marquer le remboursement</h3>
-                <p>Après remboursement réel dans le dashboard FedaPay / opérateur Mobile Money.</p>
-                <textarea
-                  className="cx-textarea"
-                  value={refundNote}
-                  onChange={(e) => setRefundNote(e.target.value)}
-                  placeholder="Ex. remboursé MTN le 29/07, réf. XXX"
-                  rows={3}
-                  disabled={refundBusy}
-                />
-                <button type="button" className="cx-btn cx-btn-fill" disabled={refundBusy} onClick={() => void handleResolveRefund()}>
-                  {refundBusy ? '…' : 'Marquer résolu'}
-                </button>
-              </div>
-            ) : null}
-          </div>
-        )}
-      </Drawer>
+      {detailDrawer}
     </DirectionSection>
   )
 }
