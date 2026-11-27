@@ -10,6 +10,8 @@ import {
   type PromoModuleKey,
 } from '../api/promoCodes'
 import { StatusBadge } from '../components/StatusBadge'
+import { PhonePage, PhoneSheet } from '../components/phone/PhoneKit'
+import { useIsPhone } from './MobileHome'
 import { getAdminToken, isAuthError } from '../context/AdminAuthContext'
 import { Button, Drawer, EmptyState, SkeletonBlock } from '../ui'
 
@@ -37,6 +39,8 @@ export function PromoCodesPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
+  const isPhone = useIsPhone()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const [code, setCode] = useState('')
   const [label, setLabel] = useState('')
@@ -160,6 +164,117 @@ export function PromoCodesPage() {
     } finally {
       setDeletingId(null)
     }
+  }
+
+  if (isPhone) {
+    const selected = codes.find((c) => c.id === selectedId) || null
+    const benefit = (c: PromoCode) =>
+      c.modules.includes('conduite_heures')
+        ? `+${c.heuresBonus} h`
+        : `${c.durationQuantity} ${DURATION_UNIT_OPTIONS.find((u) => u.value === c.durationUnit)?.label || ''}`
+    return (
+      <PhonePage
+        title="Codes promo"
+        action={
+          <button type="button" className="ap-add" onClick={() => setCreateOpen(true)} aria-label="Nouveau code">
+            <Plus aria-hidden />
+          </button>
+        }
+      >
+        {error ? <p className="form-error">{error}</p> : null}
+        {success ? <p className="form-success">{success}</p> : null}
+        <div className="ap-cards">
+          {loading && codes.length === 0 ? (
+            <p className="ap-empty">Chargement…</p>
+          ) : codes.length === 0 ? (
+            <p className="ap-empty">Aucun code promo. Touchez « + » pour en créer un.</p>
+          ) : (
+            codes.map((item) => (
+              <button key={item.id} type="button" className={`ap-ticket${item.active ? '' : ' is-off'}`} onClick={() => setSelectedId(item.id)}>
+                <span className="ap-ticket-l">
+                  <b>{benefit(item)}</b>
+                  <small>offert{item.modules.includes('conduite_heures') ? 'es' : ''}</small>
+                </span>
+                <span className="ap-ticket-r">
+                  <b>{item.code}</b>
+                  <span>{item.modules.map((m) => moduleLabel(m)).join(' · ')}</span>
+                  <span>
+                    {item.usesCount} / {item.maxUses ?? '∞'} utilisation{item.usesCount > 1 ? 's' : ''} · {item.active ? 'Actif' : 'Désactivé'}
+                  </span>
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+
+        <PhoneSheet open={Boolean(selected)} title={selected?.code || ''} onClose={() => setSelectedId(null)}>
+          {selected ? (
+            <>
+              <div className="ap-count">
+                {selected.label || 'Sans note'} · {selected.usesCount} / {selected.maxUses ?? '∞'} utilisation{selected.usesCount > 1 ? 's' : ''}
+              </div>
+              <button
+                type="button"
+                className={`ap-sheet-act${selected.active ? '' : ' is-fill'}`}
+                disabled={togglingId === selected.id}
+                onClick={() => void handleToggleActive(selected)}
+              >
+                <Power aria-hidden />
+                {selected.active ? 'Désactiver le code' : 'Réactiver le code'}
+              </button>
+              <button
+                type="button"
+                className="ap-sheet-act is-danger"
+                disabled={deletingId === selected.id}
+                onClick={() => {
+                  setSelectedId(null)
+                  void handleDelete(selected)
+                }}
+              >
+                <Trash2 aria-hidden />
+                Supprimer le code
+              </button>
+            </>
+          ) : null}
+        </PhoneSheet>
+
+        <PhoneSheet open={createOpen} title="Nouveau code promo" onClose={closeCreateDrawer} full>
+          <form className="ap-form" onSubmit={handleCreate}>
+            <input className="ap-input" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="Code (ex. RENTREE2026)" minLength={3} required aria-label="Code" />
+            <input className="ap-input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Note interne (facultatif)" aria-label="Note interne" />
+            <input className="ap-input" type="number" min={1} value={maxUses} onChange={(e) => setMaxUses(e.target.value)} placeholder="Utilisations max (vide = illimité)" aria-label="Utilisations max" />
+            <p className="ap-label">Modules débloqués</p>
+            <div className="ap-seg">
+              <button type="button" className={modules.length === ALL_MODULES.length ? 'is-on' : ''} onClick={toggleAllModules}>
+                Tous
+              </button>
+              {MODULE_OPTIONS.map((item) => (
+                <button key={item.value} type="button" className={modules.includes(item.value) ? 'is-on' : ''} onClick={() => toggleModule(item.value)}>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <p className="ap-label">Durée d’accès</p>
+            <div className="ap-selects">
+              <input className="ap-input" type="number" min={1} value={durationQuantity} onChange={(e) => setDurationQuantity(Math.max(1, Number(e.target.value) || 1))} aria-label="Durée" />
+              <select className="ap-input" value={durationUnit} onChange={(e) => setDurationUnit(e.target.value as PromoDurationUnit)} aria-label="Unité">
+                {DURATION_UNIT_OPTIONS.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {modules.includes('conduite_heures') ? (
+              <input className="ap-input" type="number" min={1} value={heuresBonus} onChange={(e) => setHeuresBonus(e.target.value)} placeholder="Heures bonus (ex. 20)" required aria-label="Heures bonus" />
+            ) : null}
+            <button type="submit" className="ap-sheet-act is-fill" disabled={saving}>
+              {saving ? 'Création…' : 'Créer le code'}
+            </button>
+          </form>
+        </PhoneSheet>
+      </PhonePage>
+    )
   }
 
   return (
