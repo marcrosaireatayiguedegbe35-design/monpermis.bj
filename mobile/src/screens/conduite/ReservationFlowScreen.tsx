@@ -719,7 +719,7 @@ export function ReservationFlowScreen() {
               : computeDrivingAmount(hourlyPriceFcfa, durationHours, hoursDiscount, hoursDiscountMin)
             const discount = Math.max(0, base - total)
             return (
-              <View style={{ flex: 1, gap: 14 }}>
+              <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 14, paddingBottom: 12 }} showsVerticalScrollIndicator={false}>
                 <View style={styles.dHead}>
                   <View style={styles.dHeadIcon}>
                     <Clock size={22} color="#FFFFFF" />
@@ -762,29 +762,31 @@ export function ReservationFlowScreen() {
                   </View>
                   <View style={styles.recapRow}>
                     <Text style={styles.recapLabel}>Tarif horaire</Text>
-                    <Text style={styles.recapValue}>{hourlyPriceFcfa.toLocaleString('fr-FR')} FCFA</Text>
+                    <Text style={styles.recapValue}>{rate.toLocaleString('fr-FR')} FCFA</Text>
                   </View>
                   <View style={styles.recapRow}>
                     <Text style={styles.recapLabel}>Sous-total</Text>
                     <Text style={styles.recapValue}>{base.toLocaleString('fr-FR')} FCFA</Text>
                   </View>
+                  {!isGroup ? (
                   <View style={styles.recapRow}>
                     <Text style={styles.recapLabel}>Remise</Text>
                     <Text style={[styles.recapValue, discount > 0 && { color: RES.green }]}>
                       {discount > 0 ? `− ${discount.toLocaleString('fr-FR')} FCFA` : '—'}
                     </Text>
                   </View>
+                  ) : null}
                   <View style={styles.recapTotalRow}>
                     <Text style={styles.recapTotalLabel}>Total</Text>
                     <Text style={styles.recapTotal}>{total.toLocaleString('fr-FR')} FCFA</Text>
                   </View>
-                  {discount === 0 && hoursDiscount > 0 ? (
+                  {!isGroup && discount === 0 && hoursDiscount > 0 ? (
                     <Text style={styles.recapHint}>
                       Remise de {hoursDiscount.toLocaleString('fr-FR')} FCFA à partir de {hoursDiscountMin} h.
                     </Text>
                   ) : null}
                 </View>
-              </View>
+              </ScrollView>
             )
           })() : null}
 
@@ -1035,7 +1037,7 @@ const styles = StyleSheet.create({
   hoursPillOn: { backgroundColor: RES.green, borderColor: RES.green },
   hoursPillText: { fontFamily: fonts.displayBold, fontSize: 18, color: '#0B1F3A' },
   hoursPillTextOn: { color: '#FFFFFF' },
-  recap: { flexShrink: 1, justifyContent: 'center', gap: 8, padding: 16, borderRadius: 28, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', ...shadows.md },
+  recap: { justifyContent: 'center', gap: 8, padding: 16, borderRadius: 28, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', ...shadows.md },
   recapRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   recapLabel: { fontFamily: fonts.bodyMedium, fontSize: 15.5, color: '#5B6B86' },
   recapValue: { fontFamily: fonts.displayBold, fontSize: 16.5, color: '#0B1F3A' },
