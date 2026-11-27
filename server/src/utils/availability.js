@@ -22,21 +22,22 @@ export function normalizeTime(value) {
   return String(value || '').trim().slice(0, 5)
 }
 
-/** Préavis minimal avant le début d'une séance réservable. */
-export const BOOKING_LEAD_MINUTES = 60
+/** Préavis minimal avant le début d'une séance réservable : 24 h (pas de réservation le jour même). */
+export const BOOKING_LEAD_MINUTES = 24 * 60
 
 /**
  * Tronque les fenêtres d'aujourd'hui au plus tôt réservable (maintenant + préavis).
  * Les autres dates ne sont pas modifiées ; une fenêtre entièrement passée disparaît.
  */
 export function clipWindowsToLeadTime(windows, dateStr, now = new Date()) {
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
-    now.getDate(),
+  const limit = new Date(now.getTime() + BOOKING_LEAD_MINUTES * 60 * 1000)
+  const limitDate = `${limit.getFullYear()}-${String(limit.getMonth() + 1).padStart(2, '0')}-${String(
+    limit.getDate(),
   ).padStart(2, '0')}`
-  if (dateStr > today) return windows
-  if (dateStr < today) return []
+  if (dateStr > limitDate) return windows
+  if (dateStr < limitDate) return []
 
-  const earliest = now.getHours() * 60 + now.getMinutes() + BOOKING_LEAD_MINUTES
+  const earliest = limit.getHours() * 60 + limit.getMinutes()
   return windows
     .map((slot) => {
       const start = timeToMinutes(slot.start)

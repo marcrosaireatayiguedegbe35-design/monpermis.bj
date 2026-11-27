@@ -800,7 +800,7 @@ export function ReservationFlowScreen() {
                     <Text style={styles.sNote}>En groupe : 2 h à 4 élèves, 30 min de conduite chacun.</Text>
                   ) : null}
                   {selectedDate && earliestBookableTime(selectedDate) ? (
-                    <Text style={styles.sNote}>Réservation possible à partir de {earliestBookableTime(selectedDate)} aujourd’hui.</Text>
+                    <Text style={styles.sNote}>Réservation possible à partir de {earliestBookableTime(selectedDate)} ce jour-là (24 h à l’avance).</Text>
                   ) : null}
                   {selectedDate && selectedDaySlots.length === 0 && !busy ? (
                     <Text style={styles.sNote}>Plus de créneau disponible ce jour-là. Choisissez un autre jour.</Text>

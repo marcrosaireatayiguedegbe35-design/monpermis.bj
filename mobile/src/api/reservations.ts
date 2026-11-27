@@ -127,7 +127,7 @@ export interface AvailabilityDay {
 export type MobileMoneyOperator = 'mtn' | 'moov' | 'celtiis'
 
 /** Préavis minimal aligné sur le serveur : aucun créneau réservable avant. */
-export const BOOKING_LEAD_MINUTES = 60
+export const BOOKING_LEAD_MINUTES = 24 * 60
 export {
   HOURS_DISCOUNT_FCFA,
   HOURS_DISCOUNT_MIN_HOURS,
@@ -136,15 +136,14 @@ export {
 
 /** Heure la plus tôt réservable pour une date donnée, ou null si aucune contrainte. */
 export function earliestBookableTime(date: string, now = new Date()) {
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
-    now.getDate(),
+  const limit = new Date(now.getTime() + BOOKING_LEAD_MINUTES * 60 * 1000)
+  const limitDate = `${limit.getFullYear()}-${String(limit.getMonth() + 1).padStart(2, '0')}-${String(
+    limit.getDate(),
   ).padStart(2, '0')}`
-  if (date !== today) return null
-  const minutes = now.getHours() * 60 + now.getMinutes() + BOOKING_LEAD_MINUTES
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  if (h > 23) return '23:59'
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+  if (date > limitDate) return null
+  // Date avant le préavis de 24 h : aucune heure n'est réservable.
+  if (date < limitDate) return '24:00'
+  return `${String(limit.getHours()).padStart(2, '0')}:${String(limit.getMinutes()).padStart(2, '0')}`
 }
 
 export type PendingReview = {

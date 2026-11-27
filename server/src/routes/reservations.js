@@ -539,7 +539,7 @@ router.post('/request-slot', ...withConduiteAccess, async (req, res) => {
     if (startAt.getTime() <= Date.now() + BOOKING_LEAD_MINUTES * 60 * 1000) {
       return res.status(400).json({
         success: false,
-        error: `Réservez au moins ${BOOKING_LEAD_MINUTES} minutes à l’avance. Choisissez un horaire plus tard.`,
+        error: 'Réservez au moins 24 h à l’avance : une séance ne peut pas être prise pour la journée en cours.',
         code: 'SLOT_TOO_SOON',
       })
     }
