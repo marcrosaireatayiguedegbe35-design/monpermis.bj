@@ -22,7 +22,6 @@ function formatDateLabel(date: string) {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
-      year: 'numeric',
     })
   } catch {
     return date

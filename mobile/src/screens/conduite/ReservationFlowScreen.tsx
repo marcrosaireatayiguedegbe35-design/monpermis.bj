@@ -467,7 +467,7 @@ export function ReservationFlowScreen() {
       <ReserveBackdrop />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <ReserveHeader
-          title={step === 'slots' ? 'Créneaux disponibles' : 'Nouvelle séance'}
+          title={step === 'slots' ? 'Créneaux libres' : 'Nouvelle séance'}
           subtitle={
             step === 'slots'
               ? 'Sélectionnez un créneau pour votre séance'
@@ -595,7 +595,7 @@ export function ReservationFlowScreen() {
                                   5 000 F / h
                                 </Text>
                                 <Text style={styles.mTileLabel} numberOfLines={1}>
-                                  Solo · Groupe {groupPriceFcfa.toLocaleString('fr-FR')} F / h
+                                  Groupe {groupPriceFcfa.toLocaleString('fr-FR')} F/h
                                 </Text>
                               </View>
                             </View>
@@ -733,8 +733,8 @@ export function ReservationFlowScreen() {
                 <ModeCards mode={bookingMode} soloPrice={5000} groupPrice={groupPriceFcfa} onChange={setBookingMode} />
                 <Text style={styles.recapHint}>
                   {isGroup
-                    ? 'En groupe : vous partagez la séance avec d’autres élèves. Paiement Mobile Money.'
-                    : 'Solo : le créneau est à vous seul, personne d’autre ne peut le prendre.'}
+                    ? 'En groupe : séance partagée, paiement Mobile Money.'
+                    : 'Solo : le créneau est à vous seul.'}
                 </Text>
 
                 <View style={styles.hoursRow}>
@@ -1035,11 +1035,11 @@ const styles = StyleSheet.create({
   hoursPillOn: { backgroundColor: RES.green, borderColor: RES.green },
   hoursPillText: { fontFamily: fonts.displayBold, fontSize: 18, color: '#0B1F3A' },
   hoursPillTextOn: { color: '#FFFFFF' },
-  recap: { flex: 1, justifyContent: 'center', gap: 14, padding: 22, borderRadius: 32, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', ...shadows.md },
+  recap: { flexShrink: 1, justifyContent: 'center', gap: 8, padding: 16, borderRadius: 28, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', ...shadows.md },
   recapRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   recapLabel: { fontFamily: fonts.bodyMedium, fontSize: 15.5, color: '#5B6B86' },
   recapValue: { fontFamily: fonts.displayBold, fontSize: 16.5, color: '#0B1F3A' },
-  recapTotalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(0,16,48,0.08)' },
+  recapTotalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(0,16,48,0.08)' },
   recapTotalLabel: { fontFamily: fonts.displayBold, fontSize: 20, color: '#0B1F3A' },
   recapTotal: { fontFamily: fonts.displayExtraBold, fontSize: 26, color: RES.green },
   recapHint: { fontFamily: fonts.bodyMedium, fontSize: 13, color: '#5B6B86', textAlign: 'center' },
