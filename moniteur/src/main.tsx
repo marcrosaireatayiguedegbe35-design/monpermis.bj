@@ -8,6 +8,7 @@ import './styles/moniteur-model.css'
 import './styles/moniteur-code-model.css'
 import './styles/moniteur-extra.css'
 import './styles/moniteur-mobile.css'
+import { registerWorker } from './utils/push'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -18,3 +19,6 @@ createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </StrictMode>,
 )
+
+// Prépare les notifications : le service worker doit être en place avant la demande d'autorisation.
+void registerWorker()

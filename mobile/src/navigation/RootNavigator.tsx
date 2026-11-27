@@ -23,6 +23,7 @@ import { AppErrorBoundary } from '../components/AppErrorBoundary'
 import { AppToastHost } from '../components/AppToast'
 import { OfflineBanner } from '../components/OfflineBanner'
 import { AuthProvider } from '../context/AuthContext'
+import { NotificationPrompt } from '../components/NotificationPrompt'
 import { PhoneReminderModal } from '../components/PhoneReminderModal'
 import { OfflineProvider } from '../context/OfflineContext'
 import type { RootStackParamList } from './types'
@@ -326,6 +327,7 @@ export function RootNavigator() {
               <AppNavigator />
               <AppToastHost />
               <PhoneReminderModal />
+              <NotificationPrompt />
             </NavigationContainer>
           </AuthProvider>
         </OfflineProvider>

@@ -9,6 +9,7 @@ import {
 } from '../services/fedapay.js'
 import { broadcastPaymentEvent } from '../services/paymentEvents.js'
 import { logger } from './logger.js'
+import { notifyMoniteur } from '../services/push.js'
 import { recordPaymentOutcome } from './paymentLedger.js'
 
 function sanitizeHttpUrl(value) {
@@ -182,6 +183,14 @@ async function confirmReservationsForApprovedPayment(payment) {
   }
 
   const fresh = await Reservation.find({ bookingGroupId: payment.reservationGroupId })
+  if (unlocked > 0 && fresh[0]?.moniteurId) {
+    void notifyMoniteur(fresh[0].moniteurId, {
+      title: 'Nouvelle demande de séance',
+      body: 'Un apprenant a payé et attend votre réponse. Ouvrez l’application pour accepter ou refuser.',
+      url: '/reservations',
+      tag: 'reservation-demande',
+    })
+  }
   return { reservations: fresh, unlocked, guaranteed }
 }
 

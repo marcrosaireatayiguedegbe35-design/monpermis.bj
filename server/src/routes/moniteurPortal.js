@@ -4,6 +4,7 @@ import { Creneau } from '../models/Creneau.js'
 import { Payment } from '../models/Payment.js'
 import { Reservation } from '../models/Reservation.js'
 import { MoniteurPayout } from '../models/MoniteurPayout.js'
+import { removeSubscription, saveSubscription } from '../services/push.js'
 import { User } from '../models/User.js'
 import {
   Moniteur,
@@ -730,6 +731,24 @@ router.post('/upload-photo', (req, res) => {
       })
     }
   })
+})
+
+/** Le moniteur active les notifications sur cet appareil. */
+router.post('/push/subscribe', async (req, res) => {
+  try {
+    await saveSubscription('moniteur', req.moniteur._id, req.body || {}, req.get('user-agent'))
+    res.json({ success: true, data: { subscribed: true } })
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, error: error.status ? error.message : 'Enregistrement impossible' })
+  }
+})
+
+router.post('/push/unsubscribe', async (req, res) => {
+  try {
+    res.json({ success: true, data: { removed: await removeSubscription('moniteur', req.moniteur._id, req.body || {}) } })
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Désactivation impossible' })
+  }
 })
 
 /** Le moniteur confirme avoir reçu un versement enregistré par l'administration. */

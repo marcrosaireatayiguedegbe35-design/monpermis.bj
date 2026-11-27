@@ -85,6 +85,13 @@
             "deploymentTarget": "15.1"
           }
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#0B7F47"
+        }
       ]
     ],
     "extra": {

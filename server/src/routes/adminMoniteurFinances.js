@@ -4,6 +4,7 @@ import { requireAdminAuth, requireSuperAdmin } from '../middleware/adminAuth.js'
 import { audit } from '../middleware/audit.js'
 import { Moniteur } from '../models/Moniteur.js'
 import { MoniteurPayout } from '../models/MoniteurPayout.js'
+import { notifyMoniteur } from '../services/push.js'
 import {
   computeAllMoniteursEarningsSummary,
   computeMoniteurEarnings,
@@ -100,6 +101,12 @@ router.post(
       })
 
       const refreshed = await computeMoniteurEarnings(moniteur._id)
+      void notifyMoniteur(moniteur._id, {
+        title: 'Versement à confirmer',
+        body: `L’administration indique vous avoir remis ${Number(amountFcfa).toLocaleString('fr-FR')} F. Confirmez-le dans Revenus.`,
+        url: '/revenus',
+        tag: 'versement',
+      })
       res.status(201).json({
         success: true,
         data: {

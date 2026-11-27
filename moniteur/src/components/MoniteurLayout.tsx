@@ -13,6 +13,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { fetchDashboard } from '../api/portal'
 import { getMoniteurToken, useMoniteurAuth } from '../context/MoniteurAuthContext'
 import { resolveMediaUrl } from '../utils/mediaUrl'
+import { PushPrompt } from './PushPrompt'
 
 type NavItem = {
   to: string
@@ -98,6 +99,8 @@ export function MoniteurLayout() {
           <Outlet />
         </div>
       </main>
+
+      <PushPrompt />
 
       <nav className="mp-tabs" aria-label="Navigation">
         {tabs.map((item) => {

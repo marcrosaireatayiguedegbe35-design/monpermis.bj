@@ -679,3 +679,15 @@ html,body{background:#f1f4f2}
 .mp-rv-amount.is-pending{background:#FFF3D6;color:#8A5200}
 .mp-rv-amount.is-declined{background:#F3E4E2;color:#B3261E}
 .mp-ses-tabs button b.mp-rv-tabbadge{margin-left:2px}
+
+/* ---------- Demande d'activation des notifications ---------- */
+.mp-push{align-items:center;text-align:center;gap:10px}
+.mp-push-ico{width:56px;height:56px;border-radius:50%;background:#EAF6EF;color:#0B7F47;display:grid;place-items:center}
+.mp-push-ico svg{width:28px;height:28px}
+.mp-push h3{margin:2px 0 0;font:700 20px var(--mp-display)}
+.mp-push p{margin:0;font-size:14.5px;line-height:1.5;color:#444}
+.mp-push-msg{color:#8A5200!important;font-weight:600}
+.mp-push-inline{display:inline;width:16px;height:16px;vertical-align:-3px}
+.mp-push-yes{width:100%;min-height:50px;margin-top:6px;border:0;border-radius:14px;background:#0B7F47;color:#fff;font:700 15px var(--mp-body);cursor:pointer}
+.mp-push-yes:disabled{opacity:.65}
+.mp-push-later{min-height:40px;border:0;background:none;color:#595959;font:600 14.5px var(--mp-body);text-decoration:underline;cursor:pointer}

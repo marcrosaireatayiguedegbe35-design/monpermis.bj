@@ -5,6 +5,7 @@ import { audit } from '../middleware/audit.js'
 import { AccessRequest } from '../models/AccessRequest.js'
 import { Moniteur } from '../models/Moniteur.js'
 import { MoniteurPayout } from '../models/MoniteurPayout.js'
+import { notifyMoniteur } from '../services/push.js'
 import { Payment } from '../models/Payment.js'
 import { Reservation } from '../models/Reservation.js'
 import { SessionReview } from '../models/SessionReview.js'
@@ -247,6 +248,12 @@ router.post('/settlements/pay', requireSuperAdmin, audit('create', 'moniteur_set
       createdByAdminId: req.admin?._id || null,
     })
     await Reservation.updateMany({ _id: { $in: claimed.map((d) => d._id) } }, { $set: { payoutId: payout._id } })
+    void notifyMoniteur(moniteur._id, {
+      title: 'Versement à confirmer',
+      body: `L’administration indique vous avoir remis ${Number(amountFcfa).toLocaleString('fr-FR')} F. Confirmez-le dans Revenus.`,
+      url: '/revenus',
+      tag: 'versement',
+    })
 
     res.status(201).json({
       success: true,

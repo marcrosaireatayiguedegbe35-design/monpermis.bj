@@ -45,6 +45,7 @@ import trackingRoutes from './routes/tracking.js'
 import adminTrackingRoutes from './routes/adminTracking.js'
 import moniteurAuthRoutes from './routes/moniteurAuth.js'
 import moniteurPortalRoutes from './routes/moniteurPortal.js'
+import pushRoutes from './routes/push.js'
 import { isFedaPayConfigured } from './services/fedapay.js'
 import { sendMediaAsset } from './middleware/upload.js'
 import { ensureReservationIndexes } from './models/Reservation.js'
@@ -312,6 +313,7 @@ app.use('/api/content/revision', practiceExamsRoutes)
 app.use('/api/content/conduite', contentConduiteRoutes)
 app.use('/api/reservations', reservationsRoutes)
 app.use('/api/notifications', notificationsRoutes)
+app.use('/api/push', pushRoutes)
 app.use('/api/content/announcements', announcementsRoutes)
 app.use('/api/admin/announcements', adminAnnouncementsRoutes)
 app.use('/api/tracking', trackingRoutes)

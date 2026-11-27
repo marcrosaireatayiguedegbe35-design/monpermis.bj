@@ -52,6 +52,7 @@ import {
 } from '../utils/reservationPayments.js'
 import { recordPaymentCreated } from '../utils/paymentLedger.js'
 import { logger } from '../utils/logger.js'
+import { notifyMoniteur } from '../services/push.js'
 
 const router = Router()
 /** Réservations : auth seule — le solde d’heures est contrôlé à la création. */
@@ -1010,6 +1011,12 @@ router.post('/reservations', ...withConduiteAccess, async (req, res) => {
       const hydrated = await hydrateReservationGroup(reservations)
       const moniteur = await Moniteur.findById(assignedMoniteurId)
       const first = claimed[0]
+      void notifyMoniteur(assignedMoniteurId, {
+        title: 'Nouvelle demande de séance',
+        body: `${req.user.firstName || 'Un apprenant'} souhaite réserver le ${first.date} à ${first.startTime}. Répondez dans l’application.`,
+        url: '/reservations',
+        tag: 'reservation-demande',
+      })
       const waText = formatReservationNotifyAdmin({
         firstName: req.user.firstName,
         date: first.date,
@@ -1330,6 +1337,12 @@ router.post('/reservations/:id/cancel', ...withConduiteAccess, async (req, res) 
       }
 
       const cancelled = siblings.find((s) => String(s._id) === String(reservation._id)) || siblings[0]
+      void notifyMoniteur(cancelled?.moniteurId || reservation.moniteurId, {
+        title: 'Réservation annulée',
+        body: 'Un apprenant a annulé sa demande. Le créneau est de nouveau libre.',
+        url: '/reservations',
+        tag: 'reservation-annulee',
+      })
       return res.json({
         success: true,
         data: { reservation: await hydrateReservation(cancelled || reservation) },
@@ -1366,6 +1379,13 @@ router.post('/reservations/:id/cancel', ...withConduiteAccess, async (req, res) 
       status: 'libre',
       lockedUntil: null,
       lockedBy: null,
+    })
+
+    void notifyMoniteur(reservation.moniteurId, {
+      title: 'Séance annulée',
+      body: `La séance du ${reservation.creneauId?.date || ''} à ${reservation.creneauId?.startTime || ''} a été annulée par l’apprenant.`.replace(/ {2,}/g, ' '),
+      url: '/reservations',
+      tag: 'reservation-annulee',
     })
 
     res.json({
