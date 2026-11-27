@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BookOpen, CarFront, ChevronRight, Gift, Landmark, Users } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { fetchDashboardOverview, fetchDashboardSummary } from '../api/dashboard'
 import type { DashboardOverview, DashboardSummary } from '../api/dashboard'
 import { getAdminToken, useAdminAuth } from '../context/AdminAuthContext'
@@ -100,24 +100,6 @@ export function MobileHome() {
         )}
       </div>
 
-      <nav className="ap-hm-nav" aria-label="Rubriques">
-        <Link to="/utilisateurs">
-          <Users aria-hidden />
-          Apprenants
-        </Link>
-        <Link to="/conduite">
-          <CarFront aria-hidden />
-          Conduite
-        </Link>
-        <Link to="/code">
-          <BookOpen aria-hidden />
-          Code
-        </Link>
-        <Link to={canManageAdmins ? '/finances' : '/codes-promo'}>
-          {canManageAdmins ? <Landmark aria-hidden /> : <Gift aria-hidden />}
-          {canManageAdmins ? 'Compta' : 'Promo'}
-        </Link>
-      </nav>
     </div>
   )
 }
