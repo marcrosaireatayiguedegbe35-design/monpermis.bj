@@ -176,7 +176,7 @@ export function ReservationFlowScreen() {
   const [moniteurs, setMoniteurs] = useState<MoniteurPublic[]>([])
   const [profile, setProfile] = useState<MoniteurProfile | null>(null)
   const [availabilityDays, setAvailabilityDays] = useState<AvailabilityDay[]>([])
-  const [hourlyPriceFcfa, setHourlyPriceFcfa] = useState(5000)
+  const [hourlyPriceFcfa, setHourlyPriceFcfa] = useState(6000)
   const [bookingMode, setBookingMode] = useState<'solo' | 'group'>('solo')
   const [groupPriceFcfa, setGroupPriceFcfa] = useState(2000)
   const [groupSlots, setGroupSlots] = useState<GroupSlot[]>([])
@@ -225,7 +225,8 @@ export function ReservationFlowScreen() {
     if (bookingMode === 'solo') {
       for (const day of availabilityDays) {
         const busy = day.busy ?? []
-        const base = day.allWindows ?? day.windows
+        const base =
+          (soloHours === 0.5 ? day.allWindows30 : day.allWindows60) ?? day.allWindows ?? day.windows
         byDate.set(
           day.date,
           slotsForDuration(base, soloHours, earliestBookableTime(day.date)).map((slot) => {
@@ -305,7 +306,7 @@ export function ReservationFlowScreen() {
     try {
       const data = await fetchMoniteurAvailability({ moniteurId, days: 14 })
       setAvailabilityDays(data.days)
-      setHourlyPriceFcfa(data.hourlyPriceFcfa || 5000)
+      setHourlyPriceFcfa(data.hourlyPriceFcfa || 6000)
       if (data.groupPricePerSeat) setGroupPriceFcfa(data.groupPricePerSeat)
       setGroupSlots(data.groupSlots ?? [])
       if (data.hoursDiscountFcfa !== undefined) setHoursDiscount(data.hoursDiscountFcfa)
@@ -584,7 +585,7 @@ export function ReservationFlowScreen() {
                               </View>
                               <View style={[styles.tChip, { backgroundColor: RES.soft }]}>
                                 <Wallet size={15} color={RES.green} />
-                                <Text style={[styles.tChipText, { color: RES.green }]}>Solo 5 000 F/h</Text>
+                                <Text style={[styles.tChipText, { color: RES.green }]}>Solo 6 000 F/h</Text>
                               </View>
                               {moniteur.acceptsGroup ? (
                                 <View style={[styles.tChip, { backgroundColor: RES.soft }]}>
@@ -656,7 +657,7 @@ export function ReservationFlowScreen() {
                 ))}
               </View>
 
-              <ModeCards mode={bookingMode} soloPrice={5000} groupPrice={groupPriceFcfa} groupAvailable={Boolean(profile.acceptsGroup)} onChange={setBookingMode} />
+              <ModeCards mode={bookingMode} soloPrice={6000} groupPrice={groupPriceFcfa} groupAvailable={Boolean(profile.acceptsGroup)} onChange={setBookingMode} />
 
               <View style={styles.pCard}>
                 {profileTab === 'about' ? (
@@ -676,7 +677,7 @@ export function ReservationFlowScreen() {
                       </View>
                       <View style={styles.pChip}>
                         <Wallet size={15} color="#0B1F3A" />
-                        <Text style={styles.pChipText}>Solo 5 000 F / h</Text>
+                        <Text style={styles.pChipText}>Solo 6 000 F / h</Text>
                       </View>
                       {profile.acceptsGroup ? (
                         <View style={styles.pChip}>

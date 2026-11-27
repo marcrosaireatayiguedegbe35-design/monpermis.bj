@@ -175,7 +175,10 @@ export function normalizeWeeklyAvailability(raw) {
     const [sh, sm] = start.split(':').map(Number)
     const [eh, em] = end.split(':').map(Number)
     if (eh * 60 + em <= sh * 60 + sm) continue
-    slots.push({ dayOfWeek, start, end })
+    const solo30 = item?.solo30 !== false
+    const solo60 = item?.solo60 !== false
+    // Une plage doit servir au moins une durée.
+    slots.push({ dayOfWeek, start, end, solo30: solo30 || !solo60, solo60: solo60 || !solo30 })
   }
   return slots
 }

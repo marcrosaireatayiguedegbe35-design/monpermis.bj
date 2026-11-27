@@ -44,6 +44,7 @@ import {
   mergeWindows,
   normalizeTime,
   subtractBusy,
+  timeToMinutes,
   windowsForDate,
 } from '../utils/availability.js'
 import {
@@ -470,6 +471,8 @@ router.get('/availability', ...withConduiteAccess, async (req, res) => {
       const weekly = windowsForDate(moniteur.weeklyAvailability, cursor)
       const published = clipWindowsToLeadTime(publishedByDate[cursor] || [], cursor)
       const windows = mergeWindows([...weekly, ...published])
+      const windows30 = mergeWindows([...windowsForDate(moniteur.weeklyAvailability, cursor, new Date(), '30'), ...published])
+      const windows60 = mergeWindows([...windowsForDate(moniteur.weeklyAvailability, cursor, new Date(), '60'), ...published])
       const freeWindows = subtractBusy(windows, busyByDate[cursor] || [])
       if (windows.length > 0) {
         // allWindows + busy permettent à l'application d'afficher les créneaux pris en grisé.
@@ -477,6 +480,8 @@ router.get('/availability', ...withConduiteAccess, async (req, res) => {
           date: cursor,
           windows: freeWindows,
           allWindows: windows,
+          allWindows30: windows30,
+          allWindows60: windows60,
           busy: (busyByDate[cursor] || []).map((slot) => ({ start: slot.startTime, end: slot.endTime })),
         })
       }
@@ -539,7 +544,12 @@ router.post('/request-slot', ...withConduiteAccess, async (req, res) => {
       })
     }
 
-    const weekly = windowsForDate(moniteur.weeklyAvailability, date)
+    const weekly = windowsForDate(
+      moniteur.weeklyAvailability,
+      date,
+      new Date(),
+      bookingMode === 'group' ? null : String(Math.round(timeToMinutes(endTime) - timeToMinutes(startTime))) === '30' ? '30' : '60',
+    )
     const publishedLibre = await Creneau.find({
       moniteurId,
       date,

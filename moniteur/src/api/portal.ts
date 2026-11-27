@@ -45,6 +45,9 @@ export interface ReservationItem {
 }
 
 export interface WeeklySlot {
+  /** Plage ouverte au solo de 30 min / de 1 h (par défaut les deux). */
+  solo30?: boolean
+  solo60?: boolean
   dayOfWeek: number
   start: string
   end: string

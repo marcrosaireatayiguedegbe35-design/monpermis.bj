@@ -46,10 +46,12 @@ export function clipWindowsToLeadTime(windows, dateStr, now = new Date()) {
 }
 
 /** Fenêtres hebdo pour une date calendaire (YYYY-MM-DD), heures déjà passées exclues. */
-export function windowsForDate(weeklyAvailability, dateStr, now = new Date()) {
+export function windowsForDate(weeklyAvailability, dateStr, now = new Date(), kind = null) {
   const day = new Date(`${dateStr}T12:00:00`).getDay()
   const windows = (weeklyAvailability || [])
     .filter((slot) => Number(slot.dayOfWeek) === day)
+    // kind '30' ou '60' : seulement les plages que le moniteur ouvre à cette durée de solo.
+    .filter((slot) => (kind === '30' ? slot.solo30 !== false : kind === '60' ? slot.solo60 !== false : true))
     .map((slot) => ({
       start: normalizeTime(slot.start || '08:00'),
       end: normalizeTime(slot.end || '18:00'),

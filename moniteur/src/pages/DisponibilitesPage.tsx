@@ -26,7 +26,20 @@ const WEEK_DAYS = [
   { dayOfWeek: 0, label: 'Dimanche' },
 ] as const
 
-type TimeInterval = { start: string; end: string }
+/** Durées de solo proposées sur la plage : les deux, 30 min seulement, ou 1 h seulement. */
+type SoloDur = 'both' | '30' | '60'
+type TimeInterval = { start: string; end: string; dur: SoloDur }
+
+function durOf(slot?: WeeklySlot): SoloDur {
+  if (!slot) return 'both'
+  if (slot.solo30 === false) return '60'
+  if (slot.solo60 === false) return '30'
+  return 'both'
+}
+
+function durFlags(dur: SoloDur) {
+  return { solo30: dur !== '60', solo60: dur !== '30' }
+}
 type EditDayHours = {
   dayOfWeek: number
   enabled: boolean
@@ -47,9 +60,9 @@ function toEditDayHours(slots: WeeklySlot[] | undefined): EditDayHours[] {
     return {
       dayOfWeek,
       enabled: same.length > 0,
-      morning: { start: first?.start || '08:00', end: first?.end || '12:00' },
+      morning: { start: first?.start || '08:00', end: first?.end || '12:00', dur: durOf(first) },
       afternoonEnabled: Boolean(second),
-      afternoon: { start: second?.start || '14:00', end: second?.end || '18:00' },
+      afternoon: { start: second?.start || '14:00', end: second?.end || '18:00', dur: durOf(second) },
     }
   })
 }
@@ -58,9 +71,9 @@ function fromEditDayHours(days: EditDayHours[]): WeeklySlot[] {
   const result: WeeklySlot[] = []
   for (const day of days) {
     if (!day.enabled) continue
-    result.push({ dayOfWeek: day.dayOfWeek, start: day.morning.start, end: day.morning.end })
+    result.push({ dayOfWeek: day.dayOfWeek, start: day.morning.start, end: day.morning.end, ...durFlags(day.morning.dur) })
     if (day.afternoonEnabled) {
-      result.push({ dayOfWeek: day.dayOfWeek, start: day.afternoon.start, end: day.afternoon.end })
+      result.push({ dayOfWeek: day.dayOfWeek, start: day.afternoon.start, end: day.afternoon.end, ...durFlags(day.afternoon.dur) })
     }
   }
   return result
@@ -94,12 +107,26 @@ function Range({
   onChange: (next: TimeInterval) => void
 }) {
   return (
-    <div className="mp-av-range">
-      <span>{label}</span>
-      <input type="time" value={value.start} aria-label={`${label} — début`} onChange={(e) => onChange({ ...value, start: e.target.value })} />
-      <i aria-hidden="true">→</i>
-      <input type="time" value={value.end} aria-label={`${label} — fin`} onChange={(e) => onChange({ ...value, end: e.target.value })} />
-    </div>
+    <>
+      <div className="mp-av-range">
+        <span>{label}</span>
+        <input type="time" value={value.start} aria-label={`${label} — début`} onChange={(e) => onChange({ ...value, start: e.target.value })} />
+        <i aria-hidden="true">→</i>
+        <input type="time" value={value.end} aria-label={`${label} — fin`} onChange={(e) => onChange({ ...value, end: e.target.value })} />
+      </div>
+      <label className="mp-av-field" style={{ margin: '2px 0 8px' }}>
+        Séances solo proposées
+        <select
+          value={value.dur}
+          aria-label={`${label} — durées de solo`}
+          onChange={(e) => onChange({ ...value, dur: e.target.value as SoloDur })}
+        >
+          <option value="both">30 min et 1 heure</option>
+          <option value="30">30 min seulement</option>
+          <option value="60">1 heure seulement</option>
+        </select>
+      </label>
+    </>
   )
 }
 

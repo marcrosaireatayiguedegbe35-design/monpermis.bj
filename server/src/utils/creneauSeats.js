@@ -2,7 +2,8 @@ import { Reservation } from '../models/Reservation.js'
 import { Creneau } from '../models/Creneau.js'
 
 /** Tarifs de conduite par heure selon le mode. */
-export const SOLO_PRICE_PER_HOUR = 5000
+/** Solo : 3 000 F les 30 min, 6 000 F l'heure. */
+export const SOLO_PRICE_PER_HOUR = 6000
 /** Séance de groupe : un bloc de 2 h pour 4 élèves, 30 min de conduite chacun. */
 export const GROUP_PRICE_PER_SEAT = 2000
 export const GROUP_BLOCK_HOURS = 2

@@ -42,7 +42,7 @@ export interface ReservationCheckoutSlot {
   lockedUntil?: string | null
   hours?: number
   amount?: number
-  /** solo (5 000 F/h) ou groupe (2 000 F/h, paiement Mobile Money uniquement). */
+  /** solo (3 000 F les 30 min, 6 000 F l'heure) ou groupe (2 000 F/h, paiement Mobile Money uniquement). */
   mode?: 'solo' | 'group'
 }
 

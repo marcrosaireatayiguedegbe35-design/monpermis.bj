@@ -6,6 +6,9 @@ const availabilitySlotSchema = new mongoose.Schema(
     dayOfWeek: { type: Number, min: 0, max: 6, required: true },
     start: { type: String, default: '08:00' },
     end: { type: String, default: '18:00' },
+    /** Plage ouverte aux séances solo de 30 min / de 1 h (le moniteur choisit). */
+    solo30: { type: Boolean, default: true },
+    solo60: { type: Boolean, default: true },
   },
   { _id: false },
 )

@@ -118,6 +118,9 @@ export interface AvailabilityDay {
   windows: AvailabilityWindow[]
   /** Toutes les plages du jour, occupées comprises (pour griser les créneaux pris). */
   allWindows?: AvailabilityWindow[]
+  /** Plages ouvertes au solo de 30 min / de 1 h (le moniteur choisit). */
+  allWindows30?: AvailabilityWindow[]
+  allWindows60?: AvailabilityWindow[]
   busy?: AvailabilityWindow[]
 }
 
