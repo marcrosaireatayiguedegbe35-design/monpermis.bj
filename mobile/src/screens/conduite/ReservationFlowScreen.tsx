@@ -517,7 +517,8 @@ export function ReservationFlowScreen() {
                   scrollEventThrottle={16}
                 >
                   {moniteurs.map((moniteur, position) => {
-                    const photo = moniteur.photoUrl || moniteur.vehiclePhotoUrl
+                    const photo = moniteur.vehiclePhotoUrl || moniteur.photoUrl
+                    const avatar = moniteur.vehiclePhotoUrl ? moniteur.photoUrl : ''
                     return (
                       <View key={moniteur.id} style={{ width: pagerWidth, height: pagerHeight, padding: 2 }}>
                         <View style={styles.tCard}>
@@ -537,6 +538,13 @@ export function ReservationFlowScreen() {
                               <View key={m.id} style={[styles.tBar, i === position && styles.tBarOn]} />
                             ))}
                           </View>
+                          {avatar ? (
+                            <Image
+                              source={{ uri: optimizedImageUrl(resolveMediaUrl(avatar), 300) }}
+                              style={styles.tAvatar}
+                              resizeMode="cover"
+                            />
+                          ) : null}
                           <View style={styles.tVerified}>
                             <Check size={13} color="#FFFFFF" strokeWidth={3} />
                             <Text style={styles.mVerifiedText}>Vérifié</Text>
@@ -582,12 +590,21 @@ export function ReservationFlowScreen() {
               {busy ? <ActivityIndicator color={RES.green} /> : null}
               <View style={styles.pCard}>
                 <View style={styles.pHead}>
-                  {profile.photoUrl ? (
-                    <Image
-                      source={{ uri: optimizedImageUrl(resolveMediaUrl(profile.photoUrl), 500) }}
-                      style={styles.pPhotoSmall}
-                      resizeMode="cover"
-                    />
+                  {profile.vehiclePhotoUrl || profile.photoUrl ? (
+                    <View style={styles.pPhotoSmall}>
+                      <Image
+                        source={{ uri: optimizedImageUrl(resolveMediaUrl(profile.vehiclePhotoUrl || profile.photoUrl || ''), 500) }}
+                        style={StyleSheet.absoluteFill}
+                        resizeMode="cover"
+                      />
+                      {profile.vehiclePhotoUrl && profile.photoUrl ? (
+                        <Image
+                          source={{ uri: optimizedImageUrl(resolveMediaUrl(profile.photoUrl), 200) }}
+                          style={styles.pAvatar}
+                          resizeMode="cover"
+                        />
+                      ) : null}
+                    </View>
                   ) : (
                     <View style={[styles.pPhotoSmall, styles.mNoPhoto]}>
                       <Text style={[styles.mInitial, { fontSize: 44 }]}>{profile.fullName.slice(0, 1).toUpperCase()}</Text>
@@ -1032,6 +1049,7 @@ const styles = StyleSheet.create({
   tBars: { position: 'absolute', top: 10, left: 12, right: 12, flexDirection: 'row', gap: 5 },
   tBar: { flex: 1, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.65)' },
   tBarOn: { backgroundColor: '#FFFFFF' },
+  tAvatar: { position: 'absolute', top: 24, left: 14, width: 68, height: 68, borderRadius: 34, borderWidth: 3, borderColor: '#FFFFFF', backgroundColor: '#EAF6EF' },
   tVerified: { position: 'absolute', top: 26, right: 14, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: RES.green },
   tShade: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 18, paddingTop: 90, paddingBottom: 18, gap: 8 },
   tName: { fontFamily: fonts.displayExtraBold, fontSize: 34, lineHeight: 38, color: RES.ink, letterSpacing: -0.8 },
@@ -1176,6 +1194,7 @@ const styles = StyleSheet.create({
   tabText: { fontFamily: fonts.bodyBold, fontSize: 14, color: '#0B1F3A' },
   tabTextOn: { color: '#FFFFFF' },
   pPhotoSmall: { width: 96, height: 120, borderRadius: 18, overflow: 'hidden' },
+  pAvatar: { position: 'absolute', top: 6, left: 6, width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: '#FFFFFF' },
   pFactsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: '#F1F5F2' },
   pChipText: { fontFamily: fonts.bodyBold, fontSize: 13, color: '#0B1F3A' },
