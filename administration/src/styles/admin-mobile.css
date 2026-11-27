@@ -240,3 +240,9 @@
   .ap-form{display:flex;flex-direction:column;gap:8px}
   .ap-sheet{max-height:88dvh}
 }
+
+@media (max-width:767px){
+  .ap-sheet.is-full{height:94dvh;max-height:94dvh}
+  .ap-sheet.is-full .cx-panel{border:0;box-shadow:none;padding:0;background:none}
+  .ap-av-img{object-fit:cover;padding:0}
+}

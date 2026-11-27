@@ -80,19 +80,21 @@ export function PhoneSheet({
   title,
   onClose,
   children,
+  full,
 }: {
   open: boolean
   title: string
   onClose: () => void
   children: ReactNode
+  full?: boolean
 }) {
   if (!open) return null
   return (
     <div className="ap-sheet-wrap">
       <button type="button" className="ap-sheet-back" aria-label="Fermer" onClick={onClose} />
-      <div className="ap-sheet" role="dialog" aria-label={title}>
+      <div className={`ap-sheet${full ? ' is-full' : ''}`} role="dialog" aria-label={title || 'Fenêtre'}>
         <div className="ap-sheet-grab" />
-        <p className="ap-sheet-name">{title}</p>
+        {title ? <p className="ap-sheet-name">{title}</p> : null}
         {children}
       </div>
     </div>
