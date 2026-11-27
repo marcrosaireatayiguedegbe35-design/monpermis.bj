@@ -152,7 +152,10 @@ function VideoPlayer({
       <Modal
         visible={full}
         animationType="fade"
-        onRequestClose={() => setFull(false)}
+        onRequestClose={() => {
+          setFull(false)
+          setRotated(false)
+        }}
         supportedOrientations={['portrait', 'landscape']}
         statusBarTranslucent
       >
@@ -187,8 +190,11 @@ function VideoPlayer({
             <Pressable
               style={styles.fsRound}
               onPress={() => {
-                setFull(false)
-                setRotated(false)
+                // Fermeture légèrement différée : le même appui ne doit pas traverser vers le bouton en dessous.
+                setTimeout(() => {
+                  setFull(false)
+                  setRotated(false)
+                }, 250)
               }}
               accessibilityRole="button"
               accessibilityLabel="Fermer le plein écran"
