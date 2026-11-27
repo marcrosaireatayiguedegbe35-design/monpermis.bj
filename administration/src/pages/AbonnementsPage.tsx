@@ -33,6 +33,8 @@ import {
 } from '../api/accessRequests'
 import { fetchUsers, type AppUser } from '../api/users'
 import { PageSection } from '../components/model/PageSection'
+import { PhonePage, PhoneSeg, PhoneSheet } from '../components/phone/PhoneKit'
+import { useIsPhone } from './MobileHome'
 import { nf } from '../components/model/ModelCharts'
 import { getAdminToken, isAuthError } from '../context/AdminAuthContext'
 import { EmptyState, SkeletonBlock } from '../ui'
@@ -150,6 +152,9 @@ export function AbonnementsPage() {
   const [userQuery, setUserQuery] = useState('')
 
   const unsubscribeRef = useRef<(() => void) | null>(null)
+  const isPhone = useIsPhone()
+  const [refundSheetId, setRefundSheetId] = useState<string | null>(null)
+  const [priceSheetKey, setPriceSheetKey] = useState<AccessModuleKey | null>(null)
 
   const setActiveTab = (next: Tab) => {
     setTab(next)
@@ -393,6 +398,198 @@ export function AbonnementsPage() {
     { key: 'refunds', label: `À rembourser${refundPayments.length > 0 ? ` (${refundPayments.length})` : ''}` },
     { key: 'pricing', label: 'Tarifs' },
   ]
+
+  if (isPhone) {
+    const refundSel = refundPayments.find((x) => x.id === refundSheetId) || null
+    const priceSel = pricing.find((x) => x.key === priceSheetKey) || null
+    return (
+      <PhonePage
+        title="Abonnés"
+        action={
+          <button type="button" className="ap-add" onClick={() => setGrantOpen(true)} aria-label="Attribuer un abonnement">
+            <Gift aria-hidden />
+          </button>
+        }
+      >
+        {error ? <p className="cx-note cx-note-err" role="alert">{error}</p> : null}
+        {success ? <p className="cx-note cx-note-ok" role="status">{success}</p> : null}
+        <PhoneSeg
+          value={tab}
+          onChange={setActiveTab}
+          options={[
+            { id: 'subscribers', label: `Abonnés ${activeCount}` },
+            { id: 'payments', label: `Paiements ${payments.length}` },
+            { id: 'refunds', label: `À rembourser ${refundPayments.length}` },
+            { id: 'pricing', label: 'Tarifs' },
+          ]}
+        />
+        {tab === 'subscribers' ? (
+          <div className="ap-selects">
+            <input
+              className="ap-input"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Nom, e-mail, téléphone"
+              aria-label="Rechercher un apprenant"
+            />
+            <select value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value as AccessModuleKey | '')} aria-label="Type d’abonnement">
+              {moduleOptions.map((option) => (
+                <option key={option.value || 'all'} value={option.value}>
+                  {option.value ? option.label : 'Tous'}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+        <div className="ap-list">
+          {tab === 'subscribers'
+            ? subscribers.length === 0
+              ? <p className="ap-empty">{loading ? 'Chargement…' : 'Aucun abonnement.'}</p>
+              : subscribers.map((row) => (
+                  <div key={row.id} className="ap-row ap-row-tall">
+                    <span className="ap-av">{initials(row.learner)}</span>
+                    <span className="ap-row-t">
+                      <b>{learnerName(row.learner)}</b>
+                      <small>{moduleLabel(row.module)} · {row.durationLabel}</small>
+                      <small>{row.remainingLabel}</small>
+                    </span>
+                    <span className={`ap-tag${row.source === 'admin' ? ' is-warn' : ''}`}>{row.source === 'admin' ? 'Attribué' : 'Payé'}</span>
+                  </div>
+                ))
+            : null}
+          {tab === 'payments'
+            ? payments.length === 0
+              ? <p className="ap-empty">{loading ? 'Chargement…' : 'Aucun paiement réussi.'}</p>
+              : payments.map((pay) => (
+                  <div key={pay.id} className="ap-row ap-row-tall">
+                    <span className="ap-av">{initials(pay.learner)}</span>
+                    <span className="ap-row-t">
+                      <b>{learnerName(pay.learner)}</b>
+                      <small>{paymentModules(pay).map(moduleLabel).join(', ') || '—'}</small>
+                      <small>{paymentChannelLabel(pay)} · {formatDateTime(pay.activatedAt || pay.createdAt)}</small>
+                    </span>
+                    <span className="ap-tag">{formatMoney(pay.amount, pay.currency)}</span>
+                  </div>
+                ))
+            : null}
+          {tab === 'refunds'
+            ? refundPayments.length === 0
+              ? <p className="ap-empty">Rien à rembourser.</p>
+              : refundPayments.map((pay) => (
+                  <button key={pay.id} type="button" className="ap-row ap-row-tall" onClick={() => setRefundSheetId(pay.id)}>
+                    <span className="ap-av is-bad">{initials(pay.learner)}</span>
+                    <span className="ap-row-t">
+                      <b>{learnerName(pay.learner)}</b>
+                      <small>{pay.fedapayReference || pay.declaredReference || '—'}</small>
+                      <small>{formatDateTime(pay.activatedAt || pay.createdAt)}</small>
+                    </span>
+                    <span className="ap-tag is-red">{formatMoney(pay.amount, pay.currency)}</span>
+                  </button>
+                ))
+            : null}
+          {tab === 'pricing'
+            ? pricing.length === 0
+              ? <p className="ap-empty">Aucun tarif configuré.</p>
+              : pricing.map((m) => (
+                  <button key={m.key} type="button" className="ap-row" onClick={() => setPriceSheetKey(m.key)}>
+                    <span className="ap-av">{(() => { const Icon = moduleIcons[m.key] || BookOpen; return <Icon size={18} aria-hidden /> })()}</span>
+                    <span className="ap-row-t">
+                      <b>{m.label}</b>
+                      <small>{m.price} FCFA · {unitLabel(m.unit)}</small>
+                    </span>
+                    <span className={`ap-tag${m.active ? '' : ' is-red'}`}>{m.active ? 'Actif' : 'Inactif'}</span>
+                  </button>
+                ))
+            : null}
+        </div>
+
+        <PhoneSheet open={grantOpen} title="Attribuer un abonnement" onClose={() => setGrantOpen(false)}>
+          <form className="ap-form" onSubmit={(e) => void handleGrant(e)}>
+            <input className="ap-input" value={userQuery} onChange={(e) => setUserQuery(e.target.value)} placeholder="Filtrer les apprenants" aria-label="Filtrer les apprenants" />
+            <select className="ap-input" value={grantUserId} onChange={(e) => setGrantUserId(e.target.value)} required aria-label="Apprenant">
+              <option value="">Choisir un apprenant…</option>
+              {filteredUsers.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.firstName} {user.lastName}
+                </option>
+              ))}
+            </select>
+            <select className="ap-input" value={grantModule} onChange={(e) => setGrantModule(e.target.value as AccessModuleKey)} aria-label="Type d’abonnement">
+              {grantModules.map((key) => (
+                <option key={key} value={key}>
+                  {moduleLabel(key)}
+                </option>
+              ))}
+            </select>
+            <input
+              className="ap-input"
+              type="number"
+              min={1}
+              value={grantQuantity}
+              onChange={(e) => setGrantQuantity(e.target.value)}
+              required
+              aria-label={grantModule === 'conduite_heures' ? 'Nombre d’heures' : 'Nombre de mois'}
+              placeholder={grantModule === 'conduite_heures' ? 'Nombre d’heures' : 'Nombre de mois'}
+            />
+            <input className="ap-input" value={grantNote} onChange={(e) => setGrantNote(e.target.value)} placeholder="Motif (optionnel)" aria-label="Motif" />
+            <button type="submit" className="ap-sheet-act is-fill" disabled={granting}>
+              {granting ? 'Attribution…' : 'Confirmer l’attribution'}
+            </button>
+          </form>
+        </PhoneSheet>
+
+        <PhoneSheet
+          open={Boolean(refundSel)}
+          title={refundSel ? `${learnerName(refundSel.learner)} · ${formatMoney(refundSel.amount, refundSel.currency)}` : ''}
+          onClose={() => setRefundSheetId(null)}
+        >
+          {refundSel ? (
+            <form
+              className="ap-form"
+              onSubmit={(e) => {
+                e.preventDefault()
+                void handleResolveRefund(refundSel.id).then(() => setRefundSheetId(null))
+              }}
+            >
+              <div className="ap-count">
+                {paymentChannelLabel(refundSel)} · {refundSel.fedapayReference || refundSel.declaredReference || '—'}
+              </div>
+              <input
+                className="ap-input"
+                value={refundNotes[refundSel.id] ?? ''}
+                onChange={(e) => setRefundNotes((c) => ({ ...c, [refundSel.id]: e.target.value }))}
+                placeholder="Ex. remboursé MTN le 29/07"
+                aria-label="Note de résolution"
+              />
+              <button type="submit" className="ap-sheet-act is-fill" disabled={refundBusy === refundSel.id}>
+                {refundBusy === refundSel.id ? '…' : 'Marquer résolu'}
+              </button>
+            </form>
+          ) : null}
+        </PhoneSheet>
+
+        <PhoneSheet open={Boolean(priceSel)} title={priceSel?.label || ''} onClose={() => setPriceSheetKey(null)}>
+          {priceSel ? (
+            <div className="ap-form">
+              <input
+                className="ap-input"
+                inputMode="numeric"
+                value={pricingDrafts[priceSel.key] ?? ''}
+                onChange={(e) => setPricingDrafts((c) => ({ ...c, [priceSel.key]: e.target.value }))}
+                aria-label={`Prix ${priceSel.label} en FCFA`}
+              />
+              <button type="button" className="ap-sheet-act is-fill" disabled={pricingBusy === priceSel.key} onClick={() => void handlePricingSave(priceSel.key)}>
+                Enregistrer le prix
+              </button>
+              <button type="button" className="ap-sheet-act" disabled={pricingBusy === priceSel.key} onClick={() => void handlePricingToggleActive(priceSel)}>
+                {priceSel.active ? 'Désactiver' : 'Activer'}
+              </button>
+            </div>
+          ) : null}
+        </PhoneSheet>
+      </PhonePage>
+    )
+  }
 
   return (
     <PageSection
