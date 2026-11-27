@@ -20,6 +20,7 @@ import {
   RefreshCw,
   ShieldCheck,
   User,
+  Users,
   Wallet,
   X,
   Moon,
@@ -60,7 +61,7 @@ import {
 import { fetchAccessMe } from '../../api/accessRequests'
 import { Bouncy } from '../../components/Bouncy'
 import { CodeRouteBanner } from '../../components/CodeRouteBanner'
-import { FlowHeader } from '../../components/FlowHeader'
+import { RES, ReserveBackdrop, ReserveButton, ReserveHeader, StepChip } from '../../components/ReserveFrame'
 import { DriveModuleIcon } from '../../components/ModuleIcons'
 import { EmptyState } from '../../components/EmptyState'
 import { FadeUp } from '../../components/FadeUp'
@@ -463,20 +464,24 @@ export function ReservationFlowScreen() {
 
   return (
     <View style={styles.root}>
+      <ReserveBackdrop />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <FlowHeader
+        <ReserveHeader
           title={step === 'slots' ? 'Créneaux disponibles' : 'Nouvelle séance'}
           subtitle={
             step === 'slots'
               ? 'Sélectionnez un créneau pour votre séance'
-              : step === 'moniteur'
-                ? 'Votre formation, notre priorité'
-                : 'Moniteur • Durée • Créneau'
+              : step === 'duration'
+                ? 'Combien de temps et avec qui ?'
+                : 'Votre formation, notre priorité'
           }
-          logo={step === 'moniteur'}
           unread={unreadCount}
           onBack={handleBack}
           onBell={() => navigation.navigate('Notifications')}
+        />
+        <StepChip
+          step={stepOrder + 1}
+          label={`Étape ${stepOrder + 1} sur 3 • ${stepOrder === 0 ? 'Moniteur' : stepOrder === 1 ? 'Durée' : 'Créneau'}`}
         />
 
         <View style={styles.flowBody}>
@@ -490,7 +495,7 @@ export function ReservationFlowScreen() {
                 setPagerHeight(Math.round(e.nativeEvent.layout.height))
               }}
             >
-              {busy ? <ActivityIndicator color={dark.green} style={{ marginVertical: 24 }} /> : null}
+              {busy ? <ActivityIndicator color={RES.green} style={{ marginVertical: 24 }} /> : null}
               {!busy && moniteurs.length === 0 ? (
                 <View style={styles.emptyCard}>
                   <View style={styles.emptyIcon}>
@@ -543,7 +548,7 @@ export function ReservationFlowScreen() {
                                   setMoniteurIndex(position - 1)
                                 }}
                               >
-                                <ChevronLeft size={22} color="#0A1E55" />
+                                <ChevronLeft size={22} color="#0B1F3A" />
                               </Pressable>
                             ) : null}
                             {position < moniteurs.length - 1 ? (
@@ -556,7 +561,7 @@ export function ReservationFlowScreen() {
                                   setMoniteurIndex(position + 1)
                                 }}
                               >
-                                <ChevronRight size={22} color="#0A1E55" />
+                                <ChevronRight size={22} color="#0B1F3A" />
                               </Pressable>
                             ) : null}
                             {moniteurs.length > 1 ? (
@@ -576,17 +581,17 @@ export function ReservationFlowScreen() {
                             </Text>
                           </View>
                           <View style={styles.mTiles}>
-                            <View style={[styles.mTile, { backgroundColor: '#EEF3FB' }]}>
-                              <Car size={26} color="#0A1E55" />
+                            <View style={[styles.mTile, { backgroundColor: '#F1F5F2' }]}>
+                              <Car size={26} color="#0B1F3A" />
                               <View style={{ flexShrink: 1 }}>
                                 <Text style={styles.mTileValue} numberOfLines={1}>{moniteur.vehicleBrand || 'Véhicule'}</Text>
                                 <Text style={styles.mTileLabel}>Véhicule</Text>
                               </View>
                             </View>
                             <View style={[styles.mTile, { backgroundColor: '#EAF8EF' }]}>
-                              <Wallet size={26} color={dark.green} />
+                              <Wallet size={26} color={RES.green} />
                               <View style={{ flexShrink: 1 }}>
-                                <Text style={[styles.mTileValue, { color: dark.green }]} numberOfLines={1}>
+                                <Text style={[styles.mTileValue, { color: RES.green }]} numberOfLines={1}>
                                   5 000 F / h
                                 </Text>
                                 <Text style={styles.mTileLabel} numberOfLines={1}>
@@ -606,7 +611,7 @@ export function ReservationFlowScreen() {
 
           {step === 'profile' && profile ? (
             <View style={{ flex: 1, gap: 12 }}>
-              {busy ? <ActivityIndicator color={dark.green} /> : null}
+              {busy ? <ActivityIndicator color={RES.green} /> : null}
               <View style={styles.pCard}>
                 <View style={styles.pHead}>
                   {profile.photoUrl ? (
@@ -626,7 +631,7 @@ export function ReservationFlowScreen() {
                       <Text style={styles.pLast} numberOfLines={1}>{splitFullName(profile.fullName).last}</Text>
                     ) : null}
                     <View style={styles.pVerified}>
-                      <ShieldCheck size={16} color={dark.green} />
+                      <ShieldCheck size={16} color={RES.green} />
                       <Text style={styles.pVerifiedText}>Profil vérifié</Text>
                     </View>
                   </View>
@@ -648,29 +653,7 @@ export function ReservationFlowScreen() {
                 ))}
               </View>
 
-              <View style={styles.hoursRow}>
-                {([
-                  { id: 'solo', label: 'Solo', price: 5000, note: 'Créneau pour vous seul' },
-                  { id: 'group', label: 'En groupe', price: groupPriceFcfa, note: `Jusqu’à 7 élèves` },
-                ] as const).map((opt) => {
-                  const active = bookingMode === opt.id
-                  return (
-                    <Bouncy key={opt.id} scaleTo={0.97} style={{ flex: 1 }} onPress={() => setBookingMode(opt.id)}>
-                      <View
-                        style={[styles.hoursPill, { height: 72 }, active && styles.hoursPillOn]}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: active }}
-                        accessibilityLabel={`Mode ${opt.label}`}
-                      >
-                        <Text style={[styles.hoursPillText, { fontSize: 16 }, active && styles.hoursPillTextOn]}>
-                          {opt.label} · {opt.price.toLocaleString('fr-FR')} F/h
-                        </Text>
-                        <Text style={[styles.dSub, active && { color: '#FFFFFF' }]}>{opt.note}</Text>
-                      </View>
-                    </Bouncy>
-                  )
-                })}
-              </View>
+              <ModeCards mode={bookingMode} soloPrice={5000} groupPrice={groupPriceFcfa} onChange={setBookingMode} />
 
               <View style={[styles.pCard, { flex: 1 }]}>
                 {profileTab === 'about' ? (
@@ -681,19 +664,19 @@ export function ReservationFlowScreen() {
                     <MeetingPointCard url={profile.meetingPointUrl} note={profile.meetingPointNote} />
                     <View style={styles.pFactsRow}>
                       <View style={styles.pChip}>
-                        <MapPin size={15} color="#0A1E55" />
+                        <MapPin size={15} color="#0B1F3A" />
                         <Text style={styles.pChipText}>{profile.city || 'Ville non renseignée'}</Text>
                       </View>
                       <View style={styles.pChip}>
-                        <Car size={15} color="#0A1E55" />
+                        <Car size={15} color="#0B1F3A" />
                         <Text style={styles.pChipText}>{profile.vehicleBrand || 'Véhicule'}</Text>
                       </View>
                       <View style={styles.pChip}>
-                        <Wallet size={15} color="#0A1E55" />
+                        <Wallet size={15} color="#0B1F3A" />
                         <Text style={styles.pChipText}>Solo 5 000 F / h</Text>
                       </View>
                       <View style={styles.pChip}>
-                        <Wallet size={15} color="#0A1E55" />
+                        <Wallet size={15} color="#0B1F3A" />
                         <Text style={styles.pChipText}>Groupe {groupPriceFcfa.toLocaleString('fr-FR')} F / h</Text>
                       </View>
                     </View>
@@ -747,27 +730,7 @@ export function ReservationFlowScreen() {
                   </View>
                 </View>
 
-                <View style={styles.hoursRow}>
-                  {([
-                    { id: 'solo', label: 'Solo', price: hourlyPriceFcfa },
-                    { id: 'group', label: 'En groupe', price: groupPriceFcfa },
-                  ] as const).map((opt) => {
-                    const active = bookingMode === opt.id
-                    return (
-                      <Bouncy key={opt.id} scaleTo={0.97} style={{ flex: 1 }} onPress={() => setBookingMode(opt.id)}>
-                        <View
-                          style={[styles.hoursPill, active && styles.hoursPillOn]}
-                          accessibilityRole="button"
-                          accessibilityState={{ selected: active }}
-                          accessibilityLabel={`Mode ${opt.label}`}
-                        >
-                          <Text style={[styles.hoursPillText, active && styles.hoursPillTextOn]}>{opt.label}</Text>
-                          <Text style={[styles.dSub, active && { color: '#FFFFFF' }]}>{opt.price.toLocaleString('fr-FR')} F/h</Text>
-                        </View>
-                      </Bouncy>
-                    )
-                  })}
-                </View>
+                <ModeCards mode={bookingMode} soloPrice={5000} groupPrice={groupPriceFcfa} onChange={setBookingMode} />
                 <Text style={styles.recapHint}>
                   {isGroup
                     ? 'En groupe : vous partagez la séance avec d’autres élèves. Paiement Mobile Money.'
@@ -807,7 +770,7 @@ export function ReservationFlowScreen() {
                   </View>
                   <View style={styles.recapRow}>
                     <Text style={styles.recapLabel}>Remise</Text>
-                    <Text style={[styles.recapValue, discount > 0 && { color: dark.green }]}>
+                    <Text style={[styles.recapValue, discount > 0 && { color: RES.green }]}>
                       {discount > 0 ? `− ${discount.toLocaleString('fr-FR')} FCFA` : '—'}
                     </Text>
                   </View>
@@ -827,7 +790,7 @@ export function ReservationFlowScreen() {
 
           {step === 'slots' ? (
             <View style={{ flex: 1, gap: 12 }}>
-              {busy ? <ActivityIndicator color={dark.green} style={{ marginVertical: 12 }} /> : null}
+              {busy ? <ActivityIndicator color={RES.green} style={{ marginVertical: 12 }} /> : null}
 
               {daysWithSlots.length === 0 && !busy ? (
                 <EmptyState
@@ -855,7 +818,7 @@ export function ReservationFlowScreen() {
                     </Text>
                     <Pressable style={styles.sEdit} onPress={() => setStep('duration')} accessibilityLabel="Modifier la durée" hitSlop={8}>
                       <Text style={styles.sEditText}>Modifier</Text>
-                      <Pencil size={15} color={dark.green} />
+                      <Pencil size={15} color={RES.green} />
                     </Pressable>
                   </View>
 
@@ -914,7 +877,7 @@ export function ReservationFlowScreen() {
                             accessibilityLabel={`${slot.start} à ${slot.end}`}
                           >
                             <Text style={styles.slotRowTime}>{slot.start} → {slot.end}</Text>
-                            <Text style={[styles.slotRowPeriod, active && { color: dark.green }]}>
+                            <Text style={[styles.slotRowPeriod, active && { color: RES.green }]}>
                               {slot.seatsTaken ? `Groupe ouvert · ${slot.seatsTaken}/${slot.seatsTotal} places` : period}
                             </Text>
                             {active ? (
@@ -935,9 +898,17 @@ export function ReservationFlowScreen() {
 
         {(step === 'moniteur' && moniteurs.length > 0) || (step === 'profile' && profile) || step === 'duration' || (step === 'slots' && daysWithSlots.length > 0) ? (
           <View style={styles.bottomBar}>
-            <Bouncy
-              scaleTo={0.98}
+            <ReserveButton
               disabled={busy || (step === 'slots' && !(selectedStart && selectedEnd))}
+              label={
+                step === 'moniteur'
+                  ? 'Sélectionner ce moniteur'
+                  : step === 'slots'
+                    ? busy
+                      ? 'Un instant…'
+                      : 'Confirmer le créneau'
+                    : 'Continuer'
+              }
               onPress={() => {
                 if (step === 'moniteur') {
                   const chosen = moniteurs[Math.min(moniteurIndex, moniteurs.length - 1)]
@@ -946,22 +917,7 @@ export function ReservationFlowScreen() {
                 else if (step === 'duration') setStep('slots')
                 else void onContinue()
               }}
-            >
-              <View style={[styles.bigBtn, (busy || (step === 'slots' && !(selectedStart && selectedEnd))) && styles.disabled]}>
-                <Text style={styles.bigBtnText}>
-                  {step === 'moniteur'
-                    ? 'Sélectionner ce moniteur'
-                    : step === 'slots'
-                      ? busy
-                        ? 'Un instant…'
-                        : 'Confirmer le créneau'
-                      : 'Continuer'}
-                </Text>
-                <View style={styles.bigBtnArrow}>
-                  <ChevronRight size={20} color={dark.green} />
-                </View>
-              </View>
-            </Bouncy>
+            />
           </View>
         ) : null}
 
@@ -1017,137 +973,193 @@ export function ReservationFlowScreen() {
   )
 }
 
+/** Choix du mode de séance : deux grandes cartes Solo / En groupe avec leur tarif horaire. */
+function ModeCards({
+  mode,
+  soloPrice,
+  groupPrice,
+  onChange,
+}: {
+  mode: 'solo' | 'group'
+  soloPrice: number
+  groupPrice: number
+  onChange: (mode: 'solo' | 'group') => void
+}) {
+  const items = [
+    { id: 'solo' as const, label: 'Solo', price: soloPrice, note: 'Créneau pour vous seul', Icon: User },
+    { id: 'group' as const, label: 'En groupe', price: groupPrice, note: 'Partagé, jusqu’à 7 élèves', Icon: Users },
+  ]
+  return (
+    <View style={styles.modeRow}>
+      {items.map(({ id, label, price, note, Icon }) => {
+        const active = mode === id
+        return (
+          <Bouncy key={id} scaleTo={0.97} style={{ flex: 1 }} onPress={() => onChange(id)}>
+            <View
+              style={[styles.modeCard, active && styles.modeCardOn]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={`Mode ${label}`}
+            >
+              <View style={[styles.modeIcon, active && styles.modeIconOn]}>
+                <Icon size={22} color={active ? '#FFFFFF' : RES.green} />
+              </View>
+              <Text style={styles.modeLabel}>{label}</Text>
+              <Text style={[styles.modePrice, active && { color: RES.green }]}>{price.toLocaleString('fr-FR')} F / h</Text>
+              <Text style={styles.modeNote} numberOfLines={2}>{note}</Text>
+              {active ? (
+                <View style={styles.modeCheck}>
+                  <Check size={13} color="#FFFFFF" strokeWidth={3.2} />
+                </View>
+              ) : null}
+            </View>
+          </Bouncy>
+        )
+      })}
+    </View>
+  )
+}
+
 const styles = StyleSheet.create({
+  modeRow: { flexDirection: 'row', gap: 12 },
+  modeCard: { padding: 14, gap: 4, borderRadius: 26, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: RES.line, ...shadows.sm },
+  modeCardOn: { borderColor: RES.green, backgroundColor: '#F5FBF7' },
+  modeIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: RES.soft, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  modeIconOn: { backgroundColor: RES.green },
+  modeLabel: { fontFamily: fonts.displayExtraBold, fontSize: 18, color: RES.ink },
+  modePrice: { fontFamily: fonts.displayBold, fontSize: 16, color: RES.muted },
+  modeNote: { fontFamily: fonts.bodyMedium, fontSize: 12.5, lineHeight: 17, color: RES.muted },
+  modeCheck: { position: 'absolute', top: 10, right: 10, width: 22, height: 22, borderRadius: 11, backgroundColor: RES.green, alignItems: 'center', justifyContent: 'center' },
   hoursRow: { flexDirection: 'row', gap: 8 },
-  hoursPill: { height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: 'rgba(0,16,48,0.08)' },
-  hoursPillOn: { backgroundColor: dark.green, borderColor: dark.green },
-  hoursPillText: { fontFamily: fonts.displayBold, fontSize: 18, color: '#0A1E55' },
+  hoursPill: { height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#DFE6E1' },
+  hoursPillOn: { backgroundColor: RES.green, borderColor: RES.green },
+  hoursPillText: { fontFamily: fonts.displayBold, fontSize: 18, color: '#0B1F3A' },
   hoursPillTextOn: { color: '#FFFFFF' },
-  recap: { flex: 1, justifyContent: 'center', gap: 14, padding: 20, borderRadius: 28, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', ...shadows.md },
+  recap: { flex: 1, justifyContent: 'center', gap: 14, padding: 22, borderRadius: 32, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', ...shadows.md },
   recapRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   recapLabel: { fontFamily: fonts.bodyMedium, fontSize: 15.5, color: '#5B6B86' },
-  recapValue: { fontFamily: fonts.displayBold, fontSize: 16.5, color: '#0A1E55' },
+  recapValue: { fontFamily: fonts.displayBold, fontSize: 16.5, color: '#0B1F3A' },
   recapTotalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(0,16,48,0.08)' },
-  recapTotalLabel: { fontFamily: fonts.displayBold, fontSize: 20, color: '#0A1E55' },
-  recapTotal: { fontFamily: fonts.displayExtraBold, fontSize: 26, color: dark.green },
+  recapTotalLabel: { fontFamily: fonts.displayBold, fontSize: 20, color: '#0B1F3A' },
+  recapTotal: { fontFamily: fonts.displayExtraBold, fontSize: 26, color: RES.green },
   recapHint: { fontFamily: fonts.bodyMedium, fontSize: 13, color: '#5B6B86', textAlign: 'center' },
   sSummary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4 },
-  sSummaryText: { fontFamily: fonts.displayBold, fontSize: 17, color: '#0A1E55' },
+  sSummaryText: { fontFamily: fonts.displayBold, fontSize: 17, color: '#0B1F3A' },
   weekRow: { gap: 8, paddingVertical: 2 },
-  weekDay: { width: 62, height: 72, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.06)', ...shadows.sm },
-  weekDayOn: { backgroundColor: dark.green, borderColor: dark.green },
+  weekDay: { width: 64, height: 76, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.06)', ...shadows.sm },
+  weekDayOn: { backgroundColor: RES.green, borderColor: RES.green },
   weekDayName: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: '#5B6B86', textTransform: 'capitalize' },
-  weekDayNum: { fontFamily: fonts.displayExtraBold, fontSize: 22, color: '#0A1E55' },
+  weekDayNum: { fontFamily: fonts.displayExtraBold, fontSize: 22, color: '#0B1F3A' },
   weekDayMonth: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: '#5B6B86' },
   weekDayTextOn: { color: '#FFFFFF' },
-  slotRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 18, paddingVertical: 16, borderRadius: 22, backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: 'rgba(0,16,48,0.06)', ...shadows.sm },
-  slotRowOn: { backgroundColor: '#EAF8EF', borderColor: dark.green },
-  slotRowTime: { flex: 1, fontFamily: fonts.displayBold, fontSize: 19, color: '#0A1E55' },
+  slotRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 18, paddingVertical: 16, borderRadius: 26, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#DFE6E1', ...shadows.sm },
+  slotRowOn: { backgroundColor: '#EAF8EF', borderColor: RES.green },
+  slotRowTime: { flex: 1, fontFamily: fonts.displayBold, fontSize: 19, color: '#0B1F3A' },
   slotRowPeriod: { fontFamily: fonts.bodyMedium, fontSize: 14, color: '#5B6B86' },
-  slotRowCheck: { width: 26, height: 26, borderRadius: 13, backgroundColor: dark.green, alignItems: 'center', justifyContent: 'center' },
+  slotRowCheck: { width: 26, height: 26, borderRadius: 13, backgroundColor: RES.green, alignItems: 'center', justifyContent: 'center' },
   heroWrap: { height: 190, marginBottom: 12, borderRadius: 24, overflow: 'hidden', justifyContent: 'center' },
   heroCar: { position: 'absolute', right: 0, top: 0, bottom: 0, width: '62%', height: '100%' },
   heroCopy: { paddingLeft: 4, maxWidth: '62%' },
-  heroTitle: { fontFamily: fonts.displayExtraBold, fontSize: 34, lineHeight: 38, color: '#0A1E55', letterSpacing: -0.8 },
-  heroTitleAccent: { fontFamily: fonts.displayExtraBold, fontSize: 34, lineHeight: 38, color: dark.green, fontStyle: 'italic', letterSpacing: -0.8 },
-  heroUnderline: { width: 120, height: 4, borderRadius: 2, backgroundColor: dark.green, marginTop: 2, marginBottom: 10 },
+  heroTitle: { fontFamily: fonts.displayExtraBold, fontSize: 34, lineHeight: 38, color: '#0B1F3A', letterSpacing: -0.8 },
+  heroTitleAccent: { fontFamily: fonts.displayExtraBold, fontSize: 34, lineHeight: 38, color: RES.green, fontStyle: 'italic', letterSpacing: -0.8 },
+  heroUnderline: { width: 120, height: 4, borderRadius: 2, backgroundColor: RES.green, marginTop: 2, marginBottom: 10 },
   heroText: { fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 20, color: '#33466B' },
 
-  mCard: { flex: 1, padding: 12, borderRadius: 30, backgroundColor: '#FFFFFF', gap: 10, borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', ...shadows.md },
-  mPhotoWrap: { flex: 1, minHeight: 120, borderRadius: 24, overflow: 'hidden', backgroundColor: '#0B3A9E' },
+  mCard: { flex: 1, padding: 12, borderRadius: 34, backgroundColor: '#FFFFFF', gap: 10, borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', ...shadows.md },
+  mPhotoWrap: { flex: 1, minHeight: 120, borderRadius: 24, overflow: 'hidden', backgroundColor: '#EAF6EF' },
   mPhoto: { width: '100%', height: '100%' },
-  mNoPhoto: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B3A9E' },
-  mInitial: { fontFamily: fonts.displayBold, fontSize: 96, color: 'rgba(255,255,255,0.28)' },
-  mVerified: { position: 'absolute', top: 14, right: 14, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: dark.green },
+  mNoPhoto: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#EAF6EF' },
+  mInitial: { fontFamily: fonts.displayBold, fontSize: 96, color: 'rgba(11,127,71,0.35)' },
+  mVerified: { position: 'absolute', top: 14, right: 14, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: RES.green },
   mVerifiedText: { fontFamily: fonts.bodyBold, fontSize: 13, color: '#FFFFFF' },
   mArrow: { position: 'absolute', top: '45%', width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center', ...shadows.sm },
   mDots: { position: 'absolute', right: 16, bottom: 14, flexDirection: 'row', gap: 6 },
   mDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.55)' },
   mDotOn: { backgroundColor: '#FFFFFF' },
-  mName: { fontFamily: fonts.displayBold, fontSize: 24, color: '#0A1E55', letterSpacing: -0.4, paddingHorizontal: 4 },
+  mName: { fontFamily: fonts.displayBold, fontSize: 24, color: '#0B1F3A', letterSpacing: -0.4, paddingHorizontal: 4 },
   mRole: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 4, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(0,16,48,0.06)' },
-  mRoleText: { fontFamily: fonts.bodyMedium, fontSize: 15, color: '#0A1E55' },
+  mRoleText: { fontFamily: fonts.bodyMedium, fontSize: 15, color: '#0B1F3A' },
   mTiles: { flexDirection: 'row', gap: 10 },
   mTile: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 12, borderRadius: 20 },
-  mTileValue: { fontFamily: fonts.displayBold, fontSize: 17, color: '#0A1E55' },
+  mTileValue: { fontFamily: fonts.displayBold, fontSize: 17, color: '#0B1F3A' },
   mTileLabel: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: '#5B6B86' },
   mTrust: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 12, paddingHorizontal: 4, borderRadius: 20, backgroundColor: '#F4F7FC' },
   mTrustItem: { flex: 1, alignItems: 'center', gap: 6, paddingHorizontal: 4 },
-  mTrustText: { fontFamily: fonts.bodyMedium, fontSize: 12, lineHeight: 15, textAlign: 'center', color: '#0A1E55' },
+  mTrustText: { fontFamily: fonts.bodyMedium, fontSize: 12, lineHeight: 15, textAlign: 'center', color: '#0B1F3A' },
   mTrustDivider: { width: 1, alignSelf: 'stretch', backgroundColor: 'rgba(0,16,48,0.08)' },
-  mBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 58, borderRadius: 999, backgroundColor: dark.green },
+  mBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 58, borderRadius: 999, backgroundColor: RES.green },
   mBtnText: { fontFamily: fonts.displayBold, fontSize: 17, color: '#FFFFFF' },
   mFootPill: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, paddingHorizontal: 18, paddingVertical: 11, borderRadius: 999, backgroundColor: '#EAF0F8' },
-  mFootText: { fontFamily: fonts.bodyMedium, fontSize: 13, color: '#0A1E55' },
+  mFootText: { fontFamily: fonts.bodyMedium, fontSize: 13, color: '#0B1F3A' },
 
   pCard: { padding: 14, borderRadius: 26, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', ...shadows.md },
   pHead: { flexDirection: 'row', gap: 14 },
   pPhoto: { width: 136, height: 196, borderRadius: 20, overflow: 'hidden' },
   pHeadCopy: { flex: 1, minWidth: 0 },
-  pFirst: { fontFamily: fonts.displayExtraBold, fontSize: 24, lineHeight: 28, color: '#0A1E55', letterSpacing: -0.4 },
+  pFirst: { fontFamily: fonts.displayExtraBold, fontSize: 24, lineHeight: 28, color: '#0B1F3A', letterSpacing: -0.4 },
   pLast: { fontFamily: fonts.displayBold, fontSize: 17, color: '#5B6B86', marginBottom: 8 },
   pVerified: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: '#E7F7EC', marginBottom: 10 },
-  pVerifiedText: { fontFamily: fonts.bodyBold, fontSize: 13, color: dark.green },
+  pVerifiedText: { fontFamily: fonts.bodyBold, fontSize: 13, color: RES.green },
   pFacts: { gap: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(0,16,48,0.06)' },
   pFact: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pFactLabel: { fontFamily: fonts.body, fontSize: 11.5, color: '#5B6B86' },
-  pFactValue: { fontFamily: fonts.bodyBold, fontSize: 13.5, color: '#0A1E55' },
+  pFactValue: { fontFamily: fonts.bodyBold, fontSize: 13.5, color: '#0B1F3A' },
   pSectionHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   pSectionHeadRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  pSectionTitle: { fontFamily: fonts.displayBold, fontSize: 19, color: '#0A1E55' },
+  pSectionTitle: { fontFamily: fonts.displayBold, fontSize: 19, color: '#0B1F3A' },
   pBio: { fontFamily: fonts.body, fontSize: 15, lineHeight: 23, color: '#1F2F4D' },
   pMore: { alignSelf: 'flex-start', marginTop: 10, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, backgroundColor: '#E7F7EC' },
-  pMoreText: { fontFamily: fonts.bodyBold, fontSize: 14, color: dark.green },
-  pLink: { fontFamily: fonts.bodyBold, fontSize: 14, color: dark.green },
+  pMoreText: { fontFamily: fonts.bodyBold, fontSize: 14, color: RES.green },
+  pLink: { fontFamily: fonts.bodyBold, fontSize: 14, color: RES.green },
   pGallery: { gap: 8 },
   pGalleryPhoto: { width: 118, height: 108, borderRadius: 16, backgroundColor: '#E8EEF6' },
 
   dCard: { padding: 16, borderRadius: 28, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', gap: 12, ...shadows.md },
   dHead: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 },
-  dHeadIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: dark.green, alignItems: 'center', justifyContent: 'center' },
-  dTitle: { fontFamily: fonts.displayBold, fontSize: 22, color: '#0A1E55', letterSpacing: -0.3 },
+  dHeadIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: RES.green, alignItems: 'center', justifyContent: 'center' },
+  dTitle: { fontFamily: fonts.displayBold, fontSize: 22, color: '#0B1F3A', letterSpacing: -0.3 },
   dSub: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: '#5B6B86', marginTop: 2 },
   dRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 14, paddingVertical: 14, borderRadius: 22, backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: 'rgba(0,16,48,0.06)', ...shadows.sm },
-  dRowActive: { backgroundColor: '#EAF8EF', borderColor: dark.green },
+  dRowActive: { backgroundColor: '#EAF8EF', borderColor: RES.green },
   dRowIcon: { width: 62, height: 62, borderRadius: 31, backgroundColor: '#E9EFFA', alignItems: 'center', justifyContent: 'center' },
   dRowIconActive: { backgroundColor: '#D3F2DE' },
-  dHours: { fontFamily: fonts.displayExtraBold, fontSize: 26, color: '#0A1E55' },
+  dHours: { fontFamily: fonts.displayExtraBold, fontSize: 26, color: '#0B1F3A' },
   dPrice: { fontFamily: fonts.bodyMedium, fontSize: 16, color: '#0B3A8C' },
-  dCheck: { position: 'absolute', top: -4, right: -2, width: 30, height: 30, borderRadius: 15, backgroundColor: dark.green, alignItems: 'center', justifyContent: 'center' },
+  dCheck: { position: 'absolute', top: -4, right: -2, width: 30, height: 30, borderRadius: 15, backgroundColor: RES.green, alignItems: 'center', justifyContent: 'center' },
 
   sDateCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 26, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', ...shadows.md },
   sDateIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#E7F7EC', alignItems: 'center', justifyContent: 'center' },
-  sDateTitle: { fontFamily: fonts.displayBold, fontSize: 21, color: '#0A1E55' },
+  sDateTitle: { fontFamily: fonts.displayBold, fontSize: 21, color: '#0B1F3A' },
   sDateSub: { fontFamily: fonts.bodyMedium, fontSize: 15, color: '#5B6B86', marginTop: 2 },
   sEdit: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  sEditText: { fontFamily: fonts.bodyBold, fontSize: 15, color: dark.green },
+  sEditText: { fontFamily: fonts.bodyBold, fontSize: 15, color: RES.green },
   sNote: { fontFamily: fonts.bodyMedium, fontSize: 13.5, color: '#5B6B86', paddingHorizontal: 4 },
   sGroupHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  sGroupTitle: { fontFamily: fonts.displayBold, fontSize: 20, color: '#0A1E55' },
+  sGroupTitle: { fontFamily: fonts.displayBold, fontSize: 20, color: '#0B1F3A' },
   sGroupLine: { flex: 1, height: 1, backgroundColor: 'rgba(0,16,48,0.1)' },
   sGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -5 },
   sCell: { width: '25%', padding: 5 },
   sPill: { height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', ...shadows.sm },
-  sPillActive: { backgroundColor: dark.green, borderColor: dark.green },
-  sPillText: { fontFamily: fonts.displayBold, fontSize: 16, color: '#0A1E55' },
+  sPillActive: { backgroundColor: RES.green, borderColor: RES.green },
+  sPillText: { fontFamily: fonts.displayBold, fontSize: 16, color: '#0B1F3A' },
   sPillTextActive: { color: '#FFFFFF' },
   sPillCheck: { marginLeft: 8, width: 26, height: 26, borderRadius: 13, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
 
   flowBody: { flex: 1, paddingHorizontal: 18, paddingTop: 4, paddingBottom: 6 },
   bottomBar: { paddingHorizontal: 18, paddingTop: 6, paddingBottom: 16 },
   tabsRow: { flexDirection: 'row', gap: 8 },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11, borderRadius: 999, backgroundColor: '#E8EEF6' },
-  tabOn: { backgroundColor: '#0A1E55' },
-  tabText: { fontFamily: fonts.bodyBold, fontSize: 14, color: '#0A1E55' },
+  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 999, backgroundColor: '#F1F5F2' },
+  tabOn: { backgroundColor: '#0B7F47' },
+  tabText: { fontFamily: fonts.bodyBold, fontSize: 14, color: '#0B1F3A' },
   tabTextOn: { color: '#FFFFFF' },
   pPhotoSmall: { width: 96, height: 120, borderRadius: 18, overflow: 'hidden' },
   pFactsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  pChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: '#EEF3FB' },
-  pChipText: { fontFamily: fonts.bodyBold, fontSize: 13, color: '#0A1E55' },
+  pChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: '#F1F5F2' },
+  pChipText: { fontFamily: fonts.bodyBold, fontSize: 13, color: '#0B1F3A' },
   pGalleryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pGalleryCell: { width: '48.5%', height: 110, borderRadius: 16, backgroundColor: '#E8EEF6' },
   dTile: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4, borderRadius: 26, backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: 'rgba(0,16,48,0.06)', ...shadows.md },
-  bigBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, height: 58, borderRadius: 29, backgroundColor: dark.green, ...shadows.md },
+  bigBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, height: 58, borderRadius: 29, backgroundColor: RES.green, ...shadows.md },
   bigBtnText: { fontFamily: fonts.displayBold, fontSize: 20, color: '#FFFFFF' },
   bigBtnArrow: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
 
@@ -1158,7 +1170,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     borderRadius: 30,
     overflow: 'hidden',
-    backgroundColor: '#0A1E55',
+    backgroundColor: '#0B1F3A',
   },
   pickPhoto: { position: 'absolute', top: 0, left: 0 },
   pickNoPhoto: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B3A9E' },
@@ -1173,7 +1185,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: dark.green,
+    backgroundColor: RES.green,
   },
   pickVerifiedText: { fontFamily: fonts.bodyBold, fontSize: 12, color: '#FFFFFF' },
   pickInfo: { padding: 22, gap: 4 },
@@ -1203,12 +1215,12 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 16,
     borderRadius: 999,
-    backgroundColor: dark.green,
+    backgroundColor: RES.green,
   },
   pickBtnText: { fontFamily: fonts.bodyBold, fontSize: 16, color: '#FFFFFF' },
   root: {
     flex: 1,
-    backgroundColor: '#F8FBFC',
+    backgroundColor: '#FFFFFF',
   },
   safe: {
     flex: 1,
@@ -1331,13 +1343,13 @@ const styles = StyleSheet.create({
   stickyPrice: {
     fontFamily: fonts.displayBold,
     fontSize: 17,
-    color: dark.green,
+    color: RES.green,
     marginTop: 2,
   },
   stickyBtn: {
     minHeight: 56,
     borderRadius: 18,
-    backgroundColor: dark.green,
+    backgroundColor: RES.green,
     paddingHorizontal: 16,
     paddingVertical: 12,
     minWidth: 128,
@@ -1400,7 +1412,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   stepConnectorActive: {
-    backgroundColor: dark.green,
+    backgroundColor: RES.green,
   },
   stepConnectorSpacer: {
     flex: 1,
@@ -1416,12 +1428,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stepDotDone: {
-    borderColor: dark.green,
-    backgroundColor: dark.green,
+    borderColor: RES.green,
+    backgroundColor: RES.green,
   },
   stepDotCurrent: {
     backgroundColor: '#FFFFFF',
-    borderColor: dark.green,
+    borderColor: RES.green,
     borderWidth: 2,
   },
   stepDotText: {
@@ -1430,7 +1442,7 @@ const styles = StyleSheet.create({
     color: dark.textMuted,
   },
   stepDotTextCurrent: {
-    color: dark.green,
+    color: RES.green,
   },
   stepDotTextActive: {
     color: '#FFFFFF',
@@ -1441,7 +1453,7 @@ const styles = StyleSheet.create({
     color: dark.textMuted,
   },
   stepPillTextActive: {
-    color: dark.green,
+    color: RES.green,
   },
   introTitle: {
     fontFamily: fonts.displayExtraBold,
@@ -1514,7 +1526,7 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     backgroundColor: dark.surfaceRaised,
     borderWidth: 3,
-    borderColor: dark.green,
+    borderColor: RES.green,
   },
   avatarBadge: {
     position: 'absolute',
@@ -1523,7 +1535,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: dark.green,
+    backgroundColor: RES.green,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -1553,7 +1565,7 @@ const styles = StyleSheet.create({
   typeText: {
     marginTop: 2,
     fontSize: 12,
-    color: dark.green,
+    color: RES.green,
     fontFamily: fonts.displayBold,
   },
   typePill: {
@@ -1570,7 +1582,7 @@ const styles = StyleSheet.create({
   typePillText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 12,
-    color: dark.green,
+    color: RES.green,
     textTransform: 'capitalize',
   },
   statsRow: {
@@ -1666,7 +1678,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 5,
     borderRadius: 999,
-    backgroundColor: dark.green,
+    backgroundColor: RES.green,
     marginTop: -8,
     marginBottom: 20,
   },
@@ -1686,7 +1698,7 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     backgroundColor: dark.surfaceRaised,
     borderWidth: 3,
-    borderColor: dark.green,
+    borderColor: RES.green,
   },
   profileHeroCopy: {
     flex: 1,
@@ -1704,7 +1716,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: dark.green,
+    backgroundColor: RES.green,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -1754,7 +1766,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,16,48,0.15)',
   },
   dotActive: {
-    backgroundColor: dark.green,
+    backgroundColor: RES.green,
     width: 16,
   },
   vehicleBrand: {
@@ -1804,7 +1816,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   videoPlayIcon: {
-    backgroundColor: dark.green,
+    backgroundColor: RES.green,
   },
   infoRowCopy: {
     flex: 1,
@@ -1826,7 +1838,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontFamily: fonts.bodyBold,
     fontSize: 13,
-    color: dark.green,
+    color: RES.green,
   },
   galleryRow: {
     gap: 8,
@@ -1851,7 +1863,7 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     backgroundColor: dark.surfaceRaised,
     borderWidth: 2,
-    borderColor: dark.green,
+    borderColor: RES.green,
   },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
   bioBox: { marginTop: 4 },
@@ -1864,7 +1876,7 @@ const styles = StyleSheet.create({
   specialtyChip: {
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: dark.green,
+    borderColor: RES.green,
     backgroundColor: dark.greenSoft,
     paddingHorizontal: 12,
     paddingVertical: 7,
@@ -1907,7 +1919,7 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     backgroundColor: '#FFFFFF',
     borderWidth: 3,
-    borderColor: dark.green,
+    borderColor: RES.green,
   },
   durationMoniteurCopy: {
     flex: 1,
@@ -1915,7 +1927,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   vehicleTypeAccent: {
-    color: dark.green,
+    color: RES.green,
     fontFamily: fonts.bodyBold,
   },
   durationGrid: {
@@ -1944,7 +1956,7 @@ const styles = StyleSheet.create({
     ...shadows.sm,
   },
   durationCardActive: {
-    borderColor: dark.green,
+    borderColor: RES.green,
     backgroundColor: brand.greenPale,
   },
   durationCardHours: {
@@ -1968,7 +1980,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 999,
-    backgroundColor: dark.green,
+    backgroundColor: RES.green,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2015,7 +2027,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 999,
-    backgroundColor: dark.green,
+    backgroundColor: RES.green,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -2039,7 +2051,7 @@ const styles = StyleSheet.create({
   primaryBtn: {
     marginTop: 12,
     minHeight: 56,
-    backgroundColor: dark.green,
+    backgroundColor: RES.green,
     borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 18,
@@ -2098,7 +2110,7 @@ const styles = StyleSheet.create({
     borderRadius: 42,
     backgroundColor: '#FFFFFF',
     borderWidth: 3,
-    borderColor: dark.green,
+    borderColor: RES.green,
   },
   slotsRecapCopy: {
     flex: 1,
@@ -2144,7 +2156,7 @@ const styles = StyleSheet.create({
   slotsEditText: {
     fontFamily: fonts.bodyBold,
     fontSize: 12,
-    color: dark.green,
+    color: RES.green,
   },
   dayChipsRow: {
     gap: 10,
@@ -2165,7 +2177,7 @@ const styles = StyleSheet.create({
     ...shadows.sm,
   },
   dayChipActive: {
-    borderColor: dark.green,
+    borderColor: RES.green,
     backgroundColor: brand.greenPale,
   },
   dayChipWeekday: {
@@ -2194,7 +2206,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 999,
-    backgroundColor: dark.green,
+    backgroundColor: RES.green,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2247,7 +2259,7 @@ const styles = StyleSheet.create({
     minHeight: 52,
     borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: dark.green,
+    borderColor: RES.green,
     backgroundColor: '#FFFFFF',
     paddingVertical: 12,
     paddingHorizontal: 12,
@@ -2257,12 +2269,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   slotCardActive: {
-    backgroundColor: dark.green,
-    borderColor: dark.green,
+    backgroundColor: RES.green,
+    borderColor: RES.green,
   },
   slotCardText: {
     fontFamily: fonts.bodyBold,
-    color: dark.green,
+    color: RES.green,
     fontSize: 14,
   },
   slotCardTextActive: {
@@ -2271,18 +2283,18 @@ const styles = StyleSheet.create({
   windowChip: {
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: dark.green,
+    borderColor: RES.green,
     backgroundColor: dark.surfaceRaised,
     paddingVertical: 10,
     paddingHorizontal: 12,
   },
   windowChipActive: {
-    backgroundColor: dark.green,
-    borderColor: dark.green,
+    backgroundColor: RES.green,
+    borderColor: RES.green,
   },
   windowChipText: {
     fontFamily: fonts.bodyBold,
-    color: dark.green,
+    color: RES.green,
     fontSize: 13,
   },
   windowChipTextActive: {

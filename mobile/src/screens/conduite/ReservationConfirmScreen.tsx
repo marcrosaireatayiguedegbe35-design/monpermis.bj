@@ -5,7 +5,7 @@ import { CalendarCheck, Car, Check, ChevronRight, Clock, CreditCard, House, Info
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Bouncy } from '../../components/Bouncy'
-import { FlowHeader } from '../../components/FlowHeader'
+import { RES, ReserveBackdrop, ReserveButton, ReserveHeader, ReserveOutlineButton, StepChip } from '../../components/ReserveFrame'
 import { useUnreadNotifications } from '../../hooks/useUnreadNotifications'
 import type { RootStackParamList } from '../../navigation/types'
 import { dark, fonts, shadows } from '../../theme'
@@ -89,10 +89,10 @@ export function ReservationConfirmScreen() {
 
   return (
     <View style={styles.root}>
+      <ReserveBackdrop />
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-        <FlowHeader
+        <ReserveHeader
           title={fromList ? 'Détail de la séance' : 'Réservation confirmée'}
-          icon={CalendarCheck}
           unread={unread}
           onBack={() => {
             if (fromList) navigation.goBack()
@@ -100,6 +100,7 @@ export function ReservationConfirmScreen() {
           }}
           onBell={() => navigation.navigate('Notifications')}
         />
+        <StepChip done label={fromList ? 'Séance confirmée' : 'Terminé • Séance réservée'} />
         <View style={styles.scroll}>
           <View style={styles.badgeWrap}>
             <View style={styles.badgeHalo}>
@@ -118,7 +119,7 @@ export function ReservationConfirmScreen() {
           <View style={styles.card}>
             <View style={styles.cardHead}>
               <View style={styles.avatar}>
-                <User size={30} color={dark.green} />
+                <User size={30} color={RES.green} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.headLabel}>Moniteur</Text>
@@ -130,11 +131,11 @@ export function ReservationConfirmScreen() {
               {rows.map((row) => (
                 <View key={row.key} style={styles.cell}>
                   <View style={styles.rowIcon}>
-                    <row.Icon size={18} color={dark.green} />
+                    <row.Icon size={18} color={RES.green} />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={styles.rowLabel}>{row.label}</Text>
-                    <Text style={[styles.rowValue, row.green && { color: dark.green }]} numberOfLines={2}>
+                    <Text style={[styles.rowValue, row.green && { color: RES.green }]} numberOfLines={2}>
                       {row.value}
                     </Text>
                   </View>
@@ -146,29 +147,26 @@ export function ReservationConfirmScreen() {
           {meeting ? <MeetingPointCard url={meeting.url} note={meeting.note} /> : null}
 
           <View style={styles.info}>
-            <Info size={18} color={dark.green} />
+            <Info size={18} color={RES.green} />
             <Text style={styles.infoText}>Vous recevrez une notification avec les détails.</Text>
           </View>
 
           <View style={{ flex: 1 }} />
           {calendarUrl ? (
-            <Bouncy scaleTo={0.98} onPress={() => void safeOpenUrl(calendarUrl)}>
-              <View style={styles.primary}>
-                <CalendarCheck size={22} color="#FFFFFF" />
-                <Text style={styles.primaryText}>Ajouter à mon agenda</Text>
-                <ChevronRight size={22} color="#FFFFFF" />
-              </View>
-            </Bouncy>
+            <ReserveButton
+              label="Ajouter à mon agenda"
+              icon={<CalendarCheck size={22} color="#FFFFFF" />}
+              onPress={() => void safeOpenUrl(calendarUrl)}
+            />
           ) : null}
           {whatsappLink ? (
-            <Pressable style={styles.outline} onPress={() => void safeOpenUrl(whatsappLink)}>
-              <Text style={styles.outlineText}>Notifier par WhatsApp</Text>
-            </Pressable>
+            <ReserveOutlineButton label="Notifier par WhatsApp" onPress={() => void safeOpenUrl(whatsappLink)} />
           ) : null}
-          <Pressable style={styles.outline} onPress={() => navigation.navigate('Home')}>
-            <House size={22} color={dark.green} />
-            <Text style={styles.outlineText}>Retour à l’accueil</Text>
-          </Pressable>
+          <ReserveOutlineButton
+            label="Retour à l’accueil"
+            icon={<House size={22} color={RES.green} />}
+            onPress={() => navigation.navigate('Home')}
+          />
         </View>
       </SafeAreaView>
     </View>
@@ -176,32 +174,32 @@ export function ReservationConfirmScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F8FBFC' },
+  root: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { flex: 1, paddingHorizontal: 18, paddingTop: 2, paddingBottom: 14, gap: 10 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 10 },
   cell: { width: '50%', flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 6 },
   badgeWrap: { alignItems: 'center', marginTop: 4 },
   badgeHalo: { width: 92, height: 92, borderRadius: 46, backgroundColor: 'rgba(31,191,98,0.14)', alignItems: 'center', justifyContent: 'center' },
-  badgeCore: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#22BF63', alignItems: 'center', justifyContent: 'center', ...shadows.md },
-  title: { fontFamily: fonts.displayExtraBold, fontSize: 24, color: '#0A1E55', textAlign: 'center', letterSpacing: -0.6 },
+  badgeCore: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#0B7F47', alignItems: 'center', justifyContent: 'center', ...shadows.md },
+  title: { fontFamily: fonts.displayExtraBold, fontSize: 24, color: '#0B1F3A', textAlign: 'center', letterSpacing: -0.6 },
   subtitle: { fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 20, color: '#4D5F80', textAlign: 'center', marginTop: -4 },
-  card: { padding: 14, borderRadius: 26, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,16,48,0.05)', ...shadows.md },
+  card: { padding: 16, borderRadius: 32, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DFE6E1', ...shadows.md },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#DDF4E6', alignItems: 'center', justifyContent: 'center' },
-  headLabel: { fontFamily: fonts.bodyBold, fontSize: 15, color: dark.green },
-  headName: { fontFamily: fonts.displayBold, fontSize: 19, color: '#0A1E55' },
+  headLabel: { fontFamily: fonts.bodyBold, fontSize: 15, color: RES.green },
+  headName: { fontFamily: fonts.displayBold, fontSize: 19, color: '#0B1F3A' },
   divider: { height: 1, backgroundColor: 'rgba(0,16,48,0.07)', marginVertical: 10 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 7 },
   rowIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#E7F7EC', alignItems: 'center', justifyContent: 'center' },
   rowLabel: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: '#4D5F80' },
-  rowValue: { fontFamily: fonts.displayBold, fontSize: 14.5, color: '#0A1E55' },
-  info: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 20, backgroundColor: '#DDF4E6' },
+  rowValue: { fontFamily: fonts.displayBold, fontSize: 14.5, color: '#0B1F3A' },
+  info: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 22, backgroundColor: '#EAF6EF' },
   infoIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#22BF63', alignItems: 'center', justifyContent: 'center' },
-  infoText: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 13.5, lineHeight: 19, color: '#0A1E55' },
+  infoText: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 13.5, lineHeight: 19, color: '#0B1F3A' },
   primary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, height: 56, borderRadius: 28, backgroundColor: '#22BF63', ...shadows.md },
   primaryText: { fontFamily: fonts.displayBold, fontSize: 18, color: '#FFFFFF' },
   outline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, height: 52, borderRadius: 26, borderWidth: 1.5, borderColor: '#22BF63', backgroundColor: '#FFFFFF' },
-  outlineText: { fontFamily: fonts.displayBold, fontSize: 17, color: '#0A1E55' },
+  outlineText: { fontFamily: fonts.displayBold, fontSize: 17, color: '#0B1F3A' },
   link: { alignSelf: 'center', padding: 6 },
-  linkText: { fontFamily: fonts.bodyBold, fontSize: 14.5, color: dark.green, textDecorationLine: 'underline' },
+  linkText: { fontFamily: fonts.bodyBold, fontSize: 14.5, color: RES.green, textDecorationLine: 'underline' },
 })
