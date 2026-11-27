@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { BookOpen, HelpCircle, RefreshCw, Search } from 'lucide-react'
+import { BookOpen, ChevronRight, ClipboardList, Eye, EyeOff, HelpCircle, RefreshCw, Search } from 'lucide-react'
 import { fetchChapters, updateChapter } from '../../api/revision'
-import { PhoneBack, useMasterDetail } from '../../components/phone/PhoneKit'
+import { PhoneSheet, useMasterDetail } from '../../components/phone/PhoneKit'
 import { CodeSection } from '../../components/model/CodeSection'
 import { PublishSwitch } from '../../components/PublishSwitch'
 import { getAdminToken, isAuthError } from '../../context/AdminAuthContext'
@@ -15,6 +15,7 @@ const isLearnerChapter = (chapter: Chapter) => chapter.order >= 1
 
 export function RevisionChapitresPage() {
   const md = useMasterDetail()
+  const [subjectChapterId, setSubjectChapterId] = useState<string | null>(null)
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [chapters, setChapters] = useState<Chapter[]>([])
@@ -61,10 +62,7 @@ export function RevisionChapitresPage() {
       navigate(chapterFromUrl ? `/code/cours?chapter=${chapterFromUrl}` : '/code/cours', { replace: true })
       return
     }
-    if (chapterFromUrl) {
-      setSelectedChapterId(chapterFromUrl)
-      md.openDetail()
-    }
+    if (chapterFromUrl) setSelectedChapterId(chapterFromUrl)
   }, [searchParams, navigate])
 
   const filtered = useMemo(() => {
@@ -78,7 +76,6 @@ export function RevisionChapitresPage() {
 
   const select = (id: string) => {
     setSelectedChapterId(id)
-    md.openDetail()
     setSearchParams({}, { replace: true })
   }
 
@@ -95,6 +92,76 @@ export function RevisionChapitresPage() {
     } finally {
       setBusy(false)
     }
+  }
+
+  if (md.isPhone) {
+    const subjectChapter = chapters.find((c) => c.id === subjectChapterId) || null
+    return (
+      <CodeSection title="Révision" actions={null}>
+        {error ? <p className="cx-note cx-note-err" role="alert">{error}</p> : null}
+        <div className="ap-intro">
+          <span className="ap-badge">Code de la route</span>
+          <p>Entraînez-vous aux questions, puis validez chaque chapitre avec un sujet test.</p>
+        </div>
+        {loading ? <p className="ap-empty">Chargement…</p> : null}
+        {!loading && chapters.length === 0 ? <p className="ap-empty">Aucun chapitre pour le moment.</p> : null}
+        <div className="ap-cards-col">
+          {chapters.map((chapter, index) => {
+            const order = chapter.order || index + 1
+            return (
+              <article key={chapter.id} className="ap-chcard">
+                <Link to={`/code/revision-chapitres/${chapter.id}/questions`} className="ap-chcard-top">
+                  <span className="ap-chcard-num">{order}</span>
+                  <span className="ap-chcard-txt">
+                    <b>{chapter.name?.trim() || `Chapitre ${order}`}</b>
+                    <small className={chapter.published ? 'is-ok' : 'is-draft'}>{chapter.published ? 'Publié' : 'Brouillon'}</small>
+                  </span>
+                  <ChevronRight className="ap-chcard-chev" aria-hidden />
+                </Link>
+                <div className="ap-chcard-actions">
+                  <Link to={`/code/revision-chapitres/${chapter.id}/questions`} className="is-primary">
+                    <HelpCircle aria-hidden /> Questions
+                  </Link>
+                  <button type="button" onClick={() => setSubjectChapterId(chapter.id)}>
+                    <ClipboardList aria-hidden /> Sujet test
+                  </button>
+                  <button
+                    type="button"
+                    className="is-icon"
+                    aria-label={chapter.published ? 'Dépublier' : 'Publier'}
+                    title={chapter.published ? 'Dépublier' : 'Publier'}
+                    disabled={busy}
+                    onClick={async () => {
+                      const token = getAdminToken()
+                      if (!token) return
+                      setBusy(true)
+                      try {
+                        await updateChapter(token, chapter.id, { published: !chapter.published })
+                        await loadChapters(null, true)
+                      } catch (err) {
+                        setError(isAuthError(err) ? err.message : 'Publication impossible')
+                      } finally {
+                        setBusy(false)
+                      }
+                    }}
+                  >
+                    {chapter.published ? <EyeOff aria-hidden /> : <Eye aria-hidden />}
+                  </button>
+                </div>
+              </article>
+            )
+          })}
+        </div>
+        <PhoneSheet
+          open={Boolean(subjectChapter)}
+          title={subjectChapter ? `Sujet test · ${subjectChapter.name}` : ''}
+          onClose={() => setSubjectChapterId(null)}
+          full
+        >
+          {subjectChapter ? <ChapterTestSubjectPanel chapterId={subjectChapter.id} /> : null}
+        </PhoneSheet>
+      </CodeSection>
+    )
   }
 
   return (
@@ -119,7 +186,7 @@ export function RevisionChapitresPage() {
       ) : null}
 
       {!loading && chapters.length > 0 ? (
-        <div className={`cx-split${md.splitClass}`}>
+        <div className="cx-split">
           <aside className="cx-panel cx-sticky" aria-label="Liste des chapitres">
             <div className="cx-panel-head cx-ph cx-ph-plain">
               <div className="cx-ph-txt">
@@ -160,7 +227,6 @@ export function RevisionChapitresPage() {
 
           {selected ? (
             <section className="cx-panel" key={selected.id}>
-              {md.isPhone ? <PhoneBack onClick={md.closeDetail} label="Chapitres" /> : null}
               <div className="cx-detail-head">
                 <span className="cx-chap-num">{selected.order}</span>
                 <div className="cx-detail-title">

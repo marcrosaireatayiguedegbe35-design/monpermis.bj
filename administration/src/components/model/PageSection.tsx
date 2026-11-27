@@ -46,15 +46,6 @@ export function PageSection({
           <h1>{title}</h1>
           {actions ? <div className="ap-sec-actions">{actions}</div> : null}
         </div>
-        {tabs && tabs.length > 0 ? (
-          <nav className="ap-sec-tabs" aria-label={tabsLabel}>
-            {tabs.map(({ to, label, end }) => (
-              <NavLink key={to} to={to} end={end ?? false}>
-                {label}
-              </NavLink>
-            ))}
-          </nav>
-        ) : null}
         {children}
       </div>
     )

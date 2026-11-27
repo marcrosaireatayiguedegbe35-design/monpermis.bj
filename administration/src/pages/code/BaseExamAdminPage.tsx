@@ -12,6 +12,8 @@ import {
   X,
 } from 'lucide-react'
 import { CodeSection } from '../../components/model/CodeSection'
+import { PhoneSeg } from '../../components/phone/PhoneKit'
+import { useIsPhone } from '../MobileHome'
 import { PublishSwitch } from '../../components/PublishSwitch'
 import { getAdminToken, isAuthError } from '../../context/AdminAuthContext'
 import { SkeletonBlock } from '../../ui'
@@ -98,6 +100,8 @@ export function BaseExamAdminPage(config: BaseExamConfig) {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [detailExam, setDetailExam] = useState<ExamWithQuestions | null>(null)
+  const isPhone = useIsPhone()
+  const [phoneView, setPhoneView] = useState<'sujets' | 'notes' | 'banque'>('sujets')
   const [detailLoading, setDetailLoading] = useState(false)
   const [expandedQuestionId, setExpandedQuestionId] = useState<string | null>(null)
   const [metaForm, setMetaForm] = useState({ author: '', sceneName: '', coefficient: '1' })
@@ -313,8 +317,20 @@ export function BaseExamAdminPage(config: BaseExamConfig) {
             </div>
           </section>
 
+          {isPhone ? (
+            <PhoneSeg
+              value={phoneView}
+              onChange={setPhoneView}
+              options={[
+                { id: 'sujets', label: config.itemsLabel.charAt(0).toUpperCase() + config.itemsLabel.slice(1) },
+                { id: 'notes', label: 'Notes' },
+                { id: 'banque', label: 'Banque' },
+              ]}
+            />
+          ) : null}
+          <div className="ap-views" data-view={phoneView}>
           <div className="cx-split" style={{ gridTemplateColumns: 'minmax(0,1.5fr) minmax(0,1fr)' }}>
-            <section className="cx-panel">
+            <section className="cx-panel" data-ap="sujets">
               <div className="cx-panel-head cx-ph cx-ph-plain">
                 <span className="cx-phi cx-phi-tile">
                   <ClipboardCheck aria-hidden />
@@ -352,7 +368,7 @@ export function BaseExamAdminPage(config: BaseExamConfig) {
               )}
             </section>
 
-            <section className="cx-panel">
+            <section className="cx-panel" data-ap="notes">
               <div className="cx-panel-head cx-ph cx-ph-plain">
                 <span className="cx-phi cx-phi-tile">
                   <Trophy aria-hidden />
@@ -384,7 +400,7 @@ export function BaseExamAdminPage(config: BaseExamConfig) {
           </div>
 
           {data.chapterBank && data.chapterBank.length > 0 ? (
-            <section className="cx-panel">
+            <section className="cx-panel" data-ap="banque">
               <div className="cx-panel-head cx-ph cx-ph-plain">
                 <span className="cx-phi cx-phi-tile">
                   <Layers aria-hidden />
@@ -416,6 +432,7 @@ export function BaseExamAdminPage(config: BaseExamConfig) {
               </div>
             </section>
           ) : null}
+          </div>
         </>
       ) : null}
 
