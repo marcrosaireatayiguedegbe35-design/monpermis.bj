@@ -175,3 +175,19 @@
   .ap-sheet-logout{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:18px;min-height:48px;border-radius:999px!important;border:1.5px solid #fca5a5!important;background:#fff!important;color:#b91c1c!important;font-weight:700}
   .ap-sheet-logout svg{width:18px;height:18px}
 }
+
+/* ---------- Accueil téléphone : six tuiles, un seul écran ---------- */
+@media (max-width:767px){
+  .ap-home{display:flex;flex-direction:column;gap:12px;height:calc(100dvh - 68px - 100px - env(safe-area-inset-bottom));min-height:420px}
+  .ap-home-head small{display:block;font-size:13px;color:#5d7066}.ap-home-head small::first-letter{text-transform:uppercase}
+  .ap-home-head b{display:block;font-size:26px;letter-spacing:-.6px;color:#10261b}
+  .ap-home-grid{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);gap:10px}
+  .ap-home-tile{position:relative;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;padding:12px;background:#fff;border:1px solid #E1E8E3;border-radius:14px;text-decoration:none;color:#10261b;min-height:0}
+  .ap-home-ico{position:absolute;top:12px;left:12px;width:40px;height:40px;border-radius:11px;background:#EAF6EF;color:#0B7F47;display:grid;place-items:center}
+  .ap-home-ico svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .ap-home-tile b{font-size:16px;letter-spacing:-.2px}
+  .ap-home-tile small{font-size:12px;color:#5d7066}
+  .ap-home-tile em{position:absolute;top:12px;right:12px;min-width:24px;height:24px;padding:0 7px;border-radius:12px;background:#ef4444;color:#fff;font:700 12px/24px inherit;font-style:normal;text-align:center}
+  .ap-home-tile.is-hot small{color:#b83232;font-weight:600}
+  .ap-home-tile:active{background:#F3F8F5}
+}

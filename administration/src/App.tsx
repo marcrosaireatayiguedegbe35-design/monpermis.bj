@@ -18,6 +18,7 @@ import { AdminDetailPage } from './pages/AdminDetailPage'
 import { AuditLogPage } from './pages/AuditLogPage'
 import { CreateAdminPage } from './pages/CreateAdminPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { HomeRoute } from './pages/MobileHome'
 import { LoginPage } from './pages/LoginPage'
 import { AbonnementsPage } from './pages/AbonnementsPage'
 import { FinancesPage } from './pages/FinancesPage'
@@ -33,7 +34,7 @@ export default function App() {
       <Route path="/inscription" element={<Navigate to="/connexion" replace />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<AdminLayout />}>
-          <Route path="/" element={<DashboardPage />} />
+          <Route path="/" element={<HomeRoute desktop={<DashboardPage />} />} />
           <Route path="/utilisateurs" element={<UsersPage />} />
           <Route path="/activite-apprenants" element={<LearnerTrackingPage />} />
           <Route path="/abonnements" element={<AbonnementsPage />} />
