@@ -22,28 +22,22 @@ export function normalizeTime(value) {
   return String(value || '').trim().slice(0, 5)
 }
 
-/** Préavis minimal avant le début d'une séance réservable : 24 h (pas de réservation le jour même). */
-export const BOOKING_LEAD_MINUTES = 24 * 60
-
 /**
- * Tronque les fenêtres d'aujourd'hui au plus tôt réservable (maintenant + préavis).
- * Les autres dates ne sont pas modifiées ; une fenêtre entièrement passée disparaît.
+ * Règle de réservation : jamais pour la journée en cours, à partir de demain (à toute heure).
+ * Retourne la dernière milliseconde d'aujourd'hui : un début de séance doit être strictement après.
  */
-export function clipWindowsToLeadTime(windows, dateStr, now = new Date()) {
-  const limit = new Date(now.getTime() + BOOKING_LEAD_MINUTES * 60 * 1000)
-  const limitDate = `${limit.getFullYear()}-${String(limit.getMonth() + 1).padStart(2, '0')}-${String(
-    limit.getDate(),
-  ).padStart(2, '0')}`
-  if (dateStr > limitDate) return windows
-  if (dateStr < limitDate) return []
+export function earliestBookingLimitMs(now = new Date()) {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime()
+}
 
-  const earliest = limit.getHours() * 60 + limit.getMinutes()
-  return windows
-    .map((slot) => {
-      const start = timeToMinutes(slot.start)
-      return start >= earliest ? slot : { start: minutesToTime(earliest), end: slot.end }
-    })
-    .filter((slot) => timeToMinutes(slot.end) > timeToMinutes(slot.start))
+/** Date du jour au format YYYY-MM-DD (heure locale). */
+function localDateString(now) {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+/** Les fenêtres d'aujourd'hui et des jours passés disparaissent : on réserve à partir de demain. */
+export function clipWindowsToLeadTime(windows, dateStr, now = new Date()) {
+  return dateStr > localDateString(now) ? windows : []
 }
 
 /** Fenêtres hebdo pour une date calendaire (YYYY-MM-DD), heures déjà passées exclues. */

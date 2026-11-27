@@ -36,7 +36,7 @@ import {
   HOURS_DISCOUNT_MIN_HOURS,
 } from '../utils/pricing.js'
 import {
-  BOOKING_LEAD_MINUTES,
+  earliestBookingLimitMs,
   clipWindowsToLeadTime,
   intervalsOverlap,
   isValidHhMm,
@@ -432,7 +432,7 @@ router.get('/availability', ...withConduiteAccess, async (req, res) => {
       { $group: { _id: '$creneauId', n: { $sum: 1 }, mine: { $sum: { $cond: [{ $eq: ['$userId', req.user._id] }, 1, 0] } } } },
     ])
     const seatInfo = new Map(groupSeatRows.map((row) => [String(row._id), row]))
-    const leadLimit = Date.now() + BOOKING_LEAD_MINUTES * 60 * 1000
+    const leadLimit = earliestBookingLimitMs()
     const groupSlots = groupRows
       .filter((slot) => slotDateTime(slot.date, slot.startTime).getTime() > leadLimit)
       .map((slot) => {
@@ -536,10 +536,10 @@ router.post('/request-slot', ...withConduiteAccess, async (req, res) => {
     // Contrôlé avant les fenêtres : un horaire trop proche est tronqué par
     // windowsForDate, ce qui produirait un message d'indisponibilité trompeur.
     const startAt = slotDateTime(date, startTime)
-    if (startAt.getTime() <= Date.now() + BOOKING_LEAD_MINUTES * 60 * 1000) {
+    if (startAt.getTime() <= earliestBookingLimitMs()) {
       return res.status(400).json({
         success: false,
-        error: 'Réservez au moins 24 h à l’avance : une séance ne peut pas être prise pour la journée en cours.',
+        error: 'Une séance ne peut pas être réservée pour la journée en cours : choisissez un jour à partir de demain.',
         code: 'SLOT_TOO_SOON',
       })
     }
@@ -833,7 +833,7 @@ router.get('/creneaux', ...withConduiteAccess, async (req, res) => {
     const seatsByCreneau = new Map(seatRows.map((row) => [String(row._id), row.n]))
 
     const byDate = {}
-    const earliestStart = Date.now() + BOOKING_LEAD_MINUTES * 60 * 1000
+    const earliestStart = earliestBookingLimitMs()
     for (const slot of creneaux) {
       // Jamais proposer un créneau déjà passé ou trop proche du préavis.
       if (slotDateTime(slot.date, slot.startTime).getTime() <= earliestStart) continue
