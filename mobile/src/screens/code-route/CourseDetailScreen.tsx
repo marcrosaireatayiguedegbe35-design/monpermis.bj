@@ -131,6 +131,17 @@ export function CourseDetailScreen() {
         await markCourseCompleted(chapterId, course.id)
       }
       setCompletedIds((current) => new Set(current).add(course.id))
+      // Terminé : on passe tout de suite au chapitre suivant ; au dernier, retour à la liste.
+      if (nextCourse) {
+        navigation.replace('CourseDetail', {
+          chapterId,
+          chapterName: `Chapitre ${courseIndex + 2}`,
+          course: nextCourse,
+          courses,
+        })
+      } else if (isStandalone) {
+        navigation.navigate('CodeCours')
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Enregistrement impossible')
     } finally {
