@@ -1002,8 +1002,8 @@ function ModeCards({
   onChange: (mode: 'solo' | 'group') => void
 }) {
   const items = [
-    { id: 'solo' as const, label: 'Solo', price: soloPrice, note: 'Créneau pour vous seul', Icon: User },
-    { id: 'group' as const, label: 'En groupe', price: groupPrice, note: 'Partagé, jusqu’à 7 élèves', Icon: Users },
+    { id: 'solo' as const, label: 'Solo', price: soloPrice, note: 'Pour vous seul', Icon: User },
+    { id: 'group' as const, label: 'En groupe', price: groupPrice, note: 'Jusqu’à 7 élèves', Icon: Users },
   ]
   return (
     <View style={styles.modeRow}>
@@ -1018,14 +1018,14 @@ function ModeCards({
               accessibilityLabel={`Mode ${label}`}
             >
               <View style={[styles.modeIcon, active && styles.modeIconOn]}>
-                <Icon size={22} color={active ? '#FFFFFF' : RES.green} />
+                <Icon size={17} color={active ? '#FFFFFF' : RES.green} />
               </View>
               <Text style={styles.modeLabel}>{label}</Text>
               <Text style={[styles.modePrice, active && { color: RES.green }]}>{price.toLocaleString('fr-FR')} F / h</Text>
               <Text style={styles.modeNote} numberOfLines={2}>{note}</Text>
               {active ? (
                 <View style={styles.modeCheck}>
-                  <Check size={13} color="#FFFFFF" strokeWidth={3.2} />
+                  <Check size={11} color="#FFFFFF" strokeWidth={3.2} />
                 </View>
               ) : null}
             </View>
@@ -1055,15 +1055,15 @@ const styles = StyleSheet.create({
   tSmall: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: RES.line, ...shadows.sm },
   tBig: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: RES.line, ...shadows.md },
   tBigOk: { backgroundColor: RES.green, borderColor: RES.green },
-  modeRow: { flexDirection: 'row', gap: 12 },
-  modeCard: { padding: 14, gap: 4, borderRadius: 26, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: RES.line, ...shadows.sm },
+  modeRow: { flexDirection: 'row', gap: 10 },
+  modeCard: { padding: 10, gap: 1, borderRadius: 18, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: RES.line, ...shadows.sm },
   modeCardOn: { borderColor: RES.green, backgroundColor: '#F5FBF7' },
-  modeIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: RES.soft, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  modeIcon: { width: 30, height: 30, borderRadius: 15, backgroundColor: RES.soft, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
   modeIconOn: { backgroundColor: RES.green },
-  modeLabel: { fontFamily: fonts.displayExtraBold, fontSize: 18, color: RES.ink },
-  modePrice: { fontFamily: fonts.displayBold, fontSize: 16, color: RES.muted },
-  modeNote: { fontFamily: fonts.bodyMedium, fontSize: 12.5, lineHeight: 17, color: RES.muted },
-  modeCheck: { position: 'absolute', top: 10, right: 10, width: 22, height: 22, borderRadius: 11, backgroundColor: RES.green, alignItems: 'center', justifyContent: 'center' },
+  modeLabel: { fontFamily: fonts.displayExtraBold, fontSize: 15, color: RES.ink },
+  modePrice: { fontFamily: fonts.displayBold, fontSize: 13.5, color: RES.muted },
+  modeNote: { fontFamily: fonts.bodyMedium, fontSize: 11.5, lineHeight: 15, color: RES.muted },
+  modeCheck: { position: 'absolute', top: 8, right: 8, width: 18, height: 18, borderRadius: 9, backgroundColor: RES.green, alignItems: 'center', justifyContent: 'center' },
   hoursRow: { flexDirection: 'row', gap: 8 },
   hoursPill: { height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#DFE6E1' },
   hoursPillOn: { backgroundColor: RES.green, borderColor: RES.green },
