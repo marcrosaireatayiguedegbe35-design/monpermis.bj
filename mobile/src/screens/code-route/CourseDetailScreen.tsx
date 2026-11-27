@@ -179,7 +179,11 @@ export function CourseDetailScreen() {
 
   if (loading || !user) return <ScreenLoader />
 
-  const headerTitle = formatCourseHeading(courseIndex, course.title)
+  // Un chapitre = un cours : l'intitulé est celui du chapitre (« Chapitre 2 », « Hors chapitre »).
+  const labelledChapter = /^(chapitre\s*\d+|hors chapitre)$/i.test(chapterName.trim())
+  const headerTitle = labelledChapter
+    ? `${chapterName.trim()} : ${course.title}`
+    : formatCourseHeading(courseIndex, course.title)
 
   const topBar = (
     <View style={styles.topBar}>
@@ -265,7 +269,7 @@ export function CourseDetailScreen() {
 
           <FadeUp delay={80}>
             <View style={styles.header}>
-              <Text style={styles.kicker}>{formatChapterHeading(chapterName)}</Text>
+              <Text style={styles.kicker}>{labelledChapter ? chapterName.trim() : formatChapterHeading(chapterName)}</Text>
               <View style={styles.accentRow}>
                 <View style={[styles.accent, styles.accentGreen]} />
                 <View style={[styles.accent, styles.accentGold]} />

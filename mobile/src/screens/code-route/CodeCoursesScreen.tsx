@@ -100,10 +100,18 @@ export function CodeCoursesScreen() {
     }, [user, load]),
   )
 
-  const allCourses = useMemo(
-    () => chapters.flatMap((chapter) => chapter.courses),
+  // Un chapitre = un cours : on affiche directement les cours, sans niveau « chapitre ».
+  const courseItems = useMemo(
+    () =>
+      chapters.flatMap((chapter) =>
+        chapter.courses.map((course, position) => ({
+          course,
+          label: position === 0 ? chapter.name : 'Hors chapitre',
+        })),
+      ),
     [chapters],
   )
+  const allCourses = useMemo(() => courseItems.map((item) => item.course), [courseItems])
   const completedCount = useMemo(
     () => allCourses.filter((course) => completedIds.has(course.id)).length,
     [allCourses, completedIds],
@@ -171,8 +179,7 @@ export function CodeCoursesScreen() {
             <FadeUp delay={80}>
               <View style={styles.progressCard}>
                 <Text style={styles.progressLabel}>
-                  {completedCount} notion{completedCount > 1 ? 's' : ''} sur {allCourses.length}{' '}
-                  terminée{completedCount > 1 ? 's' : ''}
+                  {completedCount} cours sur {allCourses.length} terminé{completedCount > 1 ? 's' : ''}
                 </Text>
                 <ProgressBar
                   progress={progressRatio}
@@ -184,65 +191,58 @@ export function CodeCoursesScreen() {
             </FadeUp>
           ) : null}
 
-          {chapters.length === 0 && !progressLoading ? (
+          {allCourses.length === 0 && !progressLoading ? (
             <View style={styles.centerBox}>
               <Text style={styles.emptyTitle}>Aucun cours</Text>
-              <Text style={styles.emptyText}>Aucune notion publiée pour le moment.</Text>
+              <Text style={styles.emptyText}>Aucun cours publié pour le moment.</Text>
             </View>
           ) : (
-            chapters.map((chapter, index) => {
-              const total = chapter.courses.length
-              const done = chapter.courses.filter((course) => completedIds.has(course.id)).length
-              const chapterDone = total > 0 && done === total
-
+            courseItems.map((item, index) => {
+              const done = completedIds.has(item.course.id)
               return (
-                <FadeUp key={chapter.id} delay={100 + index * 50}>
+                <FadeUp key={item.course.id} delay={100 + index * 40}>
                   <Bouncy
                     scaleTo={0.98}
                     onPress={() =>
-                      navigation.navigate('ChapterCourses', {
-                        // La progression des notions reste indexée sur « standalone ».
+                      navigation.navigate('CourseDetail', {
+                        // La progression des cours reste indexée sur « standalone ».
                         chapterId: STANDALONE_CHAPTER,
-                        chapterName: chapter.name,
-                        courses: chapter.courses.map((course) => ({
-                          id: course.id,
-                          title: course.title,
-                          modules: course.modules,
+                        chapterName: item.label,
+                        course: {
+                          id: item.course.id,
+                          title: item.course.title,
+                          modules: item.course.modules,
+                        },
+                        courses: courseItems.map((entry) => ({
+                          id: entry.course.id,
+                          title: entry.course.title,
+                          modules: entry.course.modules,
                         })),
                       })
                     }
                   >
-                    <View
-                      style={[styles.card, chapterDone && styles.cardDone]}
-                      accessibilityRole="button"
-                    >
+                    <View style={[styles.card, done && styles.cardDone]} accessibilityRole="button">
                       <View style={styles.cardAccent} />
-                      <View style={[styles.iconWrap, chapterDone && styles.iconWrapDone]}>
-                        {chapterDone ? (
+                      <View style={[styles.iconWrap, done && styles.iconWrapDone]}>
+                        {done ? (
                           <Check size={22} color={dark.green} strokeWidth={3} />
                         ) : (
                           <BookOpen size={22} color={ORANGE} />
                         )}
                       </View>
                       <View style={styles.cardContent}>
-                        <Text style={styles.cardTitle}>{chapter.name}</Text>
+                        <Text style={styles.cardTitle}>{item.course.title}</Text>
                         <View style={styles.badgeRow}>
-                          {chapterDone ? (
-                            <View style={[styles.badge, styles.badgeDone]}>
-                              <Check size={11} color={dark.green} strokeWidth={3} />
-                              <Text style={[styles.badgeText, styles.badgeTextDone]}>Terminé</Text>
-                            </View>
-                          ) : (
-                            <View style={styles.badge}>
-                              <Text style={styles.badgeText}>
-                                {done}/{total} NOTION{total > 1 ? 'S' : ''}
-                              </Text>
-                            </View>
-                          )}
+                          <View style={[styles.badge, done && styles.badgeDone]}>
+                            {done ? <Check size={11} color={dark.green} strokeWidth={3} /> : null}
+                            <Text style={[styles.badgeText, done && styles.badgeTextDone]}>
+                              {done ? 'Terminé' : item.label.toUpperCase()}
+                            </Text>
+                          </View>
                         </View>
                       </View>
-                      <View style={[styles.arrowBtn, chapterDone && styles.arrowBtnDone]}>
-                        <ChevronRight size={18} color={chapterDone ? dark.green : ORANGE} />
+                      <View style={[styles.arrowBtn, done && styles.arrowBtnDone]}>
+                        <ChevronRight size={18} color={done ? dark.green : ORANGE} />
                       </View>
                     </View>
                   </Bouncy>
