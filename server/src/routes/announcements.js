@@ -16,13 +16,13 @@ const router = Router()
 router.get('/', requireUserAuth, async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit) || 20, 50)
-    const items = await Announcement.find(publicAnnouncementFilter())
+    const items = await Announcement.find(publicAnnouncementFilter(new Date(), req.user._id))
       .sort({ createdAt: -1 })
       .limit(Math.min(limit * 3, 100))
 
     const visible = []
     for (const item of items) {
-      if (await userMatchesAudience(req.user, item.audience || 'all')) {
+      if (await userMatchesAudience(req.user, item.audience || 'all', item.recipientIds)) {
         visible.push(item)
       }
       if (visible.length >= limit) break
@@ -54,7 +54,7 @@ router.get('/:id', requireUserAuth, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Annonce introuvable' })
     }
 
-    if (!(await userMatchesAudience(req.user, announcement.audience || 'all'))) {
+    if (!(await userMatchesAudience(req.user, announcement.audience || 'all', announcement.recipientIds))) {
       return res.status(404).json({ success: false, error: 'Annonce introuvable' })
     }
 

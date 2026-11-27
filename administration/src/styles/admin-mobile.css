@@ -259,3 +259,12 @@
   .ap-ticket.is-off{opacity:.8}
   .ap-label{margin:6px 2px 0;font-size:12px;font-weight:700;color:#5d7066}
 }
+
+/* Choix d'apprenants ciblés (annonces) : visible sur tous les écrans */
+.ap-pick{display:flex;flex-direction:column;border:1px solid #D5DCE8;border-radius:12px;overflow:hidden;background:#fff;margin-top:6px}
+.ap-pick button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:10px 12px;border:0;border-bottom:1px solid #EEF1EF;background:none;text-align:left;cursor:pointer;font:inherit;color:inherit}
+.ap-pick button:last-child{border-bottom:0}
+.ap-pick small{color:#5d7066;font-size:12px}
+.ap-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ap-chip{display:inline-flex;align-items:center;gap:6px;background:#EAF6EF;color:#0B7F47;border-radius:999px;padding:5px 6px 5px 12px;font-size:13px;font-weight:600}
+.ap-chip button{display:grid;place-items:center;width:20px;height:20px;border:0;border-radius:50%;background:#0B7F47;color:#fff;cursor:pointer;padding:0}

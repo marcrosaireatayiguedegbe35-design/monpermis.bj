@@ -1,7 +1,7 @@
 import { apiFetch, apiUpload } from './client'
 
 export type AnnouncementKind = 'info' | 'promo' | 'alerte'
-export type AnnouncementAudience = 'all' | 'active' | 'code' | 'conduite'
+export type AnnouncementAudience = 'all' | 'active' | 'code' | 'conduite' | 'selected'
 
 export interface Announcement {
   id: string
@@ -9,6 +9,8 @@ export interface Announcement {
   body: string
   kind: AnnouncementKind
   audience: AnnouncementAudience
+  /** Apprenants ciblés (audience = selected). */
+  recipientIds?: string[]
   active: boolean
   scheduledAt: string | null
   expiresAt: string | null
@@ -26,6 +28,7 @@ export interface AnnouncementInput {
   body: string
   kind: AnnouncementKind
   audience?: AnnouncementAudience
+  recipientIds?: string[]
   active?: boolean
   scheduledAt?: string | null
   expiresAt?: string | null
@@ -51,9 +54,9 @@ export function fetchAnnouncements(
   )
 }
 
-export function fetchRecipientCount(audience: AnnouncementAudience, token: string) {
+export function fetchRecipientCount(audience: AnnouncementAudience, token: string, ids: string[] = []) {
   return apiFetch<{ audience: AnnouncementAudience; count: number }>(
-    `/api/admin/announcements/recipient-count?audience=${encodeURIComponent(audience)}`,
+    `/api/admin/announcements/recipient-count?audience=${encodeURIComponent(audience)}${ids.length ? `&ids=${ids.join(',')}` : ''}`,
     {},
     token,
   )

@@ -21,7 +21,8 @@ router.get('/recipient-count', async (req, res) => {
     const audience = ANNOUNCEMENT_AUDIENCES.includes(req.query.audience)
       ? req.query.audience
       : 'all'
-    const count = await countRecipients(audience)
+    const ids = String(req.query.ids || '').split(',').filter(Boolean)
+    const count = await countRecipients(audience, ids)
     res.json({ success: true, data: { audience, count } })
   } catch (error) {
     logger.error('Erreur comptage destinataires annonces', { error: error.message })

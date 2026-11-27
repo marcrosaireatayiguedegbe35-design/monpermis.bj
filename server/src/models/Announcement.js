@@ -13,14 +13,16 @@ const announcementSchema = new mongoose.Schema(
     },
     /**
      * Cible de diffusion / affichage :
-     * all | active (abonnés) | code | conduite
+     * all | active (abonnés) | code | conduite | selected (apprenants choisis)
      */
     audience: {
       type: String,
-      enum: ['all', 'active', 'code', 'conduite'],
+      enum: ['all', 'active', 'code', 'conduite', 'selected'],
       default: 'all',
       index: true,
     },
+    /** Apprenants ciblés quand audience = selected : eux seuls voient l’annonce. */
+    recipientIds: { type: [mongoose.Schema.Types.ObjectId], ref: 'User', default: [], index: true },
     active: { type: Boolean, default: false, index: true },
     /** Programmation : activation automatique (cron 15 min). */
     scheduledAt: { type: Date, default: null, index: true },
@@ -64,6 +66,7 @@ announcementSchema.methods.toAdminJSON = function toAdminJSON() {
     scheduledAt: this.scheduledAt || null,
     broadcastAt: this.broadcastAt,
     viewCount: this.viewCount || 0,
+    recipientIds: (this.recipientIds || []).map((x) => String(x)),
     imagePublicId: this.imagePublicId || '',
     updatedAt: this.updatedAt,
   }

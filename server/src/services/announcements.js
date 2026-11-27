@@ -6,7 +6,8 @@ import { logger } from '../utils/logger.js'
 import { sanitizeAnnouncementHtml, stripHtml, looksLikeHtml } from '../utils/sanitizeHtml.js'
 
 export const ANNOUNCEMENT_KINDS = ['info', 'promo', 'alerte']
-export const ANNOUNCEMENT_AUDIENCES = ['all', 'active', 'code', 'conduite']
+export const ANNOUNCEMENT_AUDIENCES = ['all', 'active', 'code', 'conduite', 'selected']
+export const RECIPIENTS_MAX = 200
 
 export const TITLE_MAX = 160
 export const BODY_PLAIN_MAX = 4000
@@ -17,6 +18,7 @@ export const BODY_PLAIN_MAX = 4000
  * - active   → abonnement/accès en cours (ou solde heures)
  * - code     → accès code
  * - conduite → accès vidéos conduite ou solde heures
+ * - selected → uniquement les apprenants choisis (recipientIds)
  */
 export function normalizeAudience(value) {
   return ANNOUNCEMENT_AUDIENCES.includes(value) ? value : 'all'
@@ -35,6 +37,17 @@ export function plainBodyPreview(body, max = 280) {
   const plain = stripHtml(body)
   if (plain.length <= max) return plain
   return `${plain.slice(0, max - 1)}…`
+}
+
+/** Liste d’ids apprenants valide (ObjectId), dédoublonnée et bornée. */
+export function parseRecipientIds(raw) {
+  const list = Array.isArray(raw) ? raw : []
+  const seen = new Set()
+  for (const item of list) {
+    const id = String(item ?? '').trim()
+    if (/^[a-f0-9]{24}$/i.test(id)) seen.add(id)
+  }
+  return [...seen].slice(0, RECIPIENTS_MAX)
 }
 
 function sanitizeCtaUrl(raw) {
@@ -74,6 +87,13 @@ export function parseAnnouncementInput(body, existing = {}) {
 
   const audienceSource = body?.audience !== undefined ? body.audience : existing.audience
   const audience = normalizeAudience(audienceSource)
+
+  const recipientSource =
+    body?.recipientIds !== undefined ? body.recipientIds : existing.recipientIds
+  const recipientIds = audience === 'selected' ? parseRecipientIds((recipientSource || []).map(String)) : []
+  if (audience === 'selected' && recipientIds.length === 0) {
+    return { error: 'Choisissez au moins un apprenant' }
+  }
 
   const active =
     body?.active === undefined
@@ -126,6 +146,7 @@ export function parseAnnouncementInput(body, existing = {}) {
       body: preparedBody,
       kind,
       audience,
+      recipientIds,
       active: resolvedActive,
       scheduledAt,
       expiresAt,
@@ -156,8 +177,14 @@ async function userIdsWithActiveAccess({ modules } = {}) {
 }
 
 /** IDs destinataires (comptes actifs uniquement). */
-export async function resolveRecipientIds(audience = 'all') {
+export async function resolveRecipientIds(audience = 'all', selectedIds = []) {
   const target = normalizeAudience(audience)
+
+  if (target === 'selected') {
+    const ids = parseRecipientIds((selectedIds || []).map(String))
+    if (ids.length === 0) return []
+    return User.find({ _id: { $in: ids }, isActive: true }).distinct('_id')
+  }
 
   if (target === 'all') {
     return User.find({ isActive: true }).distinct('_id')
@@ -190,16 +217,20 @@ export async function resolveRecipientIds(audience = 'all') {
   return User.find({ isActive: true }).distinct('_id')
 }
 
-export async function countRecipients(audience = 'all') {
-  const ids = await resolveRecipientIds(audience)
+export async function countRecipients(audience = 'all', selectedIds = []) {
+  const ids = await resolveRecipientIds(audience, selectedIds)
   return ids.length
 }
 
 /** L’utilisateur courant voit-il cette annonce (audience) ? */
-export async function userMatchesAudience(user, audience = 'all') {
+export async function userMatchesAudience(user, audience = 'all', recipientIds = []) {
   const target = normalizeAudience(audience)
   if (target === 'all') return true
   if (!user?._id) return false
+
+  if (target === 'selected') {
+    return (recipientIds || []).some((id) => String(id) === String(user._id))
+  }
 
   if (target === 'active') {
     if ((user.soldeHeures || 0) > 0) return true
@@ -242,7 +273,10 @@ export async function userMatchesAudience(user, audience = 'all') {
 export async function broadcastAnnouncement(announcement, { renotify = false } = {}) {
   if (!announcement?.active && !renotify) return 0
 
-  const userIds = await resolveRecipientIds(announcement.audience || 'all')
+  const userIds = await resolveRecipientIds(
+    announcement.audience || 'all',
+    announcement.recipientIds || [],
+  )
   const plain = plainBodyPreview(announcement.body, 240)
   const link = announcement._id
     ? `actualites/${String(announcement._id)}`
@@ -310,10 +344,14 @@ export async function runAnnouncementJobs() {
 }
 
 /** Filtre Mongo pour le fil public (annonces actives non expirées). */
-export function publicAnnouncementFilter(now = new Date()) {
+export function publicAnnouncementFilter(now = new Date(), userId = null) {
   return {
     active: true,
     $and: [
+      // Annonce ciblée : visible seulement par les apprenants choisis.
+      userId
+        ? { $or: [{ audience: { $ne: 'selected' } }, { recipientIds: userId }] }
+        : { audience: { $ne: 'selected' } },
       { $or: [{ scheduledAt: null }, { scheduledAt: { $lte: now } }] },
       { $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }] },
     ],

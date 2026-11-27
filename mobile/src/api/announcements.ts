@@ -5,7 +5,7 @@ export interface Announcement {
   title: string
   body: string
   kind: 'info' | 'promo' | 'alerte'
-  audience?: 'all' | 'active' | 'code' | 'conduite'
+  audience?: 'all' | 'active' | 'code' | 'conduite' | 'selected'
   ctaUrl?: string
   imageUrl?: string
   createdAt: string

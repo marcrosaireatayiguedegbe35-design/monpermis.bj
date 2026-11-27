@@ -29,6 +29,7 @@ import {
 } from '../api/announcements'
 import { PageSection } from '../components/model/PageSection'
 import { nf } from '../components/model/ModelCharts'
+import { fetchUsers, type AppUser } from '../api/users'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { PhonePage, PhoneSearch, PhoneSeg, PhoneSheet } from '../components/phone/PhoneKit'
 import { useIsPhone } from './MobileHome'
@@ -49,6 +50,7 @@ const AUDIENCE_LABELS: Record<AnnouncementAudience, string> = {
   active: 'Abonnements actifs',
   code: 'Accès Code',
   conduite: 'Accès Conduite',
+  selected: 'Apprenants choisis',
 }
 
 const BODY_MAX = 4000
@@ -96,6 +98,7 @@ function emptyForm() {
     ctaUrl: '',
     imageUrl: '',
     imagePublicId: '',
+    recipientIds: [] as string[],
   }
 }
 
@@ -116,8 +119,33 @@ export function AnnouncementsPage() {
   const [recipientCount, setRecipientCount] = useState<number | null>(null)
   const [confirmLoading, setConfirmLoading] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [learners, setLearners] = useState<AppUser[]>([])
+  const [learnerQuery, setLearnerQuery] = useState('')
   const isPhone = useIsPhone()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (form.audience !== 'selected' || learners.length > 0) return
+    const token = getAdminToken()
+    if (!token) return
+    fetchUsers(token)
+      .then(({ users }) => setLearners(users.filter((u) => u.isActive)))
+      .catch(() => undefined)
+  }, [form.audience, learners.length])
+
+  const learnerMatches = useMemo(() => {
+    const needle = learnerQuery.trim().toLowerCase()
+    if (!needle) return []
+    return learners
+      .filter((u) => !form.recipientIds.includes(u.id))
+      .filter((u) => `${u.firstName} ${u.lastName} ${u.email} ${u.phone}`.toLowerCase().includes(needle))
+      .slice(0, 6)
+  }, [learners, learnerQuery, form.recipientIds])
+
+  const learnerLabel = (id: string) => {
+    const u = learners.find((x) => x.id === id)
+    return u ? `${u.firstName} ${u.lastName}`.trim() : 'Apprenant'
+  }
 
   const plainLen = useMemo(() => stripHtml(form.body).length, [form.body])
 
@@ -168,6 +196,7 @@ export function AnnouncementsPage() {
       ctaUrl: a.ctaUrl || '',
       imageUrl: a.imageUrl || '',
       imagePublicId: a.imagePublicId || '',
+      recipientIds: a.recipientIds || [],
     })
     setError(null)
     setSuccess(null)
@@ -184,6 +213,7 @@ export function AnnouncementsPage() {
     ctaUrl: form.ctaUrl.trim(),
     imageUrl: form.imageUrl,
     imagePublicId: form.imagePublicId,
+    recipientIds: form.audience === 'selected' ? form.recipientIds : [],
     ...extra,
   })
 
@@ -195,6 +225,10 @@ export function AnnouncementsPage() {
     setError(null)
     if (!form.title.trim() && (mode === 'publish-new' || (mode === 'publish-existing' && !targetId))) {
       setError('Le titre est requis')
+      return
+    }
+    if (form.audience === 'selected' && form.recipientIds.length === 0 && mode !== 'renotify') {
+      setError('Choisissez au moins un apprenant')
       return
     }
     if (plainLen > BODY_MAX && mode !== 'renotify') {
@@ -212,7 +246,7 @@ export function AnnouncementsPage() {
     }
     try {
       const audience = audienceOverride || form.audience
-      const { count } = await fetchRecipientCount(audience, token)
+      const { count } = await fetchRecipientCount(audience, token, audience === 'selected' ? form.recipientIds : [])
       setRecipientCount(count)
     } catch {
       setRecipientCount(null)
@@ -346,6 +380,7 @@ export function AnnouncementsPage() {
         ctaUrl: announcement.ctaUrl || '',
         imageUrl: announcement.imageUrl || '',
         imagePublicId: announcement.imagePublicId || '',
+        recipientIds: announcement.recipientIds || [],
       })
       await openConfirm('publish-existing', announcement.id, announcement.audience || 'all')
       return
@@ -462,6 +497,56 @@ export function AnnouncementsPage() {
           </select>
         </div>
       </div>
+
+      {form.audience === 'selected' ? (
+        <div className="cx-fld">
+          <label htmlFor="ann-learner-search">Apprenants destinataires</label>
+          <input
+            id="ann-learner-search"
+            className="cx-input"
+            type="search"
+            value={learnerQuery}
+            onChange={(e) => setLearnerQuery(e.target.value)}
+            placeholder="Chercher un nom, un téléphone, un e-mail…"
+            autoComplete="off"
+          />
+          {learnerMatches.length > 0 ? (
+            <div className="ap-pick">
+              {learnerMatches.map((u) => (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => {
+                    setForm((p) => ({ ...p, recipientIds: [...p.recipientIds, u.id] }))
+                    setLearnerQuery('')
+                  }}
+                >
+                  <strong>{u.firstName} {u.lastName}</strong>
+                  <small>{u.phone || u.email}</small>
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <div className="ap-chips">
+            {form.recipientIds.length === 0 ? (
+              <p className="cx-hint">Aucun apprenant choisi. Eux seuls verront l’annonce.</p>
+            ) : (
+              form.recipientIds.map((id) => (
+                <span key={id} className="ap-chip">
+                  {learnerLabel(id)}
+                  <button
+                    type="button"
+                    aria-label="Retirer"
+                    onClick={() => setForm((p) => ({ ...p, recipientIds: p.recipientIds.filter((x) => x !== id) }))}
+                  >
+                    <X size={12} aria-hidden />
+                  </button>
+                </span>
+              ))
+            )}
+          </div>
+        </div>
+      ) : null}
 
       <div className="cx-fld">
         <label htmlFor="ann-body">Message</label>
@@ -732,7 +817,7 @@ export function AnnouncementsPage() {
                     <b>{a.title}</b>
                     <small>{preview ? (preview.length > 60 ? `${preview.slice(0, 59)}…` : preview) : KIND_LABELS[a.kind]}</small>
                     <small>
-                      {AUDIENCE_LABELS[a.audience || 'all']} · {a.viewCount ?? 0} vue{(a.viewCount ?? 0) > 1 ? 's' : ''}
+                      {a.audience === 'selected' ? `${(a.recipientIds || []).length} apprenant(s) ciblé(s)` : AUDIENCE_LABELS[a.audience || 'all']} · {a.viewCount ?? 0} vue{(a.viewCount ?? 0) > 1 ? 's' : ''}
                     </small>
                   </span>
                   <span className={`ap-tag${meta.label === 'Active' ? '' : meta.label === 'Programmée' ? ' is-warn' : ' is-red'}`}>{meta.label}</span>
