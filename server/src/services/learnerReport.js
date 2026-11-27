@@ -1,6 +1,6 @@
 import { Chapter } from '../models/Chapter.js'
 import { PracticeExam } from '../models/PracticeExam.js'
-import { RevisionCourse } from '../models/RevisionCourse.js'
+import { loadCodeNotions } from './codeCourseCatalog.js'
 import { PracticeExamAttempt } from '../models/PracticeExamAttempt.js'
 import { LearnerTrackEvent } from '../models/LearnerTrackEvent.js'
 import { User } from '../models/User.js'
@@ -34,7 +34,7 @@ export function attemptOutcome(attempt, now = Date.now()) {
 export async function loadLessonCatalog() {
   const [chapters, notions] = await Promise.all([
     Chapter.find({ order: { $gte: 1, $lte: STANDARD_REVISION_CHAPTER_COUNT } }).sort({ order: 1, createdAt: 1 }),
-    RevisionCourse.find({ published: true }).sort({ order: 1, createdAt: 1 }),
+    loadCodeNotions(),
   ])
   const chapterById = new Map(chapters.map((chapter) => [String(chapter._id), chapter]))
 
@@ -55,8 +55,11 @@ export async function loadLessonCatalog() {
   }
 
   for (const notion of notions) {
-    const chapter = notion.chapter ? chapterById.get(String(notion.chapter)) : null
-    if (chapter) push(chapter, notion)
+    // Cours du code : le chapitre 20 n'existe pas dans la base, on le décrit à partir de la notion.
+    const chapter =
+      chapterById.get(String(notion.chapter)) ||
+      { _id: notion.chapter, name: `Chapitre ${notion.chapterOrder}`, order: notion.chapterOrder }
+    push(chapter, notion)
   }
   for (const chapter of chapters) {
     for (const course of publishedCourses(chapter)) push(chapter, course)

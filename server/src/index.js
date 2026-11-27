@@ -185,7 +185,7 @@ app.use(
 app.get('/uploads/:kind/:filename', sendMediaAsset)
 // /content ne sert que des médias : les .txt (corrigés, transcripts), .md et .json
 // rangés à côté restent internes au dépôt.
-const PUBLIC_CONTENT_MEDIA = /\.(mp3|png|jpe?g|webp|gif|svg)$/i
+const PUBLIC_CONTENT_MEDIA = /\.(mp3|mp4|png|jpe?g|webp|gif|svg)$/i
 app.use('/content', (req, res, next) => {
   let pathname = req.path
   try {
@@ -221,6 +221,17 @@ app.head('/content/code-audio/chapitre-:chapter/:question.mp3', serveChapterAudi
 // Images des questions : idem (fichiers du code).
 app.get('/content/code-images/chapitre-:chapter/:image.png', serveChapterImage)
 app.head('/content/code-images/chapitre-:chapter/:image.png', serveChapterImage)
+// Vidéos des cours du code de la route : fichiers du code (server/content/code-cours), servies avec lecture par morceaux.
+app.use(
+  '/content/code-cours',
+  express.static(path.join(__dirname, '../content/code-cours'), {
+    index: false,
+    maxAge: '7d',
+    etag: true,
+    lastModified: true,
+    fallthrough: false,
+  }),
+)
 app.use(
   '/content/code-panneaux',
   express.static(path.join(__dirname, '../content/code-panneaux'), {
