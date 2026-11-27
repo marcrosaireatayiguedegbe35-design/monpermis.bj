@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react'
 import { Lock } from 'lucide-react'
-import { AuthShell, PillField } from '../components/AuthShell'
+import { PillField } from '../components/AuthShell'
+import { OnboardShell } from '../components/OnboardShell'
 import { isAuthError, useMoniteurAuth } from '../context/MoniteurAuthContext'
 
 /** Première connexion : le moniteur remplace le mot de passe provisoire donné par l'administration. */
@@ -40,9 +41,11 @@ export function ChangePasswordPage() {
   const hello = moniteur?.firstName && moniteur.firstName !== 'Nouveau' ? `, ${moniteur.firstName}` : ''
 
   return (
-    <AuthShell
+    <OnboardShell
       title="Choisis ton mot de passe"
       subtitle={`Bienvenue${hello} ! Le mot de passe reçu de l’administration est provisoire. Remplace-le par le tien pour accéder à ton espace.`}
+      chip="Première connexion · Mot de passe"
+      onSignOut={signOut}
     >
       <form onSubmit={handleSubmit} noValidate style={{ display: 'contents' }}>
         {error ? (
@@ -74,13 +77,10 @@ export function ChangePasswordPage() {
           value={confirm}
           onChange={setConfirm}
         />
-        <button type="submit" className="mp-btn" disabled={saving}>
+        <button type="submit" className="ob-btn" disabled={saving}>
           {saving ? 'Enregistrement…' : 'Enregistrer et continuer'}
         </button>
-        <button type="button" className="mp-btn mp-btn-ghost" onClick={signOut}>
-          Se déconnecter
-        </button>
       </form>
-    </AuthShell>
+    </OnboardShell>
   )
 }

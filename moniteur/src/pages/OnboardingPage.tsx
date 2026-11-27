@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Camera, Car, Clock3, ImagePlus } from 'lucide-react'
-import { AuthShell, PillField } from '../components/AuthShell'
+import { Camera, Car, ChevronRight, Clock3, ImagePlus } from 'lucide-react'
+import { PillField } from '../components/AuthShell'
+import { OnboardShell } from '../components/OnboardShell'
 import { fetchProfile, saveAvailability, updateProfile, uploadMoniteurPhoto, type WeeklySlot } from '../api/portal'
 import { getMoniteurToken, isAuthError, useMoniteurAuth } from '../context/MoniteurAuthContext'
 import { resolveMediaUrl } from '../utils/mediaUrl'
@@ -118,11 +119,24 @@ export function OnboardingPage() {
     ['Tes horaires', 'Choisis les jours et les heures où tu es disponible.'],
   ] as const
 
+  const fileInput = (
+    <input
+      type="file"
+      accept="image/*"
+      hidden
+      disabled={busy}
+      onChange={(e) => void onPhoto(e.target.files?.[0] ?? null)}
+    />
+  )
+
   return (
-    <AuthShell title={titles[step][0]} subtitle={titles[step][1]}>
-      <p className="mp-auth-sub" style={{ margin: 0, fontWeight: 600 }}>
-        Étape {step + 1} sur {STEPS.length} · {STEPS[step]}
-      </p>
+    <OnboardShell
+      title={titles[step][0]}
+      subtitle={titles[step][1]}
+      step={step + 1}
+      chip={`Étape ${step + 1} sur ${STEPS.length} • ${STEPS[step]}`}
+      onSignOut={step === 0 ? signOut : undefined}
+    >
       {error ? (
         <p className="mp-auth-error" role="alert">
           {error}
@@ -130,38 +144,30 @@ export function OnboardingPage() {
       ) : null}
 
       {step === 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-          <span
-            style={{
-              width: 140,
-              height: 140,
-              borderRadius: '50%',
-              overflow: 'hidden',
-              background: 'var(--mp-pill)',
-              display: 'grid',
-              placeItems: 'center',
-              color: '#7a8590',
-              boxShadow: '0 3px 8px rgba(10,31,51,.08)',
-            }}
-          >
-            {photoUrl ? (
-              <img src={resolveMediaUrl(photoUrl)} alt="Ta photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : (
-              <Camera size={44} aria-hidden />
-            )}
-          </span>
-          <label className="mp-btn" style={{ cursor: busy ? 'default' : 'pointer', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <ImagePlus size={20} aria-hidden />
-            {busy ? 'Import…' : photoUrl ? 'Changer la photo' : 'Choisir une photo'}
-            <input
-              type="file"
-              accept="image/*"
-              hidden
-              disabled={busy}
-              onChange={(e) => void onPhoto(e.target.files?.[0] ?? null)}
-            />
+        <>
+          <label className="ob-photo" aria-label="Choisir une photo">
+            <span className={`ob-photo-in${photoUrl ? ' has' : ''}`}>
+              {photoUrl ? (
+                <img src={resolveMediaUrl(photoUrl)} alt="Ta photo" />
+              ) : (
+                <>
+                  <Camera size={46} aria-hidden />
+                  Choisir une photo
+                </>
+              )}
+            </span>
+            {fileInput}
           </label>
-        </div>
+          <label className="ob-btn" style={{ cursor: busy ? 'default' : 'pointer' }}>
+            <ImagePlus size={22} aria-hidden />
+            {busy ? 'Import…' : photoUrl ? 'Changer la photo' : 'Choisir une photo'}
+            {fileInput}
+          </label>
+          <button type="button" className="ob-btn-line" disabled={busy} onClick={() => void next()}>
+            Continuer
+            <ChevronRight size={22} aria-hidden />
+          </button>
+        </>
       ) : null}
 
       {step === 1 ? (
@@ -184,52 +190,38 @@ export function OnboardingPage() {
       ) : null}
 
       {step === 2 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="ob-days">
           {days.map((d) => (
-            <div
-              key={d.dayOfWeek}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                flexWrap: 'wrap',
-                padding: '8px 14px',
-                borderRadius: 18,
-                background: 'var(--mp-pill)',
-                boxShadow: '0 3px 8px rgba(10,31,51,.06)',
-              }}
-            >
-              <label className="mp-check" style={{ flex: '1 1 110px' }}>
+            <div key={d.dayOfWeek} className={`ob-day${d.enabled ? ' on' : ''}`}>
+              <label className="mp-check">
                 <input type="checkbox" checked={d.enabled} onChange={(e) => patchDay(d.dayOfWeek, { enabled: e.target.checked })} />
                 {d.label}
               </label>
               {d.enabled ? (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="ob-day-time">
                   <Clock3 size={16} aria-hidden />
                   <input type="time" value={d.start} aria-label={`${d.label} — début`} onChange={(e) => patchDay(d.dayOfWeek, { start: e.target.value })} />
                   <span>→</span>
                   <input type="time" value={d.end} aria-label={`${d.label} — fin`} onChange={(e) => patchDay(d.dayOfWeek, { end: e.target.value })} />
                 </span>
               ) : (
-                <span style={{ color: 'var(--mp-muted)', fontSize: 13 }}>Repos</span>
+                <span className="ob-day-off">Repos</span>
               )}
             </div>
           ))}
         </div>
       ) : null}
 
-      <button type="button" className="mp-btn" disabled={busy} onClick={() => void next()}>
-        {busy && step !== 0 ? 'Enregistrement…' : step === STEPS.length - 1 ? 'Terminer' : 'Continuer'}
-      </button>
       {step > 0 ? (
-        <button type="button" className="mp-btn mp-btn-ghost" disabled={busy} onClick={() => setStep(step - 1)}>
-          Retour
-        </button>
-      ) : (
-        <button type="button" className="mp-btn mp-btn-ghost" onClick={signOut}>
-          Se déconnecter
-        </button>
-      )}
-    </AuthShell>
+        <>
+          <button type="button" className="ob-btn" disabled={busy} onClick={() => void next()}>
+            {busy ? 'Enregistrement…' : step === STEPS.length - 1 ? 'Terminer' : 'Continuer'}
+          </button>
+          <button type="button" className="ob-btn-line" disabled={busy} onClick={() => setStep(step - 1)}>
+            Retour
+          </button>
+        </>
+      ) : null}
+    </OnboardShell>
   )
 }
