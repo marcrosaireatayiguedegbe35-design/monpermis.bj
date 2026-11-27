@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { CalendarCheck, Car, Check, ChevronRight, Clock, CreditCard, House, Info, Timer, User, Wallet } from 'lucide-react-native'
@@ -9,6 +9,8 @@ import { FlowHeader } from '../../components/FlowHeader'
 import { useUnreadNotifications } from '../../hooks/useUnreadNotifications'
 import type { RootStackParamList } from '../../navigation/types'
 import { dark, fonts, shadows } from '../../theme'
+import { fetchMyReservations } from '../../api/reservations'
+import { MeetingPointCard } from '../../components/MeetingPointCard'
 import { safeOpenUrl } from '../../utils/safeOpenUrl'
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ReservationConfirm'>
@@ -51,6 +53,22 @@ export function ReservationConfirmScreen() {
       'Séance de conduite — Monpermis.bj',
     )}&dates=${start}/${end}`
   }, [date, startTime, endTime])
+
+  const [meeting, setMeeting] = useState<{ url: string; note: string } | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    void fetchMyReservations()
+      .then((data) => {
+        const found = data.reservations.find((item) => String(item.id) === String(route.params.reservationId))
+        if (!cancelled && found?.moniteur && (found.moniteur.meetingPointUrl || found.moniteur.meetingPointNote)) {
+          setMeeting({ url: found.moniteur.meetingPointUrl || '', note: found.moniteur.meetingPointNote || '' })
+        }
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [route.params.reservationId])
 
   const unread = useUnreadNotifications(true)
   const rows: { key: string; label: string; value: string; Icon: typeof Car; green?: boolean }[] = [
@@ -124,6 +142,8 @@ export function ReservationConfirmScreen() {
               ))}
             </View>
           </View>
+
+          {meeting ? <MeetingPointCard url={meeting.url} note={meeting.note} /> : null}
 
           <View style={styles.info}>
             <Info size={18} color={dark.green} />

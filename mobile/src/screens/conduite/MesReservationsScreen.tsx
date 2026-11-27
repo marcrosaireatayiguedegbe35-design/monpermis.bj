@@ -1,3 +1,4 @@
+import { MeetingPointCard } from '../../components/MeetingPointCard'
 import { useCallback, useState } from 'react'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
@@ -186,6 +187,7 @@ export function MesReservationsScreen() {
                     </Text>
                     <Text style={styles.cardLine}>{item.moniteur?.fullName || 'Moniteur'}</Text>
                   </Pressable>
+                  <MeetingPointCard url={item.moniteur?.meetingPointUrl} note={item.moniteur?.meetingPointNote} />
                   {item.canCancel ? (
                     <Pressable
                       style={styles.cancelBtn}
@@ -218,6 +220,7 @@ export function MesReservationsScreen() {
                 <Text style={styles.cardLine}>
                   {item.moniteur?.fullName || 'Moniteur'} · {statusLabel(item)}
                 </Text>
+                <MeetingPointCard url={item.moniteur?.meetingPointUrl} note={item.moniteur?.meetingPointNote} />
                 {item.canCancel ? (
                   <Pressable
                     style={styles.cancelBtn}

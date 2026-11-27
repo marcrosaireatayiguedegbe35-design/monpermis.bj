@@ -162,7 +162,7 @@ function asId(value) {
 
 async function hydrateReservation(reservation) {
   await reservation.populate([
-    { path: 'moniteurId', select: 'firstName lastName vehicleBrand vehiclePhotoUrl photoUrl' },
+    { path: 'moniteurId', select: 'firstName lastName vehicleBrand vehiclePhotoUrl photoUrl meetingPointUrl meetingPointNote' },
     { path: 'creneauId' },
   ])
   const moniteur = reservation.moniteurId
@@ -173,6 +173,8 @@ async function hydrateReservation(reservation) {
           id: asId(moniteur._id || moniteur),
           fullName: `${moniteur.firstName} ${moniteur.lastName}`.trim(),
           vehicleBrand: moniteur.vehicleBrand || '',
+          meetingPointUrl: moniteur.meetingPointUrl || '',
+          meetingPointNote: moniteur.meetingPointNote || '',
           vehiclePhotoUrl: moniteur.vehiclePhotoUrl || '',
           photoUrl: moniteur.photoUrl || '',
         }

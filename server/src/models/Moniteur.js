@@ -50,6 +50,9 @@ const moniteurSchema = new mongoose.Schema(
     defaultPriceFcfa: { type: Number, default: 5000 },
     /** Marque du véhicule d'apprentissage (ex. Toyota Corolla). */
     vehicleBrand: { type: String, default: '', trim: true },
+    /** Lieu de séance : lien Google Maps + description, affichés à l'apprenant pour qu'il s'y rende. */
+    meetingPointUrl: { type: String, default: '', trim: true, maxlength: 600 },
+    meetingPointNote: { type: String, default: '', trim: true, maxlength: 300 },
     /** Photo du véhicule. */
     vehiclePhotoUrl: { type: String, default: '' },
     /** Photo du moniteur lui-même (portrait), distincte de la photo du véhicule. */
@@ -129,6 +132,8 @@ moniteurSchema.methods.toJSONSafe = function toJSONSafe() {
     photoUrl: this.photoUrl || '',
     city: this.city || '',
     bio: this.bio || '',
+    meetingPointUrl: this.meetingPointUrl || '',
+    meetingPointNote: this.meetingPointNote || '',
     photos: this.photos || [],
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
@@ -172,6 +177,8 @@ moniteurSchema.methods.toPublicProfileJSON = function toPublicProfileJSON() {
     ...this.toPublicListJSON(),
     specialties: this.specialties || [],
     bio: this.bio || '',
+    meetingPointUrl: this.meetingPointUrl || '',
+    meetingPointNote: this.meetingPointNote || '',
     photos: this.photos || [],
   }
 }

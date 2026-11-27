@@ -1,3 +1,4 @@
+import { MeetingPointCard } from '../../components/MeetingPointCard'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
@@ -630,6 +631,7 @@ export function ReservationFlowScreen() {
                     <Text style={styles.pBio}>
                       {profile.bio?.trim() || 'Ce moniteur n’a pas encore ajouté de présentation.'}
                     </Text>
+                    <MeetingPointCard url={profile.meetingPointUrl} note={profile.meetingPointNote} />
                     <View style={styles.pFactsRow}>
                       <View style={styles.pChip}>
                         <MapPin size={15} color="#0A1E55" />

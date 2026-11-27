@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Camera, Car, ChevronRight, Clock3, History, ImagePlus, Images, Lock, LogOut, Trash2, UserRound } from 'lucide-react'
+import { Camera, Car, ChevronRight, MapPin, Clock3, History, ImagePlus, Images, Lock, LogOut, Trash2, UserRound } from 'lucide-react'
 import { fetchDashboard, fetchProfile, updateProfile, uploadMoniteurPhoto, type DashboardData, type MoniteurProfile } from '../api/portal'
 import { getMoniteurToken, isAuthError, useMoniteurAuth } from '../context/MoniteurAuthContext'
 import { resolveMediaUrl } from '../utils/mediaUrl'
@@ -35,7 +35,7 @@ function UploadButton({
   )
 }
 
-type Tab = 'infos' | 'vehicle' | 'photos' | 'security'
+type Tab = 'infos' | 'vehicle' | 'meeting' | 'photos' | 'security'
 
 export function ProfilPage() {
   const { moniteur, signOut } = useMoniteurAuth()
@@ -46,6 +46,8 @@ export function ProfilPage() {
   const [city, setCity] = useState('')
   const [bio, setBio] = useState('')
   const [vehicleBrand, setVehicleBrand] = useState('')
+  const [meetingUrl, setMeetingUrl] = useState('')
+  const [meetingNote, setMeetingNote] = useState('')
   const [vehicleType, setVehicleType] = useState('voiture')
   const [specialties, setSpecialties] = useState('')
   const [photoUrl, setPhotoUrl] = useState('')
@@ -71,6 +73,8 @@ export function ProfilPage() {
     setCity(data.city || '')
     setBio(data.bio || '')
     setVehicleBrand(data.vehicleBrand || '')
+    setMeetingUrl(data.meetingPointUrl || '')
+    setMeetingNote(data.meetingPointNote || '')
     setVehicleType((data.vehicleTypes && data.vehicleTypes[0]) || 'voiture')
     setSpecialties((data.specialties || []).join(', '))
     setPhotoUrl(data.photoUrl || '')
@@ -85,6 +89,8 @@ export function ProfilPage() {
         data.city || '',
         data.bio || '',
         data.vehicleBrand || '',
+        data.meetingPointUrl || '',
+        data.meetingPointNote || '',
         (data.vehicleTypes && data.vehicleTypes[0]) || 'voiture',
         (data.specialties || []).join(', '),
         data.photoUrl || '',
@@ -157,6 +163,8 @@ export function ProfilPage() {
         bio: bio.trim(),
         photoUrl,
         vehicleBrand: vehicleBrand.trim(),
+        meetingPointUrl: meetingUrl.trim(),
+        meetingPointNote: meetingNote.trim(),
         vehiclePhotoUrl,
         vehicleTypes: [vehicleType.trim().toLowerCase() || 'voiture'],
         specialties: specialties
@@ -185,7 +193,7 @@ export function ProfilPage() {
   const displayName = firstName || lastName ? `${firstName} ${lastName}`.trim() : fullName
   const dirty =
     Boolean(profile) &&
-    (JSON.stringify([firstName, lastName, phone, city, bio, vehicleBrand, vehicleType, specialties, photoUrl, vehiclePhotoUrl, photos]) !== savedSnap ||
+    (JSON.stringify([firstName, lastName, phone, city, bio, vehicleBrand, meetingUrl, meetingNote, vehicleType, specialties, photoUrl, vehiclePhotoUrl, photos]) !== savedSnap ||
       Boolean(newPassword))
 
   // Complétude du profil : ce que les apprenants voient en priorité.
@@ -325,6 +333,45 @@ export function ProfilPage() {
                 )}
               </div>
             ) : null}
+              <button type="button" className={`mp-pf-row${tab === 'meeting' ? ' is-open' : ''}`} aria-expanded={tab === 'meeting'} onClick={() => setTab(tab === 'meeting' ? null : 'meeting')}>
+                <span className="mp-pf-row-ico"><MapPin aria-hidden /></span>
+                <span className="mp-pf-row-txt"><b>Lieu de séance</b><small>{meetingUrl ? meetingNote || 'Lien Google Maps enregistré' : 'Lien Google Maps à renseigner'}</small></span>
+                <ChevronRight className="mp-pf-row-chev" aria-hidden />
+              </button>
+              {tab === 'meeting' ? (
+                <div className="mp-av-card">
+                  <label className="mp-av-field">
+                    Lien Google Maps du lieu
+                    <input
+                      type="url"
+                      inputMode="url"
+                      value={meetingUrl}
+                      onChange={(e) => setMeetingUrl(e.target.value)}
+                      placeholder="https://maps.app.goo.gl/…"
+                      autoComplete="off"
+                    />
+                  </label>
+                  <p className="mp-pf-hint">Dans Google Maps, ouvrez le lieu, touchez « Partager » puis « Copier le lien », et collez-le ici.</p>
+                  <label className="mp-av-field">
+                    Description
+                    <textarea
+                      value={meetingNote}
+                      onChange={(e) => setMeetingNote(e.target.value)}
+                      rows={3}
+                      maxLength={300}
+                      placeholder="ex. Devant la station Total de Cadjèhoun, je vous attends à côté du portail bleu."
+                    />
+                    <span className="mp-pf-count">{meetingNote.length} / 300</span>
+                  </label>
+                  {meetingUrl.trim() ? (
+                    <a className="mp-pf-maplink" href={meetingUrl.trim()} target="_blank" rel="noopener noreferrer">
+                      <MapPin aria-hidden />
+                      Vérifier le lien dans Google Maps
+                    </a>
+                  ) : null}
+                  <p className="mp-pf-hint">Les apprenants verront cette description et un bouton pour ouvrir Google Maps.</p>
+                </div>
+              ) : null}
               <button type="button" className={`mp-pf-row${tab === 'photos' ? ' is-open' : ''}`} aria-expanded={tab === 'photos'} onClick={() => setTab(tab === 'photos' ? null : 'photos')}>
                 <span className="mp-pf-row-ico"><Images aria-hidden /></span>
                 <span className="mp-pf-row-txt"><b>Mes photos</b><small>{photos.length} photo{photos.length > 1 ? 's' : ''} dans la galerie</small></span>

@@ -61,6 +61,8 @@ export interface ReservationItem {
     phone?: string
     vehicleBrand?: string
     vehiclePhotoUrl?: string
+    meetingPointUrl?: string
+    meetingPointNote?: string
   } | null
   creneau: {
     id: string
@@ -85,6 +87,8 @@ export interface MoniteurPublic {
 export interface MoniteurProfile extends MoniteurPublic {
   specialties: string[]
   bio: string
+  meetingPointUrl?: string
+  meetingPointNote?: string
   photos: string[]
 }
 

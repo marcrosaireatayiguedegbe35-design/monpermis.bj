@@ -5,6 +5,7 @@ import { Payment } from '../models/Payment.js'
 import { Reservation } from '../models/Reservation.js'
 import { MoniteurPayout } from '../models/MoniteurPayout.js'
 import { removeSubscription, saveSubscription } from '../services/push.js'
+import { sanitizeMapsUrl } from '../utils/mapsUrl.js'
 import { User } from '../models/User.js'
 import {
   Moniteur,
@@ -57,6 +58,8 @@ function profilePayload(m) {
     bio: m.bio || '',
     photoUrl: m.photoUrl || '',
     vehicleBrand: m.vehicleBrand || '',
+    meetingPointUrl: m.meetingPointUrl || '',
+    meetingPointNote: m.meetingPointNote || '',
     vehiclePhotoUrl: m.vehiclePhotoUrl || '',
     vehicleTypes: m.vehicleTypes || [],
     specialties: m.specialties || [],
@@ -658,6 +661,20 @@ router.patch('/profile', async (req, res) => {
     if (req.body.photoUrl !== undefined) m.photoUrl = sanitizePublicUrl(req.body.photoUrl)
     if (req.body.vehicleBrand !== undefined) {
       m.vehicleBrand = String(req.body.vehicleBrand || '').trim()
+    }
+    if (req.body.meetingPointUrl !== undefined) {
+      const raw = String(req.body.meetingPointUrl || '').trim()
+      const url = sanitizeMapsUrl(raw)
+      if (raw && !url) {
+        return res.status(400).json({
+          success: false,
+          error: 'Lien Google Maps invalide. Ouvrez Google Maps, touchez « Partager » puis « Copier le lien ».',
+        })
+      }
+      m.meetingPointUrl = url
+    }
+    if (req.body.meetingPointNote !== undefined) {
+      m.meetingPointNote = String(req.body.meetingPointNote || '').trim().slice(0, 300)
     }
     if (req.body.vehiclePhotoUrl !== undefined) {
       m.vehiclePhotoUrl = sanitizePublicUrl(req.body.vehiclePhotoUrl)

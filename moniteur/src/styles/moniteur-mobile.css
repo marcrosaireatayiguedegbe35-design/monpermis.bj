@@ -691,3 +691,7 @@ html,body{background:#f1f4f2}
 .mp-push-yes{width:100%;min-height:50px;margin-top:6px;border:0;border-radius:14px;background:#0B7F47;color:#fff;font:700 15px var(--mp-body);cursor:pointer}
 .mp-push-yes:disabled{opacity:.65}
 .mp-push-later{min-height:40px;border:0;background:none;color:#595959;font:600 14.5px var(--mp-body);text-decoration:underline;cursor:pointer}
+
+/* Lieu de séance */
+.mp-pf-maplink{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;min-height:44px;padding:0 16px;border-radius:999px;background:#EAF6EF;color:#0B7F47;font:700 14px var(--mp-body);text-decoration:none}
+.mp-pf-maplink svg{width:18px;height:18px}

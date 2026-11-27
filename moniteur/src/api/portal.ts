@@ -116,6 +116,8 @@ export interface MoniteurProfile {
   bio: string
   photoUrl: string
   vehicleBrand: string
+  meetingPointUrl?: string
+  meetingPointNote?: string
   vehiclePhotoUrl: string
   vehicleTypes: string[]
   specialties: string[]
@@ -253,6 +255,8 @@ export function updateProfile(
     bio: string
     photoUrl: string
     vehicleBrand: string
+    meetingPointUrl: string
+    meetingPointNote: string
     vehiclePhotoUrl: string
     vehicleTypes: string[]
     specialties: string[]
