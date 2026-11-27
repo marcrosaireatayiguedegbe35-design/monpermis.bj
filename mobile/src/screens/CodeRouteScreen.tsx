@@ -181,8 +181,8 @@ export function CodeRouteScreen() {
       },
       {
         id: 'CodeCours',
-        label: 'Cours',
-        subtitle: 'Accède à tous les cours et modules expliqués en détail.',
+        label: 'Chapitres',
+        subtitle: 'Accède à tous les chapitres expliqués en détail.',
         image: require('../../assets/code-route/cards/ecodepermis.jpg'),
         tone: 'navy',
         Icon: GraduationCap,

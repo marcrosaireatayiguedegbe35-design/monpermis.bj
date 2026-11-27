@@ -140,14 +140,14 @@ export function CourseDetailScreen() {
 
   if (loading || !user) return <ScreenLoader />
 
-  // Un chapitre = un cours : « Cours 3 ». Le numéro vient de la liste.
+  // Un chapitre = un cours : « Chapitre 3 ». Le numéro vient de la liste.
   const courseNumber = courseIndex >= 0 ? courseIndex + 1 : 1
   const unlockLabel =
     secondsRemaining > 0 ? `Encore ${formatSeconds(secondsRemaining)} avant de valider` : ''
 
   const header = (
     <ReserveHeader
-      title={`Cours ${courseNumber}`}
+      title={`Chapitre ${courseNumber}`}
       unread={unreadCount}
       onBack={() => navigation.goBack()}
       onBell={() => navigation.navigate('Notifications')}
@@ -161,8 +161,8 @@ export function CourseDetailScreen() {
           {header}
           <EmptyState
             icon={<Lock size={30} color={dark.textMuted} />}
-            title="Cours verrouillé"
-            message="Terminez le cours précédent pour accéder à celui-ci."
+            title="Chapitre verrouillé"
+            message="Terminez le chapitre précédent pour accéder à celui-ci."
           />
           <View style={styles.footerPad}>
             <LegalFooter />
@@ -176,7 +176,7 @@ export function CourseDetailScreen() {
     if (!nextCourse) return
     navigation.replace('CourseDetail', {
       chapterId,
-      chapterName: `Cours ${courseNumber + 1}`,
+      chapterName: `Chapitre ${courseNumber + 1}`,
       course: nextCourse,
       courses,
     })
@@ -209,7 +209,7 @@ export function CourseDetailScreen() {
             <EmptyState
               icon={<BookOpen size={30} color={RES.green} />}
               title="Contenu à venir"
-              message="Ce cours ne contient pas encore de contenu publié."
+              message="Ce chapitre ne contient pas encore de contenu publié."
             />
           ) : null}
 
@@ -237,12 +237,12 @@ export function CourseDetailScreen() {
           <View style={styles.bottomBar}>
             {isCompleted ? (
               nextCourse ? (
-                <ReserveButton label="Cours suivant" onPress={goNext} />
+                <ReserveButton label="Chapitre suivant" onPress={goNext} />
               ) : isStandalone ? (
-                <ReserveOutlineButton label="Retour aux cours" onPress={() => navigation.navigate('CodeCours')} />
+                <ReserveOutlineButton label="Retour aux chapitres" onPress={() => navigation.navigate('CodeCours')} />
               ) : (
                 <ReserveButton
-                  label={allCompleted ? 'Accéder aux sujets test' : 'Terminez tous les cours pour le test'}
+                  label={allCompleted ? 'Accéder aux sujets test' : 'Terminez tous les chapitres pour le test'}
                   disabled={!allCompleted}
                   icon={<ClipboardList size={20} color="#FFFFFF" />}
                   arrow={false}
@@ -253,7 +253,7 @@ export function CourseDetailScreen() {
               <>
                 {unlockLabel ? <Text style={styles.hint}>{unlockLabel}</Text> : null}
                 <ReserveButton
-                  label={saving ? 'Enregistrement…' : 'J’ai terminé ce cours'}
+                  label={saving ? 'Enregistrement…' : 'J’ai terminé ce chapitre'}
                   disabled={saving || secondsRemaining > 0}
                   arrow={false}
                   icon={<Check size={20} color="#FFFFFF" strokeWidth={3} />}

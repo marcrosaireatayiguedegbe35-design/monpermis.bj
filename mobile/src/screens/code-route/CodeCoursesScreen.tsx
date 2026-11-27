@@ -66,7 +66,7 @@ export function CodeCoursesScreen() {
     const course = courses[index]
     navigation.navigate('CourseDetail', {
       chapterId: STANDALONE_CHAPTER,
-      chapterName: `Cours ${index + 1}`,
+      chapterName: `Chapitre ${index + 1}`,
       course: { id: course.id, title: course.title, modules: course.modules },
       courses: courses.map((item) => ({ id: item.id, title: item.title, modules: item.modules })),
     })
@@ -76,7 +76,7 @@ export function CodeCoursesScreen() {
     <View style={styles.root}>
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <ReserveHeader
-          title="Les cours"
+          title="Les chapitres"
           subtitle="Code de la route"
           unread={unreadCount}
           onBack={() => navigation.navigate('CodeRoute')}
@@ -99,8 +99,8 @@ export function CodeCoursesScreen() {
 
           {!progressLoading && courses.length === 0 ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>Aucun cours</Text>
-              <Text style={styles.emptyText}>Aucun cours publié pour le moment.</Text>
+              <Text style={styles.emptyTitle}>Aucun chapitre</Text>
+              <Text style={styles.emptyText}>Aucun chapitre publié pour le moment.</Text>
             </View>
           ) : null}
 
@@ -112,7 +112,7 @@ export function CodeCoursesScreen() {
                 style={({ pressed }) => [styles.row, done && styles.rowDone, pressed && { opacity: 0.85 }]}
                 onPress={() => open(index)}
                 accessibilityRole="button"
-                accessibilityLabel={`Cours ${index + 1} : ${course.title}`}
+                accessibilityLabel={`Chapitre ${index + 1} : ${course.title}`}
               >
                 <View style={[styles.num, done && styles.numDone]}>
                   {done ? (
