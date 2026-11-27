@@ -1,5 +1,5 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, PauseCircle, RefreshCw, Search, Trash2, UserPlus, Users } from 'lucide-react'
+import { CheckCircle2, PauseCircle, Plus, RefreshCw, Search, Trash2, UserPlus, Users } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import {
   createUser,
@@ -9,6 +9,8 @@ import {
   type AppUser,
 } from '../api/users'
 import { PublishSwitch } from '../components/PublishSwitch'
+import { PhonePage, PhoneSearch, PhoneSeg, PhoneSheet } from '../components/phone/PhoneKit'
+import { useIsPhone } from './MobileHome'
 import { PageSection } from '../components/model/PageSection'
 import { nf } from '../components/model/ModelCharts'
 import { getAdminToken, isAuthError } from '../context/AdminAuthContext'
@@ -42,6 +44,9 @@ export function UsersPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [query, setQuery] = useState(() => searchParams.get('q') || '')
+  const isPhone = useIsPhone()
+  const [filter, setFilter] = useState<'all' | 'active' | 'suspended'>('all')
+  const [selected, setSelected] = useState<AppUser | null>(null)
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -201,6 +206,137 @@ export function UsersPage() {
     }
   }
 
+  const phoneUsers = filteredUsers.filter((u) =>
+    filter === 'all' ? true : filter === 'active' ? u.isActive : !u.isActive,
+  )
+  const selectedUser = selected ? users.find((u) => u.id === selected.id) || null : null
+
+  const createDrawer = (
+    <Drawer
+      open={createOpen}
+      title="Créer un compte apprenant"
+      subtitle="Le compte sera actif immédiatement après création."
+      onClose={closeCreateDrawer}
+      footer={
+        <>
+          <button type="button" className="cx-btn" onClick={closeCreateDrawer}>
+            Annuler
+          </button>
+          <button type="submit" form="create-user-form" className="cx-btn cx-btn-fill" disabled={creating}>
+            <UserPlus aria-hidden />
+            {creating ? 'Création…' : 'Créer le compte'}
+          </button>
+        </>
+      }
+    >
+      <form id="create-user-form" onSubmit={handleCreate} className="cx-form">
+        <div className="cx-form-grid">
+          <div className="cx-fld">
+            <label htmlFor="user-firstName">Prénom</label>
+            <input id="user-firstName" className="cx-input" type="text" required minLength={2} value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="ex. Adjobi" />
+          </div>
+          <div className="cx-fld">
+            <label htmlFor="user-lastName">Nom</label>
+            <input id="user-lastName" className="cx-input" type="text" required minLength={2} value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="ex. Kossou" />
+          </div>
+        </div>
+        <div className="cx-fld">
+          <label htmlFor="user-email">E-mail</label>
+          <input id="user-email" className="cx-input" type="text" inputMode="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="exemple@gmail.com" />
+        </div>
+        <div className="cx-fld">
+          <label htmlFor="user-phone">Téléphone</label>
+          <input id="user-phone" className="cx-input" type="tel" inputMode="numeric" value={phone} onChange={(e) => setPhone(normalizePhone(e.target.value))} placeholder={PHONE_PLACEHOLDER} />
+        </div>
+        <div className="cx-fld">
+          <label htmlFor="user-password">Mot de passe</label>
+          <input id="user-password" className="cx-input" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+        </div>
+      </form>
+    </Drawer>
+  )
+
+  if (isPhone) {
+    return (
+      <PhonePage
+        title="Apprenants"
+        action={
+          <button type="button" className="ap-add" onClick={() => setCreateOpen(true)} aria-label="Nouvel apprenant">
+            <Plus aria-hidden />
+          </button>
+        }
+      >
+        {error ? <p className="cx-note cx-note-err" role="alert">{error}</p> : null}
+        {success ? <p className="cx-note cx-note-ok" role="status">{success}</p> : null}
+        <PhoneSearch id="users-search-m" value={query} onChange={setQuery} placeholder="Nom, e-mail, téléphone" />
+        <PhoneSeg
+          value={filter}
+          onChange={setFilter}
+          options={[
+            { id: 'all', label: `Tous ${users.length}` },
+            { id: 'active', label: `Actifs ${activeCount}` },
+            { id: 'suspended', label: `Suspendus ${suspendedCount}` },
+          ]}
+        />
+        <div className="ap-list">
+          {loading && users.length === 0 ? (
+            <p className="ap-empty">Chargement…</p>
+          ) : phoneUsers.length === 0 ? (
+            <p className="ap-empty">{query.trim() ? 'Aucun résultat.' : 'Aucun apprenant.'}</p>
+          ) : (
+            phoneUsers.map((user) => (
+              <button key={user.id} type="button" className="ap-row" onClick={() => setSelected(user)}>
+                <span className={`ap-av${user.isActive ? '' : ' is-bad'}`}>{userInitials(user)}</span>
+                <span className="ap-row-t">
+                  <b>
+                    {user.firstName} {user.lastName}
+                  </b>
+                  <small>{user.phone || user.email || 'Apprenant'}</small>
+                </span>
+                <span className={`ap-tag${user.isActive ? '' : ' is-red'}`}>{user.isActive ? 'Actif' : 'Suspendu'}</span>
+              </button>
+            ))
+          )}
+        </div>
+        <PhoneSheet
+          open={Boolean(selectedUser)}
+          title={selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : ''}
+          onClose={() => setSelected(null)}
+        >
+          {selectedUser ? (
+            <>
+              <div className="ap-count">
+                {selectedUser.phone || '—'} · {selectedUser.email || 'sans e-mail'} · inscrit le {formatDate(selectedUser.createdAt)}
+              </div>
+              <button
+                type="button"
+                className={`ap-sheet-act${selectedUser.isActive ? '' : ' is-fill'}`}
+                disabled={busyId === selectedUser.id}
+                onClick={() => void handleSetActive(selectedUser, !selectedUser.isActive)}
+              >
+                {selectedUser.isActive ? <PauseCircle aria-hidden /> : <CheckCircle2 aria-hidden />}
+                {selectedUser.isActive ? 'Suspendre le compte' : 'Réactiver le compte'}
+              </button>
+              <button
+                type="button"
+                className="ap-sheet-act is-danger"
+                disabled={busyId === selectedUser.id}
+                onClick={() => {
+                  setSelected(null)
+                  void handleDelete(selectedUser)
+                }}
+              >
+                <Trash2 aria-hidden />
+                Supprimer le compte
+              </button>
+            </>
+          ) : null}
+        </PhoneSheet>
+        {createDrawer}
+      </PhonePage>
+    )
+  }
+
   const activePct = users.length ? Math.round((activeCount / users.length) * 100) : 0
 
   return (
@@ -353,48 +489,7 @@ export function UsersPage() {
         )}
       </section>
 
-      <Drawer
-        open={createOpen}
-        title="Créer un compte apprenant"
-        subtitle="Le compte sera actif immédiatement après création."
-        onClose={closeCreateDrawer}
-        footer={
-          <>
-            <button type="button" className="cx-btn" onClick={closeCreateDrawer}>
-              Annuler
-            </button>
-            <button type="submit" form="create-user-form" className="cx-btn cx-btn-fill" disabled={creating}>
-              <UserPlus aria-hidden />
-              {creating ? 'Création…' : 'Créer le compte'}
-            </button>
-          </>
-        }
-      >
-        <form id="create-user-form" onSubmit={handleCreate} className="cx-form">
-          <div className="cx-form-grid">
-            <div className="cx-fld">
-              <label htmlFor="user-firstName">Prénom</label>
-              <input id="user-firstName" className="cx-input" type="text" required minLength={2} value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="ex. Adjobi" />
-            </div>
-            <div className="cx-fld">
-              <label htmlFor="user-lastName">Nom</label>
-              <input id="user-lastName" className="cx-input" type="text" required minLength={2} value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="ex. Kossou" />
-            </div>
-          </div>
-          <div className="cx-fld">
-            <label htmlFor="user-email">E-mail</label>
-            <input id="user-email" className="cx-input" type="text" inputMode="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="exemple@gmail.com" />
-          </div>
-          <div className="cx-fld">
-            <label htmlFor="user-phone">Téléphone</label>
-            <input id="user-phone" className="cx-input" type="tel" inputMode="numeric" value={phone} onChange={(e) => setPhone(normalizePhone(e.target.value))} placeholder={PHONE_PLACEHOLDER} />
-          </div>
-          <div className="cx-fld">
-            <label htmlFor="user-password">Mot de passe</label>
-            <input id="user-password" className="cx-input" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
-          </div>
-        </form>
-      </Drawer>
+      {createDrawer}
     </PageSection>
   )
 }
