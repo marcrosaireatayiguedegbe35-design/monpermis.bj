@@ -9,6 +9,7 @@ import {
   LogOut,
   Megaphone,
   Menu,
+  MoreHorizontal,
   Radar,
   ScrollText,
   Search,
@@ -155,9 +156,11 @@ export function AdminLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   // Tableaux en cartes sur téléphone : les cellules reçoivent le nom de leur colonne.
   useEffect(() => watchTables(), [])
+  useEffect(() => setSheetOpen(false), [location.pathname])
   const [searchQuery, setSearchQuery] = useState('')
   const [badges, setBadges] = useState<OpsBadges>({ reservations: 0, access: 0, refunds: 0 })
   const [health, setHealth] = useState<HealthSnapshot | null>(null)
@@ -443,7 +446,7 @@ export function AdminLayout() {
         <div className="cx-mobile-bar">
           <button
             type="button"
-            className="cx-nav-toggle"
+            className="cx-nav-toggle cx-nav-toggle-drawer"
             onClick={() => setMobileOpen(true)}
             aria-label="Ouvrir le menu"
           >
@@ -479,6 +482,83 @@ export function AdminLayout() {
           </div>
         </div>
       </div>
+      <nav className="ap-tabs" aria-label="Navigation mobile">
+        {[
+          { to: '/', label: 'Accueil', icon: LayoutDashboard, end: true, badge: 0 },
+          { to: '/utilisateurs', label: 'Apprenants', icon: Users, badge: 0 },
+          { to: '/conduite/reservations', label: 'Séances', icon: CalendarDays, badge: badges.reservations },
+          { to: '/abonnements', label: 'Abonnés', icon: Wallet, badge: badges.access },
+        ].map((t) => {
+          const Icon = t.icon
+          return (
+            <NavLink
+              key={t.to}
+              to={t.to}
+              end={t.end}
+              onClick={() => setSheetOpen(false)}
+              className={({ isActive }) => `ap-tab${isActive ? ' is-active' : ''}`}
+            >
+              <Icon aria-hidden />
+              <span>{t.label}</span>
+              {formatBadge(t.badge) ? <i className="ap-tab-badge">{formatBadge(t.badge)}</i> : null}
+            </NavLink>
+          )
+        })}
+        <button
+          type="button"
+          className={`ap-tab${sheetOpen ? ' is-active' : ''}`}
+          onClick={() => setSheetOpen((o) => !o)}
+          aria-expanded={sheetOpen}
+        >
+          <MoreHorizontal aria-hidden />
+          <span>Menu</span>
+        </button>
+      </nav>
+      {sheetOpen ? (
+        <div className="ap-sheet-wrap">
+          <button type="button" className="ap-sheet-back" aria-label="Fermer" onClick={() => setSheetOpen(false)} />
+          <div className="ap-sheet" role="dialog" aria-label="Menu">
+            <div className="ap-sheet-grab" />
+            <div className="ap-sheet-user">
+              <span className="cx-user-avatar" aria-hidden="true">{initials}</span>
+              <span>
+                <strong>{admin?.fullName || 'Administrateur'}</strong>
+                <small>{roleLabel}</small>
+              </span>
+            </div>
+            {visibleGroups.map((group) => (
+              <div key={group.id}>
+                <p className="ap-sheet-title">{group.label}</p>
+                <div className="ap-sheet-grid">
+                  {group.items.map((item) => {
+                    const Icon = item.icon
+                    const count =
+                      item.badgeKey === 'reservations' ? badges.reservations
+                      : item.badgeKey === 'access' ? badges.access
+                      : item.badgeKey === 'refunds' ? refundBadge : 0
+                    const active = item.match ? item.match(location.pathname) : location.pathname === item.to
+                    return (
+                      <NavLink
+                        key={item.to}
+                        to={item.badgeKey === 'refunds' && count > 0 ? '/finances?tab=refunds' : item.to}
+                        onClick={() => setSheetOpen(false)}
+                        className={`ap-sheet-item${active ? ' is-active' : ''}`}
+                      >
+                        <span className="ap-sheet-ico"><Icon aria-hidden /></span>
+                        <span>{item.label}</span>
+                        {formatBadge(count) ? <i className="ap-tab-badge">{formatBadge(count)}</i> : null}
+                      </NavLink>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+            <button type="button" className="ap-sheet-logout" onClick={signOut}>
+              <LogOut aria-hidden /> Se déconnecter
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
