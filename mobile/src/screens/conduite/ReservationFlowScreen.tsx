@@ -296,7 +296,9 @@ export function ReservationFlowScreen() {
     try {
       const data = await fetchMoniteurProfile(id)
       setProfile(data.moniteur)
+      // Un seul mode défini par le moniteur : on utilise celui-là, sans choix.
       if (!data.moniteur.acceptsGroup) setBookingMode('solo')
+      else if (data.moniteur.offersSolo === false) setBookingMode('group')
       setMoniteurId(data.moniteur.id)
       setBioExpanded(false)
       setVehicleImageIndex(0)
@@ -610,10 +612,12 @@ export function ReservationFlowScreen() {
                                 <Car size={15} color={RES.ink} />
                                 <Text style={styles.tChipText} numberOfLines={1}>{moniteur.vehicleBrand || 'Véhicule'}</Text>
                               </View>
-                              <View style={[styles.tChip, { backgroundColor: RES.soft }]}>
-                                <Wallet size={15} color={RES.green} />
-                                <Text style={[styles.tChipText, { color: RES.green }]}>Solo 6 000 F/h</Text>
-                              </View>
+                              {moniteur.offersSolo !== false ? (
+                                <View style={[styles.tChip, { backgroundColor: RES.soft }]}>
+                                  <Wallet size={15} color={RES.green} />
+                                  <Text style={[styles.tChipText, { color: RES.green }]}>Solo 6 000 F/h</Text>
+                                </View>
+                              ) : null}
                               {moniteur.acceptsGroup ? (
                                 <View style={[styles.tChip, { backgroundColor: RES.soft }]}>
                                   <Users size={15} color={RES.green} />
@@ -645,14 +649,18 @@ export function ReservationFlowScreen() {
                       </View>
                     </View>
                     <View style={{ gap: 8, marginTop: 12 }}>
-                      <View style={styles.recapRow}>
-                        <Text style={styles.recapLabel}>Solo · 30 min</Text>
-                        <Text style={styles.recapValue}>3 000 FCFA</Text>
-                      </View>
-                      <View style={styles.recapRow}>
-                        <Text style={styles.recapLabel}>Solo · 1 heure</Text>
-                        <Text style={styles.recapValue}>6 000 FCFA</Text>
-                      </View>
+                      {current.offersSolo !== false ? (
+                        <>
+                          <View style={styles.recapRow}>
+                            <Text style={styles.recapLabel}>Solo · 30 min</Text>
+                            <Text style={styles.recapValue}>3 000 FCFA</Text>
+                          </View>
+                          <View style={styles.recapRow}>
+                            <Text style={styles.recapLabel}>Solo · 1 heure</Text>
+                            <Text style={styles.recapValue}>6 000 FCFA</Text>
+                          </View>
+                        </>
+                      ) : null}
                       {current.acceptsGroup ? (
                         <View style={styles.recapRow}>
                           <Text style={styles.recapLabel}>Groupe · 2 h, 4 élèves</Text>
@@ -731,7 +739,17 @@ export function ReservationFlowScreen() {
                 ))}
               </View>
 
-              <ModeCards mode={bookingMode} soloPrice={6000} groupPrice={groupPriceFcfa} groupAvailable={Boolean(profile.acceptsGroup)} onChange={setBookingMode} />
+              {profile.offersSolo !== false && profile.acceptsGroup ? (
+                <ModeCards mode={bookingMode} soloPrice={6000} groupPrice={groupPriceFcfa} groupAvailable onChange={setBookingMode} />
+              ) : (
+                <View style={styles.modeTag}>
+                  <Text style={styles.modeTagText}>
+                    {profile.acceptsGroup && profile.offersSolo === false
+                      ? 'Ce moniteur propose uniquement des séances en groupe (2 h, 4 élèves).'
+                      : 'Ce moniteur propose uniquement des séances solo (30 min ou 1 h).'}
+                  </Text>
+                </View>
+              )}
 
               <View style={styles.pCard}>
                 {profileTab === 'about' ? (
@@ -749,10 +767,12 @@ export function ReservationFlowScreen() {
                         <Car size={15} color="#0B1F3A" />
                         <Text style={styles.pChipText}>{profile.vehicleBrand || 'Véhicule'}</Text>
                       </View>
-                      <View style={styles.pChip}>
-                        <Wallet size={15} color="#0B1F3A" />
-                        <Text style={styles.pChipText}>Solo 6 000 F / h</Text>
-                      </View>
+                      {profile.offersSolo !== false ? (
+                        <View style={styles.pChip}>
+                          <Wallet size={15} color="#0B1F3A" />
+                          <Text style={styles.pChipText}>Solo 6 000 F / h</Text>
+                        </View>
+                      ) : null}
                       {profile.acceptsGroup ? (
                         <View style={styles.pChip}>
                           <Wallet size={15} color="#0B1F3A" />

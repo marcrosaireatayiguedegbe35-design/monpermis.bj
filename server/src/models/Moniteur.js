@@ -171,6 +171,8 @@ moniteurSchema.methods.toPublicListJSON = function toPublicListJSON() {
     vehicleTypes: this.vehicleTypes || [],
     defaultPriceFcfa: this.defaultPriceFcfa || 5000,
     acceptsGroup: Boolean(this.acceptsGroup),
+    // Solo proposé dès que le moniteur a défini au moins une plage horaire hebdomadaire.
+    offersSolo: (this.weeklyAvailability || []).length > 0,
     vehicleBrand: this.vehicleBrand || '',
     vehiclePhotoUrl: this.vehiclePhotoUrl || '',
     photoUrl: this.photoUrl || '',

@@ -98,6 +98,8 @@ export interface MoniteurPublic {
   city?: string
   /** Le moniteur propose des séances en groupe (blocs de 2 h, 4 élèves). */
   acceptsGroup?: boolean
+  /** Le moniteur a défini des plages pour le solo. */
+  offersSolo?: boolean
 }
 
 export interface MoniteurProfile extends MoniteurPublic {
