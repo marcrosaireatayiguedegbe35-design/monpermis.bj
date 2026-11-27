@@ -5,7 +5,7 @@ import { Creneau } from '../models/Creneau.js'
 export const SOLO_PRICE_PER_HOUR = 5000
 export const GROUP_PRICE_PER_HOUR = 2000
 /** Nombre maximum d'élèves dans un créneau en groupe. */
-export const GROUP_CAPACITY = Math.max(2, Number(process.env.GROUP_CAPACITY) || 4)
+export const GROUP_CAPACITY = Math.max(2, Number(process.env.GROUP_CAPACITY) || 7)
 
 export const ACTIVE_STATUSES = ['pending_payment', 'pending_moniteur', 'confirmed']
 
