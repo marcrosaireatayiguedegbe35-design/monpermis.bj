@@ -902,27 +902,15 @@ export function ReservationFlowScreen() {
                 >
                   <ChevronLeft size={24} color={RES.ink} />
                 </Pressable>
-                <Pressable
-                  style={styles.tBig}
-                  accessibilityLabel="Passer, moniteur suivant"
-                  onPress={() => {
-                    const to = Math.min(moniteurs.length - 1, moniteurIndex + 1)
-                    pagerRef.current?.scrollTo({ x: to * pagerWidth, animated: true })
-                    setMoniteurIndex(to)
-                  }}
-                >
-                  <X size={32} color="#E5484D" strokeWidth={2.6} />
-                </Pressable>
-                <Pressable
-                  style={[styles.tBig, styles.tBigOk]}
-                  accessibilityLabel="Choisir ce moniteur"
-                  onPress={() => {
-                    const chosen = moniteurs[Math.min(moniteurIndex, moniteurs.length - 1)]
-                    if (chosen) void loadProfile(chosen.id)
-                  }}
-                >
-                  <Check size={34} color="#FFFFFF" strokeWidth={3} />
-                </Pressable>
+                <View style={{ flex: 1 }}>
+                  <ReserveButton
+                    label="Choisir"
+                    onPress={() => {
+                      const chosen = moniteurs[Math.min(moniteurIndex, moniteurs.length - 1)]
+                      if (chosen) void loadProfile(chosen.id)
+                    }}
+                  />
+                </View>
                 <Pressable
                   style={styles.tSmall}
                   accessibilityLabel="Moniteur suivant"
