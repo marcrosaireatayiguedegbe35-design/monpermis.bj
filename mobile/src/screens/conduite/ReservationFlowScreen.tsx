@@ -538,13 +538,6 @@ export function ReservationFlowScreen() {
                               <View key={m.id} style={[styles.tBar, i === position && styles.tBarOn]} />
                             ))}
                           </View>
-                          {avatar ? (
-                            <Image
-                              source={{ uri: optimizedImageUrl(resolveMediaUrl(avatar), 300) }}
-                              style={styles.tAvatar}
-                              resizeMode="cover"
-                            />
-                          ) : null}
                           <View style={styles.tVerified}>
                             <Check size={13} color="#FFFFFF" strokeWidth={3} />
                             <Text style={styles.mVerifiedText}>Vérifié</Text>
@@ -554,12 +547,23 @@ export function ReservationFlowScreen() {
                             locations={[0, 0.45, 1]}
                             style={styles.tShade}
                           >
-                            <Text style={styles.tName} numberOfLines={2}>{moniteur.fullName}</Text>
-                            <View style={styles.tRow}>
-                              <User size={16} color={RES.muted} />
-                              <Text style={styles.tRole} numberOfLines={1}>
-                                Moniteur de conduite{moniteur.city ? ` · ${moniteur.city}` : ''}
-                              </Text>
+                            <View style={styles.tTop}>
+                              <View style={{ flex: 1, gap: 8 }}>
+                                <Text style={styles.tName} numberOfLines={2}>{moniteur.fullName}</Text>
+                                <View style={styles.tRow}>
+                                  <User size={16} color={RES.muted} />
+                                  <Text style={styles.tRole} numberOfLines={1}>
+                                    Moniteur de conduite{moniteur.city ? ` · ${moniteur.city}` : ''}
+                                  </Text>
+                                </View>
+                              </View>
+                              {avatar ? (
+                                <Image
+                                  source={{ uri: optimizedImageUrl(resolveMediaUrl(avatar), 300) }}
+                                  style={styles.tAvatar}
+                                  resizeMode="cover"
+                                />
+                              ) : null}
                             </View>
                             <View style={styles.tChips}>
                               <View style={styles.tChip}>
@@ -1049,9 +1053,10 @@ const styles = StyleSheet.create({
   tBars: { position: 'absolute', top: 10, left: 12, right: 12, flexDirection: 'row', gap: 5 },
   tBar: { flex: 1, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.65)' },
   tBarOn: { backgroundColor: '#FFFFFF' },
-  tAvatar: { position: 'absolute', top: 24, left: 14, width: 68, height: 68, borderRadius: 34, borderWidth: 3, borderColor: '#FFFFFF', backgroundColor: '#EAF6EF' },
+  tTop: { flexDirection: 'row', alignItems: 'flex-end', gap: 12 },
+  tAvatar: { width: 78, height: 78, borderRadius: 16, borderWidth: 3, borderColor: '#FFFFFF', backgroundColor: '#EAF6EF', ...shadows.sm },
   tVerified: { position: 'absolute', top: 26, right: 14, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: RES.green },
-  tShade: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 18, paddingTop: 90, paddingBottom: 18, gap: 8 },
+  tShade: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 18, paddingTop: 80, paddingBottom: 18, gap: 8 },
   tName: { fontFamily: fonts.displayExtraBold, fontSize: 34, lineHeight: 38, color: RES.ink, letterSpacing: -0.8 },
   tRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   tRole: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 16, color: RES.muted },
@@ -1194,7 +1199,7 @@ const styles = StyleSheet.create({
   tabText: { fontFamily: fonts.bodyBold, fontSize: 14, color: '#0B1F3A' },
   tabTextOn: { color: '#FFFFFF' },
   pPhotoSmall: { width: 96, height: 120, borderRadius: 18, overflow: 'hidden' },
-  pAvatar: { position: 'absolute', top: 6, left: 6, width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: '#FFFFFF' },
+  pAvatar: { position: 'absolute', bottom: 6, right: 6, width: 40, height: 40, borderRadius: 8, borderWidth: 2, borderColor: '#FFFFFF' },
   pFactsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: '#F1F5F2' },
   pChipText: { fontFamily: fonts.bodyBold, fontSize: 13, color: '#0B1F3A' },
