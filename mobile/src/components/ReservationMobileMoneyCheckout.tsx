@@ -42,6 +42,8 @@ export interface ReservationCheckoutSlot {
   lockedUntil?: string | null
   hours?: number
   amount?: number
+  /** solo (5 000 F/h) ou groupe (2 000 F/h, paiement Mobile Money uniquement). */
+  mode?: 'solo' | 'group'
 }
 
 interface SoldeSuccessResult {
@@ -116,7 +118,8 @@ export function ReservationMobileMoneyCheckout({
     [],
   )
 
-  const canPayWithSolde = soldeHeures !== null && soldeHeures >= hoursNeeded
+  const canPayWithSolde =
+    slot.mode !== 'group' && soldeHeures !== null && soldeHeures >= hoursNeeded
 
   const stopPoll = () => {
     if (pollRef.current) {
@@ -265,6 +268,7 @@ export function ReservationMobileMoneyCheckout({
           startTime: slot.startTime,
           endTime: slot.endTime,
           vehicleType: slot.vehicleType,
+          mode: slot.mode,
         })
         creneauId = String(lockedSlot.creneau.id)
       }
@@ -272,6 +276,7 @@ export function ReservationMobileMoneyCheckout({
         creneauIds: [creneauId],
         vehicleType: slot.vehicleType,
         moniteurId: slot.moniteurId,
+        mode: slot.mode,
         paymentMethod: 'solde',
       })
       onSoldeSuccess(result)
@@ -313,6 +318,7 @@ export function ReservationMobileMoneyCheckout({
           startTime: slot.startTime,
           endTime: slot.endTime,
           vehicleType: slot.vehicleType,
+          mode: slot.mode,
         })
         creneauId = String(lockedSlot.creneau.id)
       }
@@ -322,6 +328,7 @@ export function ReservationMobileMoneyCheckout({
         creneauIds: [creneauId],
         vehicleType: slot.vehicleType,
         moniteurId: slot.moniteurId,
+        mode: slot.mode,
         paymentMethod: 'mobile_money',
         operator: chosenOperator,
         phone: phoneDigits,

@@ -1,3 +1,12 @@
+import {
+  ACTIVE_STATUSES,
+  GROUP_CAPACITY,
+  GROUP_PRICE_PER_HOUR,
+  SOLO_PRICE_PER_HOUR,
+  countGroupSeats,
+  normalizeBookingMode,
+  refreshCreneauState,
+} from '../utils/creneauSeats.js'
 import { Router } from 'express'
 import mongoose from 'mongoose'
 import { Moniteur } from '../models/Moniteur.js'
@@ -92,6 +101,8 @@ function busySlotFilter(viewerUserId, now = new Date()) {
   return {
     $or: [
       { status: { $in: ['reserve', 'bloque'] } },
+      // Un créneau où des élèves ont déjà réservé en groupe n'est plus libre pour un solo.
+      { status: 'libre', mode: 'group' },
       {
         status: 'libre',
         lockedUntil: { $gt: now },
@@ -142,7 +153,11 @@ function slotDateTime(date, time) {
  * Les priceFcfa des créneaux sont des prix de ligne sans remise : la remise
  * heures de conduite n'est retirée qu'une fois, sur le total de la réservation.
  */
-function computeBookingAmount(creneaux) {
+function computeBookingAmount(creneaux, mode = 'solo') {
+  if (mode === 'group') {
+    const heuresGroupe = creneaux.reduce((sum, creneau) => sum + computeCreneauHeures(creneau), 0)
+    return Math.round(heuresGroupe * GROUP_PRICE_PER_HOUR)
+  }
   const base = creneaux.reduce((sum, creneau) => sum + (creneau.priceFcfa || 5000), 0)
   const heures = creneaux.reduce((sum, creneau) => sum + computeCreneauHeures(creneau), 0)
   return applyHoursDiscount(base, heures)
@@ -400,6 +415,40 @@ router.get('/availability', ...withConduiteAccess, async (req, res) => {
       $or: [{ lockedUntil: null }, { lockedUntil: { $lte: new Date() } }],
     }).select('date startTime endTime')
 
+    const groupRows = await Creneau.find({
+      moniteurId,
+      date: { $gte: from, $lte: to },
+      status: 'libre',
+      mode: 'group',
+    }).select('date startTime endTime')
+    const groupSeatRows = await Reservation.aggregate([
+      {
+        $match: {
+          creneauId: { $in: groupRows.map((c) => c._id) },
+          mode: 'group',
+          status: { $in: ACTIVE_STATUSES },
+        },
+      },
+      { $group: { _id: '$creneauId', n: { $sum: 1 }, mine: { $sum: { $cond: [{ $eq: ['$userId', req.user._id] }, 1, 0] } } } },
+    ])
+    const seatInfo = new Map(groupSeatRows.map((row) => [String(row._id), row]))
+    const leadLimit = Date.now() + BOOKING_LEAD_MINUTES * 60 * 1000
+    const groupSlots = groupRows
+      .filter((slot) => slotDateTime(slot.date, slot.startTime).getTime() > leadLimit)
+      .map((slot) => {
+        const info = seatInfo.get(String(slot._id))
+        return {
+          date: slot.date,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          seatsTaken: info?.n || 0,
+          seatsTotal: GROUP_CAPACITY,
+          joined: (info?.mine || 0) > 0,
+        }
+      })
+      .filter((slot) => slot.seatsTaken < GROUP_CAPACITY && !slot.joined)
+      .sort((a, b) => `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`))
+
     const busyByDate = {}
     for (const slot of busyCreneaux) {
       if (!busyByDate[slot.date]) busyByDate[slot.date] = []
@@ -438,6 +487,9 @@ router.get('/availability', ...withConduiteAccess, async (req, res) => {
         hourlyPriceFcfa: moniteur.defaultPriceFcfa || 5000,
         hoursDiscountFcfa: HOURS_DISCOUNT_FCFA,
         hoursDiscountMinHours: HOURS_DISCOUNT_MIN_HOURS,
+        soloPricePerHour: SOLO_PRICE_PER_HOUR,
+        groupPricePerHour: GROUP_PRICE_PER_HOUR,
+        groupSlots,
         days,
       },
     })
@@ -452,6 +504,7 @@ router.get('/availability', ...withConduiteAccess, async (req, res) => {
  */
 router.post('/request-slot', ...withConduiteAccess, async (req, res) => {
   try {
+    const bookingMode = normalizeBookingMode(req.body.mode)
     const moniteurId = asObjectId(req.body.moniteurId)
     const date = String(req.body.date || '').trim().slice(0, 10)
     const startTime = normalizeTime(req.body.startTime)
@@ -522,10 +575,19 @@ router.post('/request-slot', ...withConduiteAccess, async (req, res) => {
       moniteurId,
       date,
       ...busySlotFilter(req.user._id),
-    }).select('startTime endTime status lockedBy lockedUntil')
+    }).select('startTime endTime status mode lockedBy lockedUntil')
 
-    const overlap = conflicting.find((slot) =>
-      intervalsOverlap(startTime, endTime, slot.startTime, slot.endTime),
+    const overlap = conflicting.find(
+      (slot) =>
+        intervalsOverlap(startTime, endTime, slot.startTime, slot.endTime) &&
+        // En groupe, rejoindre exactement le même créneau est permis.
+        !(
+          bookingMode === 'group' &&
+          slot.mode === 'group' &&
+          slot.status === 'libre' &&
+          slot.startTime === startTime &&
+          slot.endTime === endTime
+        ),
     )
     if (overlap) {
       return res.status(409).json({
@@ -569,6 +631,46 @@ router.post('/request-slot', ...withConduiteAccess, async (req, res) => {
 
     let creneau
     try {
+      if (bookingMode === 'group') {
+        const joinable = await Creneau.findOne({
+          moniteurId,
+          date,
+          startTime,
+          endTime,
+          status: 'libre',
+          mode: 'group',
+        })
+        if (joinable) {
+          if ((await countGroupSeats(joinable._id)) >= GROUP_CAPACITY) {
+            return res.status(409).json({
+              success: false,
+              error: 'Ce groupe est complet. Choisissez un autre horaire.',
+            })
+          }
+          const amount = computeBookingAmount([joinable], 'group')
+          return res.status(201).json({
+            success: true,
+            data: {
+              creneau: {
+                ...joinable.toJSONSafe(),
+                available: true,
+                moniteur: {
+                  id: String(moniteur._id),
+                  fullName: `${moniteur.firstName} ${moniteur.lastName}`.trim(),
+                  vehicleBrand: moniteur.vehicleBrand || '',
+                  vehiclePhotoUrl: moniteur.vehiclePhotoUrl || '',
+                  photoUrl: moniteur.photoUrl || '',
+                },
+              },
+              hours: heures,
+              mode: 'group',
+              amountFcfa: amount,
+              hoursDiscountFcfa: 0,
+              lockedUntil: new Date(Date.now() + LOCK_MS),
+            },
+          })
+        }
+      }
       const exactPublished = await Creneau.findOne({
         moniteurId,
         date,
@@ -631,11 +733,12 @@ router.post('/request-slot', ...withConduiteAccess, async (req, res) => {
       })
     }
 
-    const amountFcfa = computeBookingAmount([creneau])
+    const amountFcfa = computeBookingAmount([creneau], bookingMode)
 
     res.status(201).json({
       success: true,
       data: {
+        mode: bookingMode,
         creneau: {
           ...creneau.toJSONSafe(),
           available: true,
@@ -649,7 +752,7 @@ router.post('/request-slot', ...withConduiteAccess, async (req, res) => {
         },
         hours: heures,
         amountFcfa,
-        hoursDiscountFcfa: Math.max(0, priceFcfa - amountFcfa),
+        hoursDiscountFcfa: bookingMode === 'group' ? 0 : Math.max(0, priceFcfa - amountFcfa),
         lockedUntil,
       },
     })
@@ -688,6 +791,18 @@ router.get('/creneaux', ...withConduiteAccess, async (req, res) => {
       .populate('moniteurId', 'firstName lastName vehicleBrand vehiclePhotoUrl photoUrl vehicleTypes')
       .sort({ date: 1, startTime: 1 })
 
+    const seatRows = await Reservation.aggregate([
+      {
+        $match: {
+          creneauId: { $in: creneaux.map((c) => c._id) },
+          mode: 'group',
+          status: { $in: ACTIVE_STATUSES },
+        },
+      },
+      { $group: { _id: '$creneauId', n: { $sum: 1 } } },
+    ])
+    const seatsByCreneau = new Map(seatRows.map((row) => [String(row._id), row.n]))
+
     const byDate = {}
     const earliestStart = Date.now() + BOOKING_LEAD_MINUTES * 60 * 1000
     for (const slot of creneaux) {
@@ -697,10 +812,20 @@ router.get('/creneaux', ...withConduiteAccess, async (req, res) => {
         slot.lockedUntil &&
         slot.lockedUntil > new Date() &&
         String(slot.lockedBy) !== String(req.user._id)
-      const available = slot.status === 'libre' && !locked
+      const seatsTaken = seatsByCreneau.get(String(slot._id)) || 0
+      const soloAvailable = slot.status === 'libre' && !locked && slot.mode !== 'group'
+      const groupAvailable =
+        slot.status === 'libre' && slot.mode !== 'solo' && seatsTaken < GROUP_CAPACITY
+      const available = soloAvailable || groupAvailable
       const item = {
         ...slot.toJSONSafe(),
         available,
+        soloAvailable,
+        groupAvailable,
+        seatsTaken,
+        seatsTotal: GROUP_CAPACITY,
+        soloPricePerHour: SOLO_PRICE_PER_HOUR,
+        groupPricePerHour: GROUP_PRICE_PER_HOUR,
         moniteur: slot.moniteurId
           ? {
               id: asId(slot.moniteurId._id || slot.moniteurId),
@@ -746,6 +871,16 @@ router.post('/creneaux/:id/lock', ...withConduiteAccess, async (req, res) => {
     ) {
       return res.status(409).json({ success: false, error: LEARNER_BOOKING_CONFLICT, code: 'LEARNER_OVERLAP' })
     }
+    if (normalizeBookingMode(req.body?.mode) === 'group') {
+      const slot = await Creneau.findOne({ _id: req.params.id, status: 'libre', mode: { $ne: 'solo' } })
+      if (!slot || (await countGroupSeats(slot._id)) >= GROUP_CAPACITY) {
+        return res.status(409).json({
+          success: false,
+          error: 'Ce créneau n’a plus de place en groupe',
+        })
+      }
+      return res.json({ success: true, data: { creneau: slot.toJSONSafe(), lockedUntil: null } })
+    }
     const now = new Date()
     const lockedUntil = new Date(now.getTime() + LOCK_MS)
 
@@ -753,6 +888,7 @@ router.post('/creneaux/:id/lock', ...withConduiteAccess, async (req, res) => {
       {
         _id: req.params.id,
         status: 'libre',
+        mode: { $ne: 'group' },
         $or: [
           { lockedUntil: null },
           { lockedUntil: { $lt: now } },
@@ -834,6 +970,25 @@ router.post('/creneaux/lock-range', ...withConduiteAccess, async (req, res) => {
       return res.status(409).json({ success: false, error: LEARNER_BOOKING_CONFLICT, code: 'LEARNER_OVERLAP' })
     }
 
+    if (normalizeBookingMode(req.body.mode) === 'group') {
+      for (const slot of chain) {
+        if (
+          slot.status !== 'libre' ||
+          slot.mode === 'solo' ||
+          (await countGroupSeats(slot._id)) >= GROUP_CAPACITY
+        ) {
+          return res.status(409).json({
+            success: false,
+            error: 'Un des créneaux n’a plus de place en groupe. Revenez au calendrier.',
+          })
+        }
+      }
+      return res.json({
+        success: true,
+        data: { creneaux: chain.map((c) => c.toJSONSafe()), lockedUntil: null },
+      })
+    }
+
     const now = new Date()
     const lockedUntil = new Date(now.getTime() + LOCK_MS)
     const locked = []
@@ -842,6 +997,7 @@ router.post('/creneaux/lock-range', ...withConduiteAccess, async (req, res) => {
         {
           _id: slot._id,
           status: 'libre',
+          mode: { $ne: 'group' },
           $or: [{ lockedUntil: null }, { lockedUntil: { $lt: now } }, { lockedBy: req.user._id }],
         },
         { $set: { lockedUntil, lockedBy: req.user._id } },
@@ -887,12 +1043,13 @@ router.post('/quote', ...withConduiteAccess, async (req, res) => {
     }
 
     const moniteur = creneaux[0].moniteurId
+    const bookingMode = normalizeBookingMode(req.body.mode)
     const hours = creneaux.reduce((sum, c) => sum + computeCreneauHeures(c), 0)
-    const baseAmount = creneaux.reduce(
-      (sum, c) => sum + (c.priceFcfa || moniteur?.defaultPriceFcfa || 5000),
-      0,
-    )
-    const amount = applyHoursDiscount(baseAmount, hours)
+    const baseAmount =
+      bookingMode === 'group'
+        ? Math.round(hours * GROUP_PRICE_PER_HOUR)
+        : creneaux.reduce((sum, c) => sum + (c.priceFcfa || moniteur?.defaultPriceFcfa || SOLO_PRICE_PER_HOUR), 0)
+    const amount = bookingMode === 'group' ? baseAmount : applyHoursDiscount(baseAmount, hours)
     const soldeHeures = req.user.soldeHeures || 0
 
     res.json({
@@ -911,6 +1068,7 @@ router.post('/quote', ...withConduiteAccess, async (req, res) => {
         startTime: creneaux[0].startTime,
         endTime: creneaux[creneaux.length - 1].endTime,
         hours,
+        mode: bookingMode,
         amount,
         baseAmount,
         hoursDiscountFcfa: Math.max(0, baseAmount - amount),
@@ -933,7 +1091,9 @@ router.post('/reservations', ...withConduiteAccess, async (req, res) => {
       : [asId(req.body.creneauId)].filter(Boolean) // rétro-compat créneau unique
     const vehicleType = normalizeVehicleType(req.body.vehicleType)
     const moniteurId = req.body.moniteurId ? asId(req.body.moniteurId) : null
-    const paymentMethod = req.body.paymentMethod === 'mobile_money' ? 'mobile_money' : 'solde'
+    const bookingMode = normalizeBookingMode(req.body.mode)
+    const paymentMethod =
+      bookingMode === 'group' || req.body.paymentMethod === 'mobile_money' ? 'mobile_money' : 'solde'
 
     if (!creneauIds.length) {
       return res.status(400).json({ success: false, error: 'Créneau requis' })
@@ -957,26 +1117,37 @@ router.post('/reservations', ...withConduiteAccess, async (req, res) => {
     const now = new Date()
     const claimed = []
     for (const creneauId of creneauIds) {
-      const creneau = await Creneau.findOneAndUpdate(
-        {
-          _id: creneauId,
-          status: 'libre',
-          $or: [
-            { lockedBy: req.user._id },
-            { lockedUntil: null },
-            { lockedUntil: { $lt: now } },
-          ],
-        },
-        { $set: { status: 'reserve', lockedUntil: null, lockedBy: null } },
-        { new: true },
-      )
+      let creneau
+      if (bookingMode === 'group') {
+        // Groupe : le créneau reste ouvert aux autres élèves tant qu'il reste des places.
+        const seats = await countGroupSeats(creneauId)
+        creneau =
+          seats < GROUP_CAPACITY
+            ? await Creneau.findOneAndUpdate(
+                { _id: creneauId, status: 'libre', mode: { $in: ['', 'group', null] } },
+                { $set: { mode: 'group' } },
+                { new: true },
+              )
+            : null
+      } else {
+        creneau = await Creneau.findOneAndUpdate(
+          {
+            _id: creneauId,
+            status: 'libre',
+            mode: { $in: ['', null] },
+            $or: [
+              { lockedBy: req.user._id },
+              { lockedUntil: null },
+              { lockedUntil: { $lt: now } },
+            ],
+          },
+          { $set: { status: 'reserve', mode: 'solo', lockedUntil: null, lockedBy: null } },
+          { new: true },
+        )
+      }
       if (!creneau) {
         for (const item of claimed) {
-          await Creneau.findByIdAndUpdate(item._id, {
-            status: 'libre',
-            lockedUntil: null,
-            lockedBy: null,
-          })
+          await refreshCreneauState(item._id)
         }
         return res.status(409).json({
           success: false,
@@ -988,16 +1159,12 @@ router.post('/reservations', ...withConduiteAccess, async (req, res) => {
 
     async function releaseAll() {
       for (const item of claimed) {
-        await Creneau.findByIdAndUpdate(item._id, {
-          status: 'libre',
-          lockedUntil: null,
-          lockedBy: null,
-        })
+        await refreshCreneauState(item._id)
       }
     }
 
     // Après claim atomique : rejeter un chevauchement concurrent (créneaux distincts, horaires qui se croisent).
-    for (const creneau of claimed) {
+    for (const creneau of bookingMode === 'group' ? [] : claimed) {
       const overlap = await findOverlappingBusyCreneau({
         moniteurId: creneau.moniteurId,
         date: creneau.date,
@@ -1133,7 +1300,7 @@ router.post('/reservations', ...withConduiteAccess, async (req, res) => {
     }
     if (guessed) mode = guessed
 
-    const totalAmount = computeBookingAmount(claimed)
+    const totalAmount = computeBookingAmount(claimed, bookingMode)
     if (totalAmount < 100) {
       await releaseAll()
       return res.status(400).json({
@@ -1153,8 +1320,12 @@ router.post('/reservations', ...withConduiteAccess, async (req, res) => {
             vehicleType: creneau.vehicleType || vehicleType,
             status: 'pending_payment',
             paymentStatus: 'unpaid',
+            mode: bookingMode,
             bookingGroupId,
-            priceFcfa: creneau.priceFcfa || 5000,
+            priceFcfa:
+              bookingMode === 'group'
+                ? Math.round(computeCreneauHeures(creneau) * GROUP_PRICE_PER_HOUR)
+                : creneau.priceFcfa || SOLO_PRICE_PER_HOUR,
             heuresDebitees: 0,
           }),
         ),
@@ -1165,6 +1336,19 @@ router.post('/reservations', ...withConduiteAccess, async (req, res) => {
         return res.status(409).json({ success: false, error: 'Un des créneaux est déjà réservé' })
       }
       throw error
+    }
+
+    if (bookingMode === 'group') {
+      for (const creneau of claimed) {
+        if ((await countGroupSeats(creneau._id)) > GROUP_CAPACITY) {
+          await Reservation.deleteMany({ bookingGroupId })
+          await releaseAll()
+          return res.status(409).json({
+            success: false,
+            error: 'Le groupe vient d’être complet. Choisissez un autre créneau.',
+          })
+        }
+      }
     }
 
     const payment = await Payment.create({
@@ -1386,11 +1570,7 @@ router.post('/reservations/:id/cancel', ...withConduiteAccess, async (req, res) 
         sibling.cancellationReason = reason
         sibling.cancelledBy = 'learner'
         await sibling.save()
-        await Creneau.findByIdAndUpdate(sibling.creneauId, {
-          status: 'libre',
-          lockedUntil: null,
-          lockedBy: null,
-        })
+        await refreshCreneauState(sibling.creneauId)
       }
 
       const cancelled = siblings.find((s) => String(s._id) === String(reservation._id)) || siblings[0]
@@ -1432,11 +1612,7 @@ router.post('/reservations/:id/cancel', ...withConduiteAccess, async (req, res) 
       }
     }
 
-    await Creneau.findByIdAndUpdate(reservation.creneauId._id, {
-      status: 'libre',
-      lockedUntil: null,
-      lockedBy: null,
-    })
+    await refreshCreneauState(reservation.creneauId._id)
 
     void notifyMoniteur(reservation.moniteurId, {
       title: 'Séance annulée',

@@ -43,6 +43,7 @@ export interface ReservationAdmin {
   status: string
   paymentStatus: string
   paymentRef: string
+  mode?: 'solo' | 'group'
   priceFcfa: number
   heuresDebitees: number
   vehicleType: string

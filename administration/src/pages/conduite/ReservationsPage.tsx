@@ -299,6 +299,7 @@ export function ReservationsPage() {
                     <small>
                       {r.moniteur?.fullName || 'Moniteur'} ·{' '}
                       {r.heuresDebitees > 0 ? `${r.heuresDebitees} h` : fcfa(r.priceFcfa || 0)}
+                      {r.mode === 'group' ? ' · Groupe' : ''}
                     </small>
                   </span>
                   <span className="ap-stack">
@@ -326,6 +327,7 @@ export function ReservationsPage() {
               <div className="ap-count">
                 {statusLabel(selected.status)} · {paymentBadge(selected).label} ·{' '}
                 {selected.heuresDebitees > 0 ? `${selected.heuresDebitees} h débitées` : fcfa(selected.priceFcfa || 0)}
+                {selected.mode === 'group' ? ' · Groupe' : ''}
                 {selected.paymentRef ? ` · Réf. ${selected.paymentRef}` : ''}
               </div>
               {selected.cancellationReason ? (
@@ -485,7 +487,7 @@ export function ReservationsPage() {
             const priceLine =
               reservation.heuresDebitees > 0
                 ? `${reservation.heuresDebitees} h débitée${reservation.heuresDebitees > 1 ? 's' : ''}`
-                : fcfa(reservation.priceFcfa || 0)
+                : `${fcfa(reservation.priceFcfa || 0)}${reservation.mode === 'group' ? ' · Groupe' : ''}`
 
             return (
               <article key={String(reservation.id)} className="cx-resv">

@@ -22,6 +22,8 @@ const creneauSchema = new mongoose.Schema(
       default: 'libre',
       index: true,
     },
+    /** '' = aucune réservation · solo = exclusif · group = places partagées. */
+    mode: { type: String, enum: ['', 'solo', 'group'], default: '' },
     priceFcfa: { type: Number, default: 5000 },
     lockedUntil: { type: Date, default: null },
     lockedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
@@ -40,6 +42,7 @@ creneauSchema.methods.toJSONSafe = function toJSONSafe() {
     endTime: this.endTime,
     vehicleType: this.vehicleType,
     status: this.status,
+    mode: this.mode || '',
     priceFcfa: this.priceFcfa || 0,
     lockedUntil: this.lockedUntil,
     createdAt: this.createdAt,

@@ -1,4 +1,5 @@
 import { Reservation } from '../models/Reservation.js'
+import { refreshCreneauState } from './creneauSeats.js'
 import { Creneau } from '../models/Creneau.js'
 import { Payment } from '../models/Payment.js'
 import { User } from '../models/User.js'
@@ -93,11 +94,7 @@ async function releaseReservationSlot(reservation, { reason, cancelledBy = 'admi
   reservation.cancelledBy = cancelledBy
   reservation.cancellationReason = reason
   await reservation.save()
-  await Creneau.findByIdAndUpdate(reservation.creneauId, {
-    status: 'libre',
-    lockedUntil: null,
-    lockedBy: null,
-  })
+  await refreshCreneauState(reservation.creneauId)
 }
 
 /**
@@ -106,17 +103,7 @@ async function releaseReservationSlot(reservation, { reason, cancelledBy = 'admi
  */
 async function guaranteeCreneauReserved(creneauId) {
   if (!creneauId) return null
-  return Creneau.findByIdAndUpdate(
-    creneauId,
-    {
-      $set: {
-        status: 'reserve',
-        lockedUntil: null,
-        lockedBy: null,
-      },
-    },
-    { new: true },
-  )
+  return refreshCreneauState(creneauId)
 }
 
 /**

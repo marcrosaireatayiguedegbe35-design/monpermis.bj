@@ -1,3 +1,4 @@
+import { refreshCreneauState } from './creneauSeats.js'
 import { AccessAuditLog } from '../models/AccessAuditLog.js'
 import { AccessRequest } from '../models/AccessRequest.js'
 import { Creneau } from '../models/Creneau.js'
@@ -62,11 +63,7 @@ export async function deleteUserAccount(userId, { cancelledBy = 'learner' } = {}
     await reservation.save()
 
     if (reservation.creneauId) {
-      await Creneau.findByIdAndUpdate(reservation.creneauId, {
-        status: 'libre',
-        lockedUntil: null,
-        lockedBy: null,
-      })
+      await refreshCreneauState(reservation.creneauId)
     }
   }
 

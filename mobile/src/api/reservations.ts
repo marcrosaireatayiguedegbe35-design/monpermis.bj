@@ -29,6 +29,16 @@ export interface DrivingProgress {
   label: string
 }
 
+export type BookingMode = 'solo' | 'group'
+
+export interface GroupSlot {
+  date: string
+  startTime: string
+  endTime: string
+  seatsTaken: number
+  seatsTotal: number
+}
+
 export interface ReservationSlot {
   id: string
   date: string
@@ -228,6 +238,9 @@ export function fetchMoniteurAvailability(params: {
     hourlyPriceFcfa: number
     hoursDiscountFcfa?: number
     hoursDiscountMinHours?: number
+    soloPricePerHour?: number
+    groupPricePerHour?: number
+    groupSlots?: GroupSlot[]
     days: AvailabilityDay[]
   }>(`/reservations/availability?${query.toString()}`)
 }
@@ -238,6 +251,7 @@ export function requestReservationSlot(payload: {
   startTime: string
   endTime: string
   vehicleType?: string
+  mode?: BookingMode
 }) {
   return request<{
     creneau: ReservationSlot
@@ -282,6 +296,7 @@ export function createReservation(payload: {
   creneauIds?: string[]
   vehicleType: string
   moniteurId?: string
+  mode?: BookingMode
   paymentMethod?: 'solde' | 'mobile_money'
   operator?: MobileMoneyOperator
   phone?: string

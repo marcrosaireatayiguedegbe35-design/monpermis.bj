@@ -1,3 +1,4 @@
+import { refreshCreneauState } from '../utils/creneauSeats.js'
 import { Router } from 'express'
 import mongoose from 'mongoose'
 import { Creneau } from '../models/Creneau.js'
@@ -364,11 +365,7 @@ router.post('/reservations/:id/confirm', async (req, res) => {
     }
 
     if (reservation.creneauId?._id || reservation.creneauId) {
-      await Creneau.findByIdAndUpdate(reservation.creneauId._id || reservation.creneauId, {
-        status: 'reserve',
-        lockedUntil: null,
-        lockedBy: null,
-      })
+      await refreshCreneauState(reservation.creneauId._id || reservation.creneauId)
     }
 
     if (reservation.userId) {
@@ -420,11 +417,7 @@ router.post('/reservations/:id/refuse', async (req, res) => {
     }
 
     if (reservation.creneauId?._id || reservation.creneauId) {
-      await Creneau.findByIdAndUpdate(reservation.creneauId._id || reservation.creneauId, {
-        status: 'libre',
-        lockedUntil: null,
-        lockedBy: null,
-      })
+      await refreshCreneauState(reservation.creneauId._id || reservation.creneauId)
     }
 
     if (reservation.userId) {

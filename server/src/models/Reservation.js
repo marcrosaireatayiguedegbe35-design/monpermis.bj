@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+import { Creneau } from './Creneau.js'
 
 const reservationSchema = new mongoose.Schema(
   {
@@ -35,6 +36,8 @@ const reservationSchema = new mongoose.Schema(
       enum: ['unpaid', 'pending_validation', 'paid', 'refunded'],
       default: 'unpaid',
     },
+    /** solo = créneau exclusif (5000 F/h) · group = places partagées (2000 F/h). */
+    mode: { type: String, enum: ['solo', 'group'], default: 'solo', index: true },
     paymentRef: { type: String, default: '', trim: true },
     /** Regroupe les créneaux consécutifs d'une même réservation multi-heures (facture/paiement communs). */
     bookingGroupId: {
@@ -71,7 +74,7 @@ const reservationSchema = new mongoose.Schema(
   { timestamps: true },
 )
 
-/** Un seul créneau actif réservé à la fois — les annulées restent en historique. */
+/** Un seul créneau actif en solo à la fois (les réservations de groupe peuvent coexister). */
 reservationSchema.index(
   { creneauId: 1 },
   {
@@ -79,6 +82,7 @@ reservationSchema.index(
     name: 'creneauId_active_unique',
     partialFilterExpression: {
       status: { $in: ['pending_payment', 'pending_moniteur', 'confirmed'] },
+      mode: 'solo',
     },
   },
 )
@@ -97,6 +101,7 @@ reservationSchema.methods.toJSONSafe = function toJSONSafe(extras = {}) {
     creneauId: refId(this.creneauId),
     vehicleType: this.vehicleType,
     status: this.status,
+    mode: this.mode || 'solo',
     paymentStatus: this.paymentStatus,
     paymentRef: this.paymentRef || '',
     bookingGroupId: this.bookingGroupId ? String(this.bookingGroupId) : null,
@@ -116,6 +121,22 @@ export const Reservation = mongoose.model('Reservation', reservationSchema)
 
 /** Migre l’ancien index unique strict vers l’index partiel (actif uniquement). */
 export async function ensureReservationIndexes() {
+  try {
+    await Reservation.updateMany({ mode: { $exists: false } }, { $set: { mode: 'solo' } })
+    await Creneau.updateMany({ mode: { $exists: false } }, { $set: { mode: '' } })
+  } catch (error) {
+    console.warn('Migration mode réservations:', error.message)
+  }
+  try {
+    const stale = (await Reservation.collection.indexes()).find(
+      (idx) =>
+        idx.name === 'creneauId_active_unique' &&
+        !JSON.stringify(idx.partialFilterExpression || {}).includes('"mode"'),
+    )
+    if (stale) await Reservation.collection.dropIndex('creneauId_active_unique')
+  } catch (error) {
+    console.warn('Index réservations (ancien partiel):', error.message)
+  }
   try {
     const indexes = await Reservation.collection.indexes()
     const legacy = indexes.find(

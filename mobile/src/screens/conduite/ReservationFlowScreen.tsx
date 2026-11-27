@@ -53,6 +53,7 @@ import {
   ReservationError,
   type AvailabilityDay,
   type AvailabilityWindow,
+  type GroupSlot,
   type MoniteurProfile,
   type MoniteurPublic,
 } from '../../api/reservations'
@@ -173,6 +174,9 @@ export function ReservationFlowScreen() {
   const [profile, setProfile] = useState<MoniteurProfile | null>(null)
   const [availabilityDays, setAvailabilityDays] = useState<AvailabilityDay[]>([])
   const [hourlyPriceFcfa, setHourlyPriceFcfa] = useState(5000)
+  const [bookingMode, setBookingMode] = useState<'solo' | 'group'>('solo')
+  const [groupPriceFcfa, setGroupPriceFcfa] = useState(2000)
+  const [groupSlots, setGroupSlots] = useState<GroupSlot[]>([])
   const [hoursDiscount, setHoursDiscount] = useState(HOURS_DISCOUNT_FCFA)
   const [hoursDiscountMin, setHoursDiscountMin] = useState(HOURS_DISCOUNT_MIN_HOURS)
   const [durationHours, setDurationHours] = useState(1)
@@ -214,26 +218,39 @@ export function ReservationFlowScreen() {
   const vehicleType = selectedMoniteur?.vehicleTypes?.[0] || 'voiture'
 
   const daysWithSlots = useMemo(() => {
-    return availabilityDays
-      .map((day) => ({
-        date: day.date,
-        slots: slotsForDuration(day.windows, durationHours, earliestBookableTime(day.date)),
+    const byDate = new Map<string, { start: string; end: string; seatsTaken?: number; seatsTotal?: number }[]>()
+    for (const day of availabilityDays) {
+      byDate.set(day.date, slotsForDuration(day.windows, durationHours, earliestBookableTime(day.date)))
+    }
+    if (bookingMode === 'group') {
+      for (const g of groupSlots) {
+        const minutes = timeToMinutes(g.endTime) - timeToMinutes(g.startTime)
+        if (minutes !== Math.round(durationHours * 60)) continue
+        const list = byDate.get(g.date) ?? []
+        list.push({ start: g.startTime, end: g.endTime, seatsTaken: g.seatsTaken, seatsTotal: g.seatsTotal })
+        byDate.set(g.date, list)
+      }
+    }
+    return [...byDate.entries()]
+      .map(([date, slots]) => ({
+        date,
+        slots: slots.sort((a, b) => a.start.localeCompare(b.start)),
       }))
       .filter((day) => day.slots.length > 0)
-  }, [availabilityDays, durationHours])
+      .sort((a, b) => a.date.localeCompare(b.date))
+  }, [availabilityDays, durationHours, bookingMode, groupSlots])
 
   const selectedDaySlots = useMemo(
     () => daysWithSlots.find((day) => day.date === selectedDate)?.slots ?? [],
     [daysWithSlots, selectedDate],
   )
 
-  const priceFcfa = computeDrivingAmount(
-    hourlyPriceFcfa,
-    durationHours,
-    hoursDiscount,
-    hoursDiscountMin,
-  )
-  const priceDiscount = Math.max(0, Math.round(hourlyPriceFcfa * durationHours) - priceFcfa)
+  const priceFcfa =
+    bookingMode === 'group'
+      ? Math.round(groupPriceFcfa * durationHours)
+      : computeDrivingAmount(hourlyPriceFcfa, durationHours, hoursDiscount, hoursDiscountMin)
+  const priceDiscount =
+    bookingMode === 'group' ? 0 : Math.max(0, Math.round(hourlyPriceFcfa * durationHours) - priceFcfa)
 
   const loadMoniteurs = useCallback(async () => {
     setBusy(true)
@@ -273,6 +290,8 @@ export function ReservationFlowScreen() {
       const data = await fetchMoniteurAvailability({ moniteurId, days: 14 })
       setAvailabilityDays(data.days)
       setHourlyPriceFcfa(data.hourlyPriceFcfa || data.moniteur.defaultPriceFcfa || 5000)
+      if (data.groupPricePerHour) setGroupPriceFcfa(data.groupPricePerHour)
+      setGroupSlots(data.groupSlots ?? [])
       if (data.hoursDiscountFcfa !== undefined) setHoursDiscount(data.hoursDiscountFcfa)
       if (data.hoursDiscountMinHours !== undefined) setHoursDiscountMin(data.hoursDiscountMinHours)
     } catch (err) {
@@ -379,9 +398,10 @@ export function ReservationFlowScreen() {
         startTime: selectedStart,
         endTime: selectedEnd,
         vehicleType: vehicleType || 'voiture',
+        mode: bookingMode,
       })
 
-      if (currentSolde !== null && currentSolde >= durationHours) {
+      if (bookingMode === 'solo' && currentSolde !== null && currentSolde >= durationHours) {
         const result = await createReservation({
           creneauIds: [String(data.creneau.id)],
           vehicleType: data.creneau.vehicleType || vehicleType || 'voiture',
@@ -414,6 +434,7 @@ export function ReservationFlowScreen() {
         amount: data.amountFcfa ?? priceFcfa,
         creneauId: String(data.creneau.id),
         lockedUntil: data.lockedUntil || null,
+        mode: bookingMode,
       })
       setMmOpen(true)
     } catch (err) {
@@ -677,8 +698,12 @@ export function ReservationFlowScreen() {
           ) : null}
 
           {step === 'duration' ? (() => {
-            const base = hourlyPriceFcfa * durationHours
-            const total = computeDrivingAmount(hourlyPriceFcfa, durationHours, hoursDiscount, hoursDiscountMin)
+            const isGroup = bookingMode === 'group'
+            const rate = isGroup ? groupPriceFcfa : hourlyPriceFcfa
+            const base = rate * durationHours
+            const total = isGroup
+              ? base
+              : computeDrivingAmount(hourlyPriceFcfa, durationHours, hoursDiscount, hoursDiscountMin)
             const discount = Math.max(0, base - total)
             return (
               <View style={{ flex: 1, gap: 14 }}>
@@ -691,6 +716,33 @@ export function ReservationFlowScreen() {
                     <Text style={styles.dSub}>Choisissez la durée de votre séance de conduite.</Text>
                   </View>
                 </View>
+
+                <View style={styles.hoursRow}>
+                  {([
+                    { id: 'solo', label: 'Solo', price: hourlyPriceFcfa },
+                    { id: 'group', label: 'En groupe', price: groupPriceFcfa },
+                  ] as const).map((opt) => {
+                    const active = bookingMode === opt.id
+                    return (
+                      <Bouncy key={opt.id} scaleTo={0.97} style={{ flex: 1 }} onPress={() => setBookingMode(opt.id)}>
+                        <View
+                          style={[styles.hoursPill, active && styles.hoursPillOn]}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: active }}
+                          accessibilityLabel={`Mode ${opt.label}`}
+                        >
+                          <Text style={[styles.hoursPillText, active && styles.hoursPillTextOn]}>{opt.label}</Text>
+                          <Text style={[styles.dSub, active && { color: '#FFFFFF' }]}>{opt.price.toLocaleString('fr-FR')} F/h</Text>
+                        </View>
+                      </Bouncy>
+                    )
+                  })}
+                </View>
+                <Text style={styles.recapHint}>
+                  {isGroup
+                    ? 'En groupe : vous partagez la séance avec d’autres élèves. Paiement Mobile Money.'
+                    : 'Solo : le créneau est à vous seul, personne d’autre ne peut le prendre.'}
+                </Text>
 
                 <View style={styles.hoursRow}>
                   {DURATION_OPTIONS.map((hours) => {
@@ -832,7 +884,9 @@ export function ReservationFlowScreen() {
                             accessibilityLabel={`${slot.start} à ${slot.end}`}
                           >
                             <Text style={styles.slotRowTime}>{slot.start} → {slot.end}</Text>
-                            <Text style={[styles.slotRowPeriod, active && { color: dark.green }]}>{period}</Text>
+                            <Text style={[styles.slotRowPeriod, active && { color: dark.green }]}>
+                              {slot.seatsTaken ? `Groupe ouvert · ${slot.seatsTaken}/${slot.seatsTotal} places` : period}
+                            </Text>
                             {active ? (
                               <View style={styles.slotRowCheck}>
                                 <Check size={14} color="#FFFFFF" strokeWidth={3} />

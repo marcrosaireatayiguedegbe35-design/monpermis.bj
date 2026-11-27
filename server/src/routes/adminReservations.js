@@ -1,3 +1,4 @@
+import { refreshCreneauState } from '../utils/creneauSeats.js'
 import { DRIVING_MIN_HOURS } from '../utils/drivingHours.js'
 import { Router } from 'express'
 import mongoose from 'mongoose'
@@ -636,11 +637,7 @@ router.delete('/reservations/:id', audit('delete', 'reservation'), async (req, r
     await Reservation.findByIdAndDelete(reservation._id)
 
     if (creneauId) {
-      await Creneau.findByIdAndUpdate(creneauId, {
-        status: 'libre',
-        lockedUntil: null,
-        lockedBy: null,
-      })
+      await refreshCreneauState(creneauId)
     }
 
     res.json({ success: true, data: { deleted: true, id: String(reservation._id) } })
@@ -722,11 +719,7 @@ router.post('/reservations/:id/cancel', audit('cancel', 'reservation'), async (r
     }
 
     if (reservation.creneauId?._id || reservation.creneauId) {
-      await Creneau.findByIdAndUpdate(reservation.creneauId._id || reservation.creneauId, {
-        status: 'libre',
-        lockedUntil: null,
-        lockedBy: null,
-      })
+      await refreshCreneauState(reservation.creneauId._id || reservation.creneauId)
     }
 
     res.json({ success: true, data: { reservation: reservation.toJSONSafe() } })
