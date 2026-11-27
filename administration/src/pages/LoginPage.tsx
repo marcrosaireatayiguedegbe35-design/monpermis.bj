@@ -1,11 +1,27 @@
-import { FormEvent, useMemo, useRef, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { Eye, EyeOff, Lock, Phone } from 'lucide-react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import logoUrl from '../assets/logo.png'
 import { isAuthError, useAdminAuth } from '../context/AdminAuthContext'
 import { SITE_NAME } from '../theme/brand'
 import { normalizePhone, PHONE_PLACEHOLDER } from '../utils/validation'
+import '../styles/admin-login-mobile.css'
 
 const REMEMBER_KEY = 'monpermis-admin-remember-phone'
+const MOBILE_QUERY = '(max-width: 767px)'
+
+/** Vrai sur téléphone : la page de connexion prend alors le même modèle que l'espace apprenant. */
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia(MOBILE_QUERY).matches)
+  useEffect(() => {
+    const query = window.matchMedia(MOBILE_QUERY)
+    const update = () => setMobile(query.matches)
+    update()
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
+  }, [])
+  return mobile
+}
 
 function readRemembered() {
   try {
@@ -47,6 +63,7 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
   const [shake, setShake] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
+  const mobile = useIsMobile()
 
   if (!loading && admin) {
     return <Navigate to="/" replace />
@@ -60,7 +77,7 @@ export function LoginPage() {
     try {
       const result = await signIn(normalizePhone(phone), password)
       try {
-        if (remember) localStorage.setItem(REMEMBER_KEY, normalizePhone(phone))
+        if (remember || mobile) localStorage.setItem(REMEMBER_KEY, normalizePhone(phone))
         else localStorage.removeItem(REMEMBER_KEY)
       } catch {
         /* stockage indisponible : la connexion n'en dépend pas */
@@ -77,6 +94,72 @@ export function LoginPage() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (mobile) {
+    return (
+      <div className="ap-auth">
+        <div className="ap-auth-col">
+          <img className="ap-auth-logo" src={logoUrl} alt="Monpermis.bj" />
+          <h1>Content de te revoir</h1>
+          <p className="ap-auth-sub">Connecte-toi pour gérer les apprenants, les paiements et les équipes.</p>
+          <form ref={formRef} className={shake ? 'cx-shake' : ''} onSubmit={handleSubmit} noValidate autoComplete="on" style={{ display: 'contents' }}>
+            {error ? (
+              <p className="ap-auth-error" role="alert">
+                {error}
+              </p>
+            ) : null}
+            <label className="ap-pill">
+              <Phone aria-hidden />
+              <input
+                aria-label="Téléphone"
+                name="phone"
+                type="tel"
+                inputMode="tel"
+                placeholder="Numéro de téléphone"
+                autoComplete="username"
+                autoFocus
+                value={phone}
+                onChange={(e) => setPhone(normalizePhone(e.target.value))}
+              />
+            </label>
+            <label className="ap-pill">
+              <Lock aria-hidden />
+              <input
+                aria-label="Mot de passe"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Mot de passe"
+                autoComplete="current-password"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                className="ap-eye"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              >
+                {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
+              </button>
+            </label>
+            <button type="button" className="ap-forgot" onClick={() => setShowHelp((v) => !v)}>
+              Mot de passe oublié ?
+            </button>
+            {showHelp ? <p className="ap-help">Contactez un superadmin : il peut vous attribuer un nouveau mot de passe.</p> : null}
+            <button type="submit" className="ap-btn" disabled={submitting}>
+              {submitting ? 'Connexion en cours…' : 'Se connecter'}
+            </button>
+          </form>
+          <p className="ap-foot">
+            © {new Date().getFullYear()} Monpermis.bj · Gestion de l’auto-école {SITE_NAME}
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
